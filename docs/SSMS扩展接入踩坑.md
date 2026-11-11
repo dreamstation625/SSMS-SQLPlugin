@@ -515,8 +515,83 @@ touch "%LOCALAPPDATA%\Microsoft\SSMS\22.0_a832b12e\Extensions\extensions.configu
 
 ---
 
-## 6. 环境/工具限制（本机特有）
+## 5.2 ScriptDom 的三个静默陷阱（P1 排版引擎阶段实测）
 
+这三条都不会抛异常、不会报错，只会让结果"看起来对但其实全错"，非常难查。
+
+### 5.2.1 `ExplicitVisit(TSqlStatement)` 永远不会被调用
+
+```csharp
+// ❌ 编译通过，运行时一条都收不到
+public override void ExplicitVisit(TSqlStatement node) { Statements.Add(node); }
+```
+
+`TSqlFragmentVisitor` 按节点的**具体类型**分发。`TSqlStatement` 是抽象基类，
+框架只会去找 `ExplicitVisit(SelectStatement)` / `ExplicitVisit(IfStatement)` 这类
+具体重载，基类那个永远不会命中（实测 count = 0）。
+
+**正解**：重写后序遍历的 `Visit(TSqlStatement node)`：
+
+```csharp
+public override void Visit(TSqlStatement node) { Statements.Add(node); }
+```
+
+代价是**后序**（先子后父），排序时要自己保证"同起点时外层在前"。
+
+> 这个 bug 的可怕之处：语句切分退化成"整批一条"，格式化照样有输出，
+> 只是所有语句边界丢失，`IF...BEGIN...END` 糊成一行。
+
+### 5.2.2 AST 的 token 索引含空白，和排版 token 列表错位
+
+```csharp
+st.FirstTokenIndex / st.LastTokenIndex   // 按「含空白」的原始 token 流编号
+```
+
+一旦我们自己把 `WhiteSpace` 丢掉（排版必须丢），索引就全部错位，
+所有语句区间指向错误的 token —— 输出会出现 `PRINT\nBEGIN`、`SET\nON`
+这种关键字被挪位的怪现象。
+
+**正解**：建映射数组，翻译区间。
+
+```csharp
+var map = new int[raw.Count];          // 原始索引 → 排版索引，-1 = 已丢弃
+// ... 填充 ...
+(first, last) = MapRange(map, st.FirstTokenIndex, st.LastTokenIndex);
+```
+
+### 5.2.3 `ScriptDom 报 Identifier` ≠ 不是关键字
+
+实测（TSql170Parser）：
+
+| 词 | TokenType | 实际语义 |
+|---|---|---|
+| `int` `varchar` `datetime` | Identifier | **类型名**，应大写 |
+| `level` `status` `type` `name` `key` | Identifier | **普通列名**，绝不能动 |
+| `matched` `target` `source` | Identifier | MERGE 语法词，应大写 |
+| `partition` `rows` `range` | Identifier | 窗口子句词，应大写 |
+| `using` | Identifier | MERGE 语法词，应大写；其他场景可能是列名 |
+
+**错误做法**：`if (SqlKeywords.IsKeyword(upper)) → 升级为 Keyword`。
+这会把 `WHERE level = 'vip'` 格式化成 `WHERE LEVEL = 'vip'`，列名大小写被吃掉。
+
+**正解**：分两张表
+
+- `DataTypes`（int/varchar/…）：无条件升级
+- `ContextualKeywords`（matched/target/partition/rows/…）：按**前导 token** 判断
+
+```csharp
+case "MATCHED":
+    return prev.IsAny("WHEN", "NOT", "BY", "AND");   // 前导词对得上才升级
+```
+
+⚠ 写这种判断时容易掉进两个坑：
+1. **别用 `sofar.Count - 2` 做起点** —— 当前 token 还没进列表，`-2` 会漏掉紧邻项
+2. **别用"前一个是 Identifier 就直接 return false"** —— MERGE 的 `USING`
+   前面正好是别名（Identifier），这条会把它永远挡住
+
+---
+
+## 6. 环境/工具限制（本机特有）
 | 限制 | 变通 |
 |---|---|
 | `api.nuget.org` 曾偶发不可达（返回 000） | 重试即可，实际可用 |

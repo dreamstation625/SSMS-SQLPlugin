@@ -6,6 +6,13 @@
     <RootNamespace>SsmsSqlPlugin.Formatting</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0" />
+    <!-- ScriptDom 由宿主提供，**不复制到输出目录**。
+         SSMS 22 自带 18.0.115.0（AssemblyVersion 18.0.0.0），位于
+         <SSMS>\Release\Common7\IDE\Extensions\Application\。
+         这里用 ExcludeAssets=runtime 只拿引用程序集编译，
+         避免扩展目录里多出 7MB 副本、也避免 CLR 加载到两个不同版本。 -->
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

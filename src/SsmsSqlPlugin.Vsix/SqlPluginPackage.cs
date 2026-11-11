@@ -1,0 +1,474 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.OLE.Interop;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.TextManager.Interop;
+using SsmsSqlPlugin.Editor;
+using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Menus;
+
+namespace SsmsSqlPlugin
+{
+    /// <summary>
+    /// SSMS-SQLPlugin 主包。
+    ///
+    /// 职责边界（刻意保持很小）：
+    ///   · 初始化时注入 UI 入口（顶部菜单 + 右键菜单 + 快捷键）
+    ///   · 提供"格式化当前编辑器"这一个动作
+    ///   · 其余能力（历史、补全、AI）后续按模块挂进来
+    ///
+    /// ⚠ 三条架构硬性规则（前两条来自 M0 实测，违反会静默失败）：
+    ///   1) 这个类的**任何**可见成员签名 / 字段 / 属性里都不能出现
+    ///      Microsoft.VisualStudio.Text.Editor.ITextView。
+    ///      一旦出现，SSMS 会静默不加载整个包，日志一个字都没有（0.0.10 事故）。
+    ///   2) pkgdef 的 InprocServer32 必须指 $WinDir$\SYSTEM32\MSCOREE.DLL，
+    ///      后台加载键名是 AllowsBackgroundLoad（不是 AllowsBackgroundLoading）。
+    ///   3) 菜单不用 CTC/VSCT —— SSMS 22 上这条路不通，改运行时注入（见 Menus/）。
+    /// </summary>
+    [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
+    [ProvideAutoLoad(UIContextGuids80.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]
+    [ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+    [Guid(PackageGuidString)]
+    public sealed class SqlPluginPackage : AsyncPackage
+    {
+        public const string PackageGuidString = "0a88c9e6-4e5f-4d80-9f6a-f88e3f8270bb";
+
+        /// <summary>命令集 GUID（运行时注入时用，与 pkgdef 无关）。</summary>
+        public static readonly Guid CommandSet = new Guid("d7f23a60-94cf-4718-a2fa-0b5477ffe20e");
+
+        private TopLevelMenu _topMenu;
+        private EditorContextMenu _contextMenu;
+
+        /// <summary>已经装过过滤器的视图（用对象身份哈希去重）。</summary>
+        private readonly System.Collections.Generic.HashSet<int> _filteredViews
+            = new System.Collections.Generic.HashSet<int>();
+
+        protected override async Task InitializeAsync(
+            CancellationToken cancellationToken,
+            IProgress<ServiceProgressData> progress)
+        {
+            Log.Info("================ 包初始化开始 ================");
+            Log.Info("程序集: " + typeof(SqlPluginPackage).Assembly.Location);
+            Log.Info("版本  : " + typeof(SqlPluginPackage).Assembly.GetName().Version);
+            Log.Info("进程  : " + Process.GetCurrentProcess().ProcessName +
+                     " / " + (Environment.Is64BitProcess ? "x64" : "x86"));
+
+            await base.InitializeAsync(cancellationToken, progress).ConfigureAwait(false);
+
+            // 全局 ServiceProvider，供静态工具类取服务
+            ServiceProviderHolder.Provider = this;
+
+            try
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                InstallUi();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("UI 安装失败", ex);
+            }
+
+            // 编辑器是后来才创建的，这里挂一个"文档打开"监听来装命令过滤器
+            try
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                HookDocumentEvents();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("文档事件监听安装失败", ex);
+            }
+
+            Log.Info("================ 包初始化结束 ================");
+
+            // ── 自检模式（诊断用，默认关闭）──
+            //
+            // 环境变量 SQLKIT_SELFTEST=1 时，把"选项读写 → 引擎格式化 → 编辑器格式化"
+            // 整条链路跑一遍并写日志。
+            //
+            // 留着它是因为：UI 自动点击（UIA / 模拟鼠标）受窗口层级、焦点、前台锁影响，
+            // 在不同机器上极不稳定；而日志判定是确定性的。
+            // 以后改菜单/回调，只要跑一次 SQLKIT_SELFTEST=1 就能确认链路没断。
+            if (Environment.GetEnvironmentVariable("SQLKIT_SELFTEST") == "1")
+            {
+                try { SelfTest(); }
+                catch (Exception ex) { Log.Error("自检异常", ex); }
+            }
+        }
+
+        /// <summary>
+        /// 自检：把菜单回调链路上的每个动作都执行一遍，验证不是"只画了个菜单壳"。
+        /// 结果全部写日志，从文件即可判定。
+        /// </summary>
+        private void SelfTest()
+        {
+            Log.Info("--------- 自检开始 ---------");
+
+            try
+            {
+                // ① 选项读写
+                Log.Info("[自检] 选项初始: " + FormatOptionsStore.Current.IndentSize + " 空格, " +
+                         "大写=" + FormatOptionsStore.Current.UppercaseKeywords + ", " +
+                         "每列一行=" + FormatOptionsStore.Current.VerticalSelectList);
+
+                FormatOptionsStore.Update(s => s.IndentSize = 2);
+                var after = FormatOptionsStore.Current.IndentSize;
+                Log.Info("[自检] 改成缩进 2 后回读 = " + after + " -> " + (after == 2 ? "PASS" : "FAIL"));
+
+                if (System.IO.File.Exists(FormatOptionsStore.ConfigPath))
+                    Log.Info("[自检] 配置文件已落盘: " + FormatOptionsStore.ConfigPath + " -> PASS");
+                else
+                    Log.Info("[自检] 配置文件未生成 -> FAIL");
+
+                // 还原
+                FormatOptionsStore.Update(s => s.IndentSize = 4);
+
+                // ② 排版引擎直调（不经过编辑器）
+                var sql = "select a,b,c from t where x=1 and y=2";
+                var eng = new Formatting.SqlFormatter().Format(sql, FormatOptionsStore.Current.ToFormatOptions());
+                Log.Info("[自检] 引擎格式化结果:\n" + eng.Text);
+                Log.Info("[自检] 引擎调用 -> " + (eng.Text != null && eng.Text.Length > 0 ? "PASS" : "FAIL"));
+
+                // ③ 编辑器链路（有没有活动 SQL 视图）
+                var view = EditorLocator.GetActiveView(this, mustBeSql: true);
+                Log.Info("[自检] 活动 SQL 视图 = " + (view == null ? "无（没打开 .sql 文件）" : "有"));
+
+                if (view != null)
+                {
+                    var outcome = FormatExecutor.Run(view, FormatOptionsStore.Current.ToFormatOptions());
+                    Log.Info("[自检] FormatExecutor: changed=" + outcome.Changed +
+                             " error=" + outcome.IsError + " msg=" + outcome.Message);
+                    Log.Info("[自检] 编辑器格式化 -> " + (!outcome.IsError ? "PASS" : "FAIL"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[自检] 异常", ex);
+            }
+
+            Log.Info("--------- 自检结束 ---------");
+        }
+
+        // ── UI 安装 ──
+
+        private void InstallUi()
+        {
+            // 这里所有操作都碰 COM / UI 对象，必须在主线程。
+            // 分析器 VSTHRD010 就是提醒这个 —— 显式断言比事后偶发崩溃好查。
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (Environment.GetEnvironmentVariable("SQLKIT_NO_UI") == "1")
+            {
+                // 诊断开关：只加载包、不注入任何 UI。
+                // 用于判断"某个异常行为是插件引起还是 SSMS 自身"。
+                Log.Warn("SQLKIT_NO_UI=1，跳过全部 UI 注入");
+                return;
+            }
+
+            EnvDTE.DTE dte = null;
+            try
+            {
+                dte = GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                if (dte == null) Log.Warn("DTE 不可用，菜单将无法注入");
+                else Log.Info("DTE = " + dte.Name + " / " + dte.Version);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("取 DTE 失败", ex);
+            }
+
+            // ① 顶部菜单（一级 + 二级弹层）—— 用户明确要求的入口
+            if (dte != null)
+            {
+                try
+                {
+                    _topMenu = new TopLevelMenu(
+                        () => FormatOptionsStore.Current,
+                        FormatActiveEditor,
+                        OpenLogFile,
+                        ShowAbout);
+
+                    _topMenu.Install(dte);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("安装顶部菜单失败", ex);
+                }
+            }
+
+            // ② 编辑器右键菜单
+            if (dte != null)
+            {
+                try
+                {
+                    _contextMenu = new EditorContextMenu(FormatActiveEditor);
+                    _contextMenu.TryInstall(dte);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("安装右键菜单失败", ex);
+                }
+            }
+
+            // ③ 给当前已打开的编辑器挂命令过滤器（快捷键）
+            try
+            {
+                var view = EditorLocator.GetActiveView(this, mustBeSql: false);
+                if (view != null) EnsureFilter(view);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("初始化时挂过滤器失败: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 监听文档窗口创建，给每个 SQL 编辑器挂命令过滤器（快捷键支持）。
+        ///
+        /// 用 RunningDocumentTable（RDT）事件而不是 DTE.Events.WindowEvents ——
+        /// RDT 在 SSMS 里更可靠，且不依赖窗口激活顺序。
+        /// </summary>
+        private void HookDocumentEvents()
+        {
+            try
+            {
+                var rdt = GetService(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable;
+                if (rdt == null)
+                {
+                    Log.Warn("SVsRunningDocumentTable 不可用，快捷键可能只在已打开的编辑器上生效");
+                    return;
+                }
+
+                uint cookie;
+                int hr = rdt.AdviseRunningDocTableEvents(new DocTableEvents(this), out cookie);
+                Log.Info("RDT 事件已挂: hr=0x" + hr.ToString("X8") + " cookie=" + cookie);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("挂 RDT 事件失败", ex);
+            }
+        }
+
+        private sealed class DocTableEvents : IVsRunningDocTableEvents
+        {
+            private readonly SqlPluginPackage _pkg;
+
+            public DocTableEvents(SqlPluginPackage pkg) { _pkg = pkg; }
+
+            public int OnAfterFirstDocumentLock(uint docCookie, uint dwRDTLockType,
+                                                uint dwReadLocksRemaining, uint dwEditLocksRemaining)
+                => 0;
+
+            public int OnBeforeLastDocumentUnlock(uint docCookie, uint dwRDTLockType,
+                                                  uint dwReadLocksRemaining, uint dwEditLocksRemaining)
+            {
+                if (dwReadLocksRemaining == 0 && dwEditLocksRemaining == 0)
+                {
+                    // 文档关闭：清掉对应的视图记录（用不上精确匹配，整体清理更安全）
+                    try { _pkg._filteredViews.Clear(); } catch { }
+                }
+                return 0;
+            }
+
+            public int OnAfterSave(uint docCookie) => 0;
+            public int OnAfterAttributeChange(uint docCookie, uint grfAttribs) => 0;
+
+            public int OnBeforeDocumentWindowShow(uint docCookie, int fFirstShow, IVsWindowFrame pFrame)
+            {
+                // 只在**第一次显示**时装过滤器。后续显示（切标签页）不用重复做，
+                // 也减少碰 COM frame 的机会。
+                if (fFirstShow == 0) return 0;
+
+                try
+                {
+                    _pkg.EnsureFilterForFrame(pFrame);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("文档窗口显示时挂过滤器失败: " + ex.Message);
+                }
+                return 0;
+            }
+
+            public int OnAfterDocumentWindowHide(uint docCookie, IVsWindowFrame pFrame) => 0;
+        }
+
+        /// <summary>从窗口 frame 拿到 IVsTextView 并挂过滤器。</summary>
+        private void EnsureFilterForFrame(IVsWindowFrame frame)
+        {
+            if (frame == null) return;
+
+            try
+            {
+                object docView;
+                if (frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out docView) != 0) return;
+                if (docView == null) return;
+
+                var vsView = docView as IVsTextView;
+                if (vsView == null)
+                {
+                    // 有些文档视图是 IVsCodeWindow，要再取 PrimaryView
+                    var codeWindow = docView as IVsCodeWindow;
+                    if (codeWindow != null) codeWindow.GetPrimaryView(out vsView);
+                }
+
+                if (vsView != null) EnsureFilter(vsView);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("从 frame 取视图失败: " + ex.Message);
+            }
+        }
+
+        /// <summary>给指定视图挂命令过滤器（幂等）。</summary>
+        private void EnsureFilter(IVsTextView view)
+        {
+            if (view == null) return;
+
+            // 去重键：用视图对象的 RuntimeHelpers 哈希，**不要**用
+            // Marshal.GetIUnknownForObject + Release。
+            //
+            // ⚠ 这里踩过坑：GetIUnknownForObject 每调一次就 AddRef，
+            // Release 一次只减一次；如果哪条异常路径漏掉 Release，
+            // COM 引用计数会失衡。更糟的是不同 RCW 实例哈希可能重复/冲突。
+            // 用对象身份哈希最省事：同一个 RCW 实例才判重，SSMS 每个编辑器
+            // 只有一个 IVsTextView 实例，够用。
+            int key = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(view);
+
+            lock (_filteredViews)
+            {
+                if (_filteredViews.Contains(key)) return;    // 已挂过
+                _filteredViews.Add(key);
+            }
+
+            try
+            {
+                var filter = new EditorCommandFilter(view, OnFilterFormat, EnsureContextMenuAlive);
+
+                IOleCommandTarget next;
+                int hr = view.AddCommandFilter(filter, out next);
+                filter.Next = next;
+
+                Log.Info("命令过滤器已挂 hr=0x" + hr.ToString("X8") +
+                         " next=" + (next == null ? "null" : next.GetType().Name));
+
+                if (hr != 0)
+                {
+                    lock (_filteredViews) { _filteredViews.Remove(key); }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("挂命令过滤器失败", ex);
+                lock (_filteredViews) { _filteredViews.Remove(key); }
+            }
+        }
+
+        /// <summary>过滤器回调：格式化指定视图。</summary>
+        private bool OnFilterFormat(IVsTextView view)
+        {
+            return DoFormat(view);
+        }
+
+        /// <summary>右键菜单保活：Shell 会重建编辑器上下文菜单，这里补回来。</summary>
+        private void EnsureContextMenuAlive()
+        {
+            if (_contextMenu == null) return;
+
+            try
+            {
+                var dte = GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                if (dte != null) _contextMenu.TryInstall(dte);
+            }
+            catch { }
+        }
+
+        // ── 动作 ──
+
+        /// <summary>菜单/工具栏入口：格式化当前活动编辑器。</summary>
+        private void FormatActiveEditor()
+        {
+            var view = EditorLocator.GetActiveView(this, mustBeSql: true);
+            if (view == null)
+            {
+                CommandBarInjector.ShowError(
+                    "SSMS-SQLPlugin",
+                    "当前没有活动的 SQL 查询窗口。\r\n请先打开或切换到 .sql 文件再试。");
+                return;
+            }
+
+            DoFormat(view);
+        }
+
+        /// <summary>真正的格式化执行，返回是否成功改动。</summary>
+        private bool DoFormat(IVsTextView view)
+        {
+            try
+            {
+                var options = FormatOptionsStore.Current.ToFormatOptions();
+                var outcome = FormatExecutor.Run(view, options);
+
+                Log.Info("格式化结果: changed=" + outcome.Changed +
+                         " error=" + outcome.IsError + " msg=" + outcome.Message);
+
+                if (outcome.IsError)
+                {
+                    CommandBarInjector.ShowError("格式化失败", outcome.Message);
+                    return false;
+                }
+
+                return outcome.Changed;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("格式化执行异常", ex);
+                CommandBarInjector.ShowError("格式化失败", ex.Message);
+                return false;
+            }
+        }
+
+        private void OpenLogFile()
+        {
+            try
+            {
+                string path = Infrastructure.Log.LogFilePath;
+                if (!System.IO.File.Exists(path))
+                {
+                    CommandBarInjector.ShowError("日志", "还没有日志文件：\r\n" + path);
+                    return;
+                }
+                Process.Start("notepad.exe", "\"" + path + "\"");
+            }
+            catch (Exception ex)
+            {
+                CommandBarInjector.ShowError("打开日志失败", ex.Message);
+            }
+        }
+
+        private void ShowAbout()
+        {
+            try
+            {
+                var asm = typeof(SqlPluginPackage).Assembly;
+                string msg =
+                    "SSMS-SQLPlugin " + asm.GetName().Version + "\r\n\r\n" +
+                    "SQL 格式化 / 历史 / 表名字段补全\r\n" +
+                    "（当前版本已实现：SQL 格式化）\r\n\r\n" +
+                    "快捷键：Ctrl+K, Ctrl+D\r\n" +
+                    "配置文件：" + FormatOptionsStore.ConfigPath + "\r\n" +
+                    "日志文件：" + Infrastructure.Log.LogFilePath;
+
+                System.Windows.Forms.MessageBox.Show(
+                    msg, "关于 SSMS-SQLPlugin",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Information);
+            }
+            catch { }
+        }
+    }
+}

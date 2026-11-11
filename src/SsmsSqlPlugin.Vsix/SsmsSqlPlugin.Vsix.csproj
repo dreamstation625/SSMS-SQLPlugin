@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>SsmsSqlPlugin</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin</RootNamespace>
+    <Version>0.1.0</Version>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 关键：必须引用 NuGet 的 17.x 引用程序集（AssemblyVersion = 17.0.0.0）。
+         不能用 SSMS 安装目录 PublicAssemblies 里那份 —— 它是 VS 2026 工具链的
+         18.0.0.0，而 SSMS 运行时加载的是 17.0.0.0，没有绑定重定向，
+         CLR 解析失败后是静默的：包不加载、菜单不出现、日志一个字都没有。
+         ExcludeAssets=runtime 保证这些 DLL 不会被打进 VSIX（宿主自己提供）。 -->
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- dynamic 访问 DTE.CommandBars 需要 -->
+    <Reference Include="Microsoft.CSharp" />
+    <!-- MEF 1 导出（后续补全功能要用） -->
+    <Reference Include="System.ComponentModel.Composition" />
+    <!-- 弹窗提示：VSIX 里没有 WPF 引用链，WinForms 最省事且最稳 -->
+    <Reference Include="System.Windows.Forms" />
+    <!-- 排版引擎（netstandard2.0，net48 可直接引用） -->
+    <ProjectReference Include="..\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -84,6 +84,21 @@ project.fragment.lock.json
 *.exe
 *.pdb
 *.vsix
+# ⚠ 上面这条会把项目目录 SsmsSqlPlugin.Vsix 也匹配掉
+# （Windows 文件系统大小写不敏感，git 的路径匹配却区分大小写，
+#   结果 *.vsix 命中 SsmsSqlPlugin.Vsix 这个目录 → 整个项目被忽略）。
+# 这里只把源码文件捞回来，bin/obj/dist 仍然忽略。
+!src/SsmsSqlPlugin.Vsix/
+!src/SsmsSqlPlugin.Vsix/**/
+!src/SsmsSqlPlugin.Vsix/**/*.cs
+!src/SsmsSqlPlugin.Vsix/**/*.csproj
+!src/SsmsSqlPlugin.Vsix/**/*.pkgdef
+!src/SsmsSqlPlugin.Vsix/**/*.vsixmanifest
+!src/SsmsSqlPlugin.Vsix/**/*.py
+# 但 obj/bin/dist 里也有 .cs/.py，必须再压回去
+src/SsmsSqlPlugin.Vsix/obj/
+src/SsmsSqlPlugin.Vsix/bin/
+src/SsmsSqlPlugin.Vsix/dist/
 *.cto
 *.tlog
 *.resources
