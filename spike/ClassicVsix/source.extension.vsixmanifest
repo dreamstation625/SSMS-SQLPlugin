@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0"
+                 xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
+                 xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SSMS-SQLPlugin.Classic.7b3e2f81-4c19-4a67-9d05-1e8f2a6c3b54" Version="0.1.0" Language="en-US" Publisher="SSMS-SQLPlugin" />
+    <DisplayName>SSMS-SQLPlugin (classic build)</DisplayName>
+    <Description xml:space="preserve">M0 probe built with the classic VSSDK project shape, to obtain a canonical CTC.</Description>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Ssms" Version="[22.0,]">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" Version="[4.8,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,19.0)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="SsmsSqlPlugin.Classic" Path="|SsmsSqlPlugin.Classic;PkgdefProjectOutputGroup|" />
+  </Assets>
+</PackageManifest>

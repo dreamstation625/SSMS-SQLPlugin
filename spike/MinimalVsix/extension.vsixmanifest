@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0"
+                 xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
+                 xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SSMS-SQLPlugin.Probe.9f2c1d54-7a3e-4b21-8c6d-5e0f1a2b3c4d" Version="0.0.15" Language="en-US" Publisher="SSMS-SQLPlugin" />
+    <DisplayName>SSMS-SQLPlugin Probe</DisplayName>
+    <Description xml:space="preserve">M0 probe: verify a VSIX can load and run managed code inside SQL Server Management Studio 22.</Description>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Ssms" Version="[22.0,]">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="SSMS-SQLPlugin.pkgdef" />
+    <!-- MEF 组件：补全 provider 走 MEF 导出，必须在清单里声明，否则 Shell 不扫描这个 DLL -->
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="File" Path="SsmsSqlPlugin.Probe.dll" />
+  </Assets>
+</PackageManifest>

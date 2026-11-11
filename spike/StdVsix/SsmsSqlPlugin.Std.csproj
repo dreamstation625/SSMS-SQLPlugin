@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>SsmsSqlPlugin.Std</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin.Std</RootNamespace>
+    <Version>0.1.0</Version>
+
+    <!-- VSSDK 打包：由 Microsoft.VSSDK.BuildTools 自动生成 pkgdef 与 .vsix -->
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+    <CreateVsixContainer>true</CreateVsixContainer>
+    <DeployExtension>false</DeployExtension>
+    <CopyVsixManifestToOutput>true</CopyVsixManifestToOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.12.2069">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <VSCTCompile Include="Probe.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+  <!-- SDK 风格工程不会自动导入 VsSDK.targets，必须显式引入，
+       否则打包目标（CreateVsixContainer / GeneratePkgDef / VSCTCompile）根本不存在。 -->
+  <PropertyGroup>
+    <VSToolsPath>$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.12.2069\tools\vssdk</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(VSToolsPath)\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\Microsoft.VsSDK.targets')" />
+
+</Project>

@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CommandTable language="zh-CN" xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+  <Commands>
+    <Groups>
+      <Group guid="guidProbeCmdSet" id="ProbeMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
+      </Group>
+    </Groups>
+  </Commands>
+  <Commands package="guidProbePackage">
+    <Buttons>
+      <Button guid="guidProbeCmdSet" id="cmdidPing" priority="0x0100" type="Button">
+        <Parent guid="guidProbeCmdSet" id="ProbeMenuGroup" />
+        <Strings>
+          <ButtonText>SSMS-SQLPlugin: Ping</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+  <Symbols>
+    <GuidSymbol name="guidProbePackage" value="{0a88c9e6-4e5f-4d80-9f6a-f88e3f8270bb}" />
+    <GuidSymbol name="Group_Undefined" value="{83285929-227c-11d3-b870-00c04f79f802}" />
+    <GuidSymbol name="Pkg_Undefined" value="{8328592a-227c-11d3-b870-00c04f79f802}" />
+    <GuidSymbol name="guidSHLMainMenu" value="{d309f791-903f-11d0-9efc-00a0c911004f}">
+      <IDSymbol name="IDM_VS_MENU_TOOLS" value="0x0085" />
+    </GuidSymbol>
+    <GuidSymbol name="guidOfficeIcon" value="{d309f794-903f-11d0-9efc-00a0c911004f}">
+      <IDSymbol name="msotcidNoIcon" value="0x02EA" />
+    </GuidSymbol>
+    <GuidSymbol name="guidProbeCmdSet" value="{d7f23a60-94cf-4718-a2fa-0b5477ffe20e}">
+      <IDSymbol name="cmdidPing" value="0x0100" />
+      <IDSymbol name="ProbeMenuGroup" value="0x1020" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

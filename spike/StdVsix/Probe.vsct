@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidStdPackage">
+    <Groups>
+      <Group guid="guidStdCmdSet" id="StdMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidStdCmdSet" id="cmdidPing" priority="0x0100" type="Button">
+        <Parent guid="guidStdCmdSet" id="StdMenuGroup" />
+        <Strings>
+          <ButtonText>SSMS-SQLPlugin: Ping</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidStdPackage" value="{EE966F9B-C731-4857-9A49-E4B010E4B615}" />
+    <GuidSymbol name="guidStdCmdSet" value="{0C476A4F-7DBF-4A3E-A5C6-A68FAB905E44}">
+      <IDSymbol name="StdMenuGroup" value="0x1020" />
+      <IDSymbol name="cmdidPing" value="0x0100" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

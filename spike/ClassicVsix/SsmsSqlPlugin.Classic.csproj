@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{FE2D03D9-12A8-45D4-B776-2C337623B244}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SsmsSqlPlugin.Classic</RootNamespace>
+    <AssemblyName>SsmsSqlPlugin.Classic</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+
+    <!-- VSSDK 打包开关 -->
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <CreateVsixContainer>true</CreateVsixContainer>
+    <DeployExtension>false</DeployExtension>
+    <CopyVsixManifestToOutput>true</CopyVsixManifestToOutput>
+
+    <NuGetRoot>$(UserProfile)\.nuget\packages</NuGetRoot>
+    <VSToolsPath>$(NuGetRoot)\microsoft.vssdk.buildtools\17.12.2069\tools\vssdk</VSToolsPath>
+    <VSdkVer>17.0.32112.339</VSdkVer>
+    <!-- VSSDK 的 FindSDKInstallation 需要知道 VS 安装根；本机是 VS 2026 (18.x) -->
+    <VsInstallRoot>C:\Program Files\Microsoft Visual Studio\18\Community</VsInstallRoot>
+    <VisualStudioVersion>18.0</VisualStudioVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualStudio.Shell.15.0">
+      <HintPath>$(NuGetRoot)\microsoft.visualstudio.shell.15.0\$(VSdkVer)\lib\net472\Microsoft.VisualStudio.Shell.15.0.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Shell.Framework">
+      <HintPath>$(NuGetRoot)\microsoft.visualstudio.shell.framework\$(VSdkVer)\lib\net472\Microsoft.VisualStudio.Shell.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.OLE.Interop">
+      <HintPath>$(NuGetRoot)\microsoft.visualstudio.ole.interop\$(VSdkVer)\lib\net472\Microsoft.VisualStudio.OLE.Interop.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Interop">
+      <HintPath>$(NuGetRoot)\microsoft.visualstudio.interop\$(VSdkVer)\lib\net472\Microsoft.VisualStudio.Interop.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="ClassicPackage.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <VSCTCompile Include="Probe.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\Microsoft.VsSDK.targets')" />
+
+  <!--
+    VSSDK 自带的 FindSDKInstallation 会去注册表找 VisualStudio\17.0，
+    本机装的是 VS 2026 (18.0) 所以必然失败。这里用同名的空目标覆盖它，
+    直接把路径指到 VS 18 的 VSSDK 目录（MSBuild 允许后定义覆盖先定义）。
+  -->
+  <PropertyGroup>
+    <VsSDKInstall>C:\Program Files\Microsoft Visual Studio\18\Community\VSSDK\VisualStudioIntegration</VsSDKInstall>
+    <VsSDKIncludes>$(VsSDKInstall)\Common\Inc</VsSDKIncludes>
+    <VsSDKToolsPath>$(VsSDKInstall)\Tools\Bin</VsSDKToolsPath>
+    <VsSDKX86ToolsPath>$(VsSDKToolsPath)</VsSDKX86ToolsPath>
+  </PropertyGroup>
+
+  <Target Name="FindSDKInstallation" />
+</Project>

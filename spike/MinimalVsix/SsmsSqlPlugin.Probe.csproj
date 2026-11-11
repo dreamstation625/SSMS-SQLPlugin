@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>SsmsSqlPlugin.Probe</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin.Probe</RootNamespace>
+    <Version>0.0.15</Version>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 关键：必须引用 NuGet 的 17.x 引用程序集（AssemblyVersion = 17.0.0.0）。
+         不能用 SSMS 安装目录 PublicAssemblies 里那份 —— 它是 VS 2026 工具链的
+         18.0.0.0，而 SSMS 运行时加载的是 17.0.0.0，没有绑定重定向，
+         CLR 解析失败后是静默的：包不加载、菜单不出现、日志一个字都没有。
+         ExcludeAssets=runtime 保证这些 DLL 不会被打进 VSIX（宿主自己提供）。 -->
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- dynamic 访问 DTE.CommandBars 需要 -->
+    <Reference Include="Microsoft.CSharp" />
+    <!-- MEF 1 导出（[Export] / [ContentType] / [Name]） -->
+    <Reference Include="System.ComponentModel.Composition" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- VSCT 编译产物，资源名必须与 pkgdef 里 ",Menus.ctmenu,1" 一致 -->
+    <EmbeddedResource Include="Probe.cto">
+      <LogicalName>Menus.ctmenu</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

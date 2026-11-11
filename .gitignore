@@ -1,0 +1,99 @@
+# =========================
+# SSMS-SQLPlugin 项目忽略规则
+# 基线：本机 H 盘根目录的 .NET / Visual Studio 通用 .gitignore
+#       （该文件在仓库外、且未配置 core.excludesFile，对本项目不生效，故复制到项目内）
+# 补充：SSMS 探针工程、离线构建产物、本机工具状态
+# =========================
+
+# 构建产物（任意层级）
+**/[Bb]in/
+**/[Oo]bj/
+**/[Ll]og/
+**/[Ll]ogs/
+**/artifacts/
+**/publish/
+**/dist/
+**/build/
+
+# Debug / Release 目录及其中 DLL（大小写兼容）
+**/[Dd]ebug/
+**/[Rr]elease/
+**/[Dd]ebugPublic/
+**/[Rr]eleases/
+**/[Xx]64/
+**/[Xx]86/
+**/[Aa]nyCPU/
+**/[Dd]ebug/**/*.dll
+**/[Rr]elease/**/*.dll
+
+# IDE/工具
+.vs/
+**/.vs/
+.vscode/
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# VS/项目本地文件
+**/*.user
+**/*.suo
+**/*.ipch
+**/*.dbmdl
+**/*.sln.docstates
+
+# 中间文件/日志
+**/*.obj
+**/*.pdb
+**/*.cache
+**/*.ilk
+**/*.log
+**/*.tlog
+**/*.lastbuildstate
+
+# NuGet
+**/packages/
+**/*.nupkg
+**/*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+# 测试结果
+**/TestResults/
+**/*.trx
+**/*.coverage
+**/*.coveragexml
+
+# 系统文件
+[Dd]esktop.ini
+[Tt]humbs.db
+*.DS_Store
+
+# 本地配置/临时
+*.env
+*.local
+*.swp
+*.bak
+*.tmp
+
+# =========================
+# 本项目补充：编译/打包产物与探针二进制
+# 仓库内所有 .dll/.exe 都可从 SSMS 安装目录、NuGet 或 dotnet build 再生成，
+# 不提交二进制；离线构建链靠脚本与 pkgdef，不靠仓库内的 DLL 副本。
+# =========================
+*.dll
+*.exe
+*.pdb
+*.vsix
+*.cto
+*.tlog
+*.resources
+*.out
+*.original
+*.Up2Date
+
+# 本地探针、取证脚本与临时产物：整个目录不进版本库（用户 2026-11-11 明确要求）
+/tmp/
+
+# 本机工具状态（不进版本库）
+# 注意：.agentmem/ 按项目约定必须纳入版本控制，不要在此添加忽略规则
+.workbuddy/
