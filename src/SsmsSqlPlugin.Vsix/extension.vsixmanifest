@@ -13,7 +13,7 @@
     </InstallationTarget>
   </Installation>
   <Assets>
-    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="SsmsSqlPlugin.pkgdef" />
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="SSMS-SQLPlugin.pkgdef" />
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="File" Path="SsmsSqlPlugin.dll" />
   </Assets>
 </PackageManifest>

@@ -61,9 +61,38 @@
 
 ---
 
-## 3. 三个必须记住的坑
+## 3. 四个必须记住的坑
 
-### 3.1 `CommandBarPopup` **不能**强转成 `CommandBar`
+### 3.1 pkgdef 里**不能有 `;` 注释**
+
+```ini
+[$RootKey$\Packages\{0a88c9e6-...}]
+@="SSMS-SQLPlugin"
+...
+; SSMS 自身 UI 上下文（d114938f）   ← ❌ 这一行会让整个文件解析失败
+[$RootKey$\AutoLoadPackages\{d114938f-...}]
+```
+
+只要出现一行 `; 说明`，Shell 的 pkgdef 合并器就**整段放弃**，
+`[$RootKey$\Packages\{GUID}]` 根本没进 `privateregistry.bin`
+→ 包不注册 → 不加载 → **零日志、零报错、菜单不出现**。
+
+**这是本项目最难查的一个坑**：本来一切正常，我为了写注释加了几行 `;`，
+之后连续多轮验证都是"SSMS 活着、日志一个字没有、菜单不出现"，
+排查了缓存、目录名、文件版本、manifest 全都对，最后是搜
+`privateregistry.bin` 里有没有包 GUID 才发现根本没合并。
+
+**判别方法**：
+
+```python
+data = open(r'%LOCALAPPDATA%\Microsoft\SSMS\22.0_xxx\privateregistry.bin','rb').read()
+print(data.find('0a88c9e6-4e5f-4d80-9f6a-f88e3f8270bb'.encode('utf-16-le')))
+# -1 = 没合并成功，包不会加载
+```
+
+`build.py` 已经加了 `verify_pkgdef()` 主动拦截：检测到注释行直接报错退出。
+
+### 3.2 `CommandBarPopup` **不能**强转成 `CommandBar`
 
 ```csharp
 // ❌ 抛 InvalidCastException: 无法将类型为 "_Marshaler" 的对象强制转换为 "CommandBar"
@@ -84,7 +113,7 @@ Populate(popup.Controls, children);
 public static int Populate(CommandBarControls controls, IList<MenuEntry> entries)
 ```
 
-### 3.2 扩展目录名不能自己起
+### 3.3 扩展目录名不能自己起
 
 ```
 %LOCALAPPDATA%\Microsoft\SSMS\22.0_a832b12e\Extensions\
@@ -97,7 +126,7 @@ public static int Populate(CommandBarControls controls, IList<MenuEntry> entries
 
 部署时要么复用已在的那个目录，要么沿用探测阶段生成过的 ID。
 
-### 3.3 不要用 `Marshal.GetIUnknownForObject` 做去重键
+### 3.4 不要用 `Marshal.GetIUnknownForObject` 做去重键
 
 ```csharp
 // ❌ 每次调用 AddRef，异常路径漏 Release 就失衡；不同 RCW 实例还可能哈希冲突
@@ -109,6 +138,21 @@ int key = RuntimeHelpers.GetHashCode(view);
 ```
 
 这个坑当时表现成"SSMS 启动几十秒后自己退出"，排查了很久才发现是引用计数失衡。
+
+---
+
+## 3.5 部署必须同时做三件事
+
+```python
+# ① 复制文件
+# ② touch 标记
+os.utime(extensions_configurationchanged, None)
+# ③ 删掉元数据缓存（只做②不一定够，实测遇到过"文件换了标记也刷了仍不加载"）
+os.remove("ExtensionMetadata2.0.mpack")
+os.remove("ExtensionMetadataCache.mpack")
+```
+
+`build.py` 已全部自动做。
 
 ---
 
@@ -189,7 +233,12 @@ SQLKIT_SELFTEST=1 SSMS.exe path\to\test.sql
 
 ---
 
-## 7. 实测验收证据（2026-11-11 16:19）
+## 7. 实测验收证据（2026-11-11 16:48）
+
+![SSMS 内的格式化效果](images/ssms-format-demo.png)
+
+上图：菜单栏最右 `SSMS-SQLPlugin`；编辑器内 12 行格式化结果，且全文保持选中
+（说明选区恢复也在工作）。
 
 ### 7.1 菜单结构被 Shell 接受
 

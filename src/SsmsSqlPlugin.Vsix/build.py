@@ -29,7 +29,7 @@ DIST = os.path.join(HERE, "dist")
 
 DLL = "SsmsSqlPlugin.dll"
 DLL_FORMATTING = "SsmsSqlPlugin.Formatting.dll"
-PKGDEF = "SsmsSqlPlugin.pkgdef"
+PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
 VSIX = "SSMS-SQLPlugin.vsix"
 
@@ -55,6 +55,46 @@ def step(msg):
 def fail(msg):
     print("[FAIL] " + msg)
     return 1
+
+
+def verify_pkgdef():
+    """校验 pkgdef 的致命细节。
+
+    ⚠ 这里踩过一个极难查的坑：**pkgdef 里不能写 `;` 注释**。
+    只要出现一行 `; 说明文字`，SSMS 的 pkgdef 合并器会**整段解析失败**，
+    结果是 `[$RootKey$\\Packages\\{GUID}]` 根本没进 privateregistry.bin
+    → 包不注册 → 不加载 → 日志零输出 → 菜单不出现，且没有任何报错。
+
+    验证方法：装完后在 privateregistry.bin 里搜包 GUID 的 UTF-16 字节，
+    搜不到就是没合并成功。
+    """
+    path = os.path.join(HERE, PKGDEF)
+    if not os.path.isfile(path):
+        return fail("pkgdef 不存在: " + path)
+
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    # 必须 UTF-16 LE + BOM
+    if not raw.startswith(b"\xff\xfe"):
+        return fail("pkgdef 必须是 UTF-16 LE + BOM")
+
+    text = raw[2:].decode("utf-16-le")
+
+    # 不能有注释行
+    for i, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith(";") or stripped.startswith("#"):
+            return fail("pkgdef 第 %d 行是注释，会导致整段解析失败：%s" % (i, stripped[:40]))
+
+    # 关键段必须齐
+    for needle in ("[$RootKey$\\Packages\\{", "InprocServer32", "MSCOREE.DLL",
+                   "AllowsBackgroundLoad", "AutoLoadPackages"):
+        if needle not in text:
+            return fail("pkgdef 缺少关键内容: " + needle)
+
+    step("pkgdef 校验通过（UTF-16 LE + BOM，无注释，关键段齐全）")
+    return 0
 
 
 def build():
@@ -145,11 +185,29 @@ def deploy():
         os.utime(marker, None)
     step("已刷新 extensions.configurationchanged")
 
+    # 另一条铁律：删掉扩展元数据缓存。
+    #
+    # 只 touch 标记不一定够 —— 实测遇到过"文件都换了、标记也刷了，
+    # 但包仍不加载"的情况，删掉 mpack 后立刻恢复。
+    # 这两个文件是 Shell 扫描扩展目录后的索引，删掉会强制重建（代价几秒）。
+    for cache in ("ExtensionMetadata2.0.mpack", "ExtensionMetadataCache.mpack"):
+        p = os.path.join(SSMS_EXT_DIR, cache)
+        if os.path.isfile(p):
+            try:
+                os.remove(p)
+                step("已清除缓存 " + cache)
+            except Exception as ex:
+                print("       [warn] 删除 %s 失败: %s" % (cache, ex))
+
     return 0
 
 
 def main():
     no_deploy = "--no-deploy" in sys.argv
+
+    rc = verify_pkgdef()
+    if rc != 0:
+        return rc
 
     rc = build()
     if rc != 0:
