@@ -1,6 +1,7 @@
 using System;
 using Microsoft.VisualStudio.CommandBars;
 using SsmsSqlPlugin.Editor;
+using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
 
 namespace SsmsSqlPlugin.Menus
@@ -33,6 +34,7 @@ namespace SsmsSqlPlugin.Menus
 
         private readonly Func<FormatOptionsSnapshot> _getOptions;
         private readonly Action _format;
+        private readonly Action _openHistory;
         private readonly Action _refreshCompletion;
         private readonly Action _openLog;
         private readonly Action _about;
@@ -43,12 +45,14 @@ namespace SsmsSqlPlugin.Menus
         public TopLevelMenu(
             Func<FormatOptionsSnapshot> getOptions,
             Action format,
+            Action openHistory,
             Action refreshCompletion,
             Action openLog,
             Action about)
         {
             _getOptions = getOptions;
             _format = format;
+            _openHistory = openHistory;
             _refreshCompletion = refreshCompletion;
             _openLog = openLog;
             _about = about;
@@ -215,6 +219,47 @@ namespace SsmsSqlPlugin.Menus
                 .WithChildren(indent2, indent4, MenuEntry.Separator(), upper, vertical, subq));
 
             list.Add(MenuEntry.Separator());
+            list.Add(new MenuEntry("SQL 历史...", "搜索、筛选执行历史，双击在查询窗口重开",
+                                   _openHistory, TagPrefix + "History"));
+
+            var autoOff = new MenuEntry("关闭", "不自动记录", () => SetAutoSave(AutoSaveMode.Off, 0),
+                                        TagPrefix + "AutoOff")
+                .WithCheck(() => !HistoryAutoSaveStore.Current.Enabled);
+
+            var autoEdit = new MenuEntry("修改后记录", "内容有修改时自动记录，最多每分钟一条",
+                                         () => SetAutoSave(AutoSaveMode.OnEdit, 0),
+                                         TagPrefix + "AutoEdit")
+                .WithCheck(() =>
+                {
+                    var settings = HistoryAutoSaveStore.Current;
+                    return settings.Enabled && settings.Mode == AutoSaveMode.OnEdit;
+                });
+
+            var auto1 = new MenuEntry("每 1 分钟", "内容有变化才记录，最多每分钟一条",
+                                      () => SetAutoSave(AutoSaveMode.Interval, 1),
+                                      TagPrefix + "Auto1")
+                .WithCheck(() => IsAutoInterval(1));
+
+            var auto5 = new MenuEntry("每 5 分钟", "内容有变化才记录，最多每 5 分钟一条",
+                                      () => SetAutoSave(AutoSaveMode.Interval, 5),
+                                      TagPrefix + "Auto5")
+                .WithCheck(() => IsAutoInterval(5));
+
+            var auto15 = new MenuEntry("每 15 分钟", "内容有变化才记录，最多每 15 分钟一条",
+                                       () => SetAutoSave(AutoSaveMode.Interval, 15),
+                                       TagPrefix + "Auto15")
+                .WithCheck(() => IsAutoInterval(15));
+
+            var auto30 = new MenuEntry("每 30 分钟", "内容有变化才记录，最多每 30 分钟一条",
+                                       () => SetAutoSave(AutoSaveMode.Interval, 30),
+                                       TagPrefix + "Auto30")
+                .WithCheck(() => IsAutoInterval(30));
+
+            list.Add(new MenuEntry("自动记录（" + AutoSaveCaption() + "）",
+                                   "不执行也记录当前 SQL；内容有变化才落库",
+                                   null, TagPrefix + "AutoSave")
+                .WithChildren(autoOff, autoEdit, MenuEntry.Separator(), auto1, auto5, auto15, auto30));
+
             list.Add(new MenuEntry("刷新补全缓存", "重新读取当前数据库的表和字段",
                                    _refreshCompletion, TagPrefix + "RefreshCompletion"));
             list.Add(new MenuEntry("打开日志", "打开插件日志文件（排查问题用）",
@@ -236,6 +281,38 @@ namespace SsmsSqlPlugin.Menus
         public void Refresh(EnvDTE.DTE dte)
         {
             Install(dte);
+        }
+
+        // ── 自动记录 ──
+
+        private static bool IsAutoInterval(int minutes)
+        {
+            var settings = HistoryAutoSaveStore.Current;
+            return settings.Enabled &&
+                   settings.Mode == AutoSaveMode.Interval &&
+                   settings.IntervalMinutes == minutes;
+        }
+
+        private static string AutoSaveCaption()
+        {
+            var settings = HistoryAutoSaveStore.Current;
+            if (!settings.Enabled) return "关闭";
+            return settings.Mode == AutoSaveMode.OnEdit
+                ? "修改后"
+                : "每 " + Math.Max(1, settings.IntervalMinutes) + " 分钟";
+        }
+
+        private void SetAutoSave(AutoSaveMode mode, int intervalMinutes)
+        {
+            HistoryAutoSaveStore.Update(settings =>
+            {
+                settings.Enabled = mode != AutoSaveMode.Off;
+                settings.Mode = mode;
+                if (intervalMinutes > 0) settings.IntervalMinutes = intervalMinutes;
+            });
+
+            Log.Info("自动记录 = " + HistoryAutoSaveStore.Describe(HistoryAutoSaveStore.Current));
+            RefreshChecks();
         }
 
         // ── 选项操作 ──

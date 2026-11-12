@@ -30,6 +30,7 @@ DIST = os.path.join(HERE, "dist")
 DLL = "SsmsSqlPlugin.dll"
 DLL_FORMATTING = "SsmsSqlPlugin.Formatting.dll"
 DLL_CORE = "SsmsSqlPlugin.Core.dll"
+DLL_STORAGE = "SsmsSqlPlugin.Storage.dll"
 PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
 VSIX = "SSMS-SQLPlugin.vsix"
@@ -125,7 +126,8 @@ def build():
 def package():
     for name, path in ((DLL, os.path.join(BIN, DLL)),
                        (DLL_FORMATTING, os.path.join(BIN, DLL_FORMATTING)),
-                       (DLL_CORE, os.path.join(BIN, DLL_CORE))):
+                       (DLL_CORE, os.path.join(BIN, DLL_CORE)),
+                       (DLL_STORAGE, os.path.join(BIN, DLL_STORAGE))):
         if not os.path.isfile(path):
             return fail("找不到 %s" % path)
 
@@ -139,6 +141,7 @@ def package():
         (os.path.join(BIN, DLL), DLL),
         (os.path.join(BIN, DLL_FORMATTING), DLL_FORMATTING),
         (os.path.join(BIN, DLL_CORE), DLL_CORE),
+        (os.path.join(BIN, DLL_STORAGE), DLL_STORAGE),
     ]
 
     vsix_path = os.path.join(DIST, VSIX)
@@ -179,7 +182,7 @@ def deploy():
     else:
         step("复用扩展目录 " + target)
 
-    for fname in (DLL, DLL_FORMATTING, DLL_CORE, PKGDEF):
+    for fname in (DLL, DLL_FORMATTING, DLL_CORE, DLL_STORAGE, PKGDEF):
         shutil.copy2(os.path.join(BIN if fname != PKGDEF else HERE, fname),
                      os.path.join(target, fname))
         print("       copied %s" % fname)

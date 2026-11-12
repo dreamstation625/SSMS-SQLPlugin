@@ -13,6 +13,8 @@ namespace SsmsSqlPlugin.Core.Metadata
         public string Server;
         public string Database;
         public string ConnectionString;
+        /// <summary>当前查询窗口的宿主 moniker（未保存查询通常是 %TEMP% 下的临时 .sql）。</summary>
+        public string EditorMoniker;
         /// <summary>宿主返回的连接对象类型（Microsoft.Data.SqlClient.SqlConnection 等）。</summary>
         public Type ConnectionType;
 

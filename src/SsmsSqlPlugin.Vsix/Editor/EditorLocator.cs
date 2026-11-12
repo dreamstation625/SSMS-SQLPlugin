@@ -140,7 +140,7 @@ namespace SsmsSqlPlugin.Editor
             return typeName as string;
         }
 
-        private static string GetDocumentPath(IVsTextView view)
+        internal static string GetDocumentPath(IVsTextView view)
         {
             IVsTextLines buffer;
             if (view.GetBuffer(out buffer) != 0 || buffer == null) return null;
@@ -148,12 +148,27 @@ namespace SsmsSqlPlugin.Editor
             IVsUserData userData = buffer as IVsUserData;
             if (userData == null) return null;
 
-            // VSUSERDATA_FILEPATH = {2c8db274-...}
-            var guidFile = new Guid("2C8DB274-D9D4-4B48-9E5B-8A2D5D2F3F72");
-            object value;
-            if (userData.GetData(ref guidFile, out value) != 0) return null;
+            // VSUSERDATA_FILEPATH；不同版本 SDK 头文件里低 16 位有 4B49/4B48 两种写法，
+            // 两个都试，避免路径永远读不到。
+            string path = ReadFilePath(userData, new Guid("2C8DB274-D9D4-4B49-9E5B-8A2D5D2F3F72"));
+            if (string.IsNullOrEmpty(path))
+                path = ReadFilePath(userData, new Guid("2C8DB274-D9D4-4B48-9E5B-8A2D5D2F3F72"));
 
-            return value as string;
+            return path;
+        }
+
+        private static string ReadFilePath(IVsUserData userData, Guid guid)
+        {
+            try
+            {
+                object value;
+                if (userData.GetData(ref guid, out value) != 0) return null;
+                return value as string;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 

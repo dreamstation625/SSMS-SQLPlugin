@@ -31,6 +31,8 @@
     <ProjectReference Include="..\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
     <!-- 补全的纯逻辑（词法复用 Formatting，元数据/上下文/排序在 Core） -->
     <ProjectReference Include="..\SsmsSqlPlugin.Core\SsmsSqlPlugin.Core.csproj" />
+    <!-- 历史/文件快照：复用宿主 SQLite（反射，不打包 native） -->
+    <ProjectReference Include="..\SsmsSqlPlugin.Storage\SsmsSqlPlugin.Storage.csproj" />
   </ItemGroup>
 
 </Project>

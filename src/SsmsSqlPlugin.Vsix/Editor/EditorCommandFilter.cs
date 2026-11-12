@@ -27,6 +27,7 @@ namespace SsmsSqlPlugin.Editor
 
         private readonly IVsTextView _view;
         private readonly Func<IVsTextView, bool> _formatCallback;
+        private readonly Action<IVsTextView, Guid, uint> _executeCallback;
 
         // ── 右键菜单保活节流 ──
         private DateTime _lastMenuCheckUtc = DateTime.MinValue;
@@ -37,11 +38,13 @@ namespace SsmsSqlPlugin.Editor
         public EditorCommandFilter(
             IVsTextView view,
             Func<IVsTextView, bool> formatCallback,
-            Action ensureContextMenu)
+            Action ensureContextMenu,
+            Action<IVsTextView, Guid, uint> executeCallback = null)
         {
             _view = view;
             _formatCallback = formatCallback;
             _ensureContextMenu = ensureContextMenu;
+            _executeCallback = executeCallback;
         }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
@@ -75,6 +78,15 @@ namespace SsmsSqlPlugin.Editor
                 if (TryHandleChord(pguidCmdGroup, nCmdID))
                 {
                     return S_OK;    // 已处理，不再往下传
+                }
+
+                // F5：在命令真正执行前抓 SQL（选区优先、否则全文）。
+                // 只做观察，不拦截，照常传给下一个命令目标。
+                if (_executeCallback != null &&
+                    pguidCmdGroup == VsConstants.GUID_VSStandardCommandSet2K &&
+                    nCmdID == CmdExecute)
+                {
+                    _executeCallback(_view, pguidCmdGroup, nCmdID);
                 }
 
                 MaybeEnsureContextMenu();
@@ -151,6 +163,8 @@ namespace SsmsSqlPlugin.Editor
         private const uint CmdFormatSelection = 0x0003;
         /// <summary>CompleteWord（占位，保持支持状态）</summary>
         private const uint CmdCompleteWord = 0x006B;
+        /// <summary>VSStandardCommandSet2K / Execute（M0 实测的 F5）</summary>
+        private const uint CmdExecute = 0x0067;
 
         /// <summary>当前视图（供外部取用）。</summary>
         public IVsTextView View => _view;
@@ -162,5 +176,9 @@ namespace SsmsSqlPlugin.Editor
         /// <summary>标准命令集 97（VSStandardCommandSet97）。</summary>
         public static readonly Guid GUID_VSStandardCommandSet97 =
             new Guid("5efc7975-14bc-11cf-9b2b-00aa00573819");
+
+        /// <summary>标准命令集 2K（VSStandardCommandSet2K），F5 所在命令集。</summary>
+        public static readonly Guid GUID_VSStandardCommandSet2K =
+            new Guid("1496a755-94de-11d0-8c3f-00c04fc2aae2");
     }
 }

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>storagecli</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin.StorageCli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SsmsSqlPlugin.Storage\SsmsSqlPlugin.Storage.csproj" />
+  </ItemGroup>
+
+</Project>

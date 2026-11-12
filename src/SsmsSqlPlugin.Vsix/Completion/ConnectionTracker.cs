@@ -152,6 +152,7 @@ namespace SsmsSqlPlugin.Completion
                 Server = server,
                 Database = database,
                 ConnectionString = connectionString,
+                EditorMoniker = moniker,
                 ConnectionType = connection.GetType(),
             };
 

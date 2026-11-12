@@ -10,6 +10,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TextManager.Interop;
 using SsmsSqlPlugin.Completion;
 using SsmsSqlPlugin.Editor;
+using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
 using SsmsSqlPlugin.Menus;
 
@@ -44,6 +45,7 @@ namespace SsmsSqlPlugin
 
         private TopLevelMenu _topMenu;
         private EditorContextMenu _contextMenu;
+        private IVsRunningDocumentTable _rdt;
 
         /// <summary>已经装过过滤器的视图（用对象身份哈希去重）。</summary>
         private readonly System.Collections.Generic.HashSet<int> _filteredViews
@@ -77,6 +79,28 @@ namespace SsmsSqlPlugin
             catch (Exception ex)
             {
                 Log.Error("[补全] 运行时启动失败", ex);
+            }
+
+            // 历史存储：后台打开 SQLite，不阻塞包初始化
+            try
+            {
+                HistoryRuntime.Start();
+                AutoSnapshotTracker.Start(this);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[历史] 运行时启动失败", ex);
+            }
+
+            // DTE 执行事件必须在 UI 线程挂
+            try
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                ExecutionCapture.Start(GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[历史] 执行捕获启动失败", ex);
             }
 
             try
@@ -206,6 +230,7 @@ namespace SsmsSqlPlugin
                     _topMenu = new TopLevelMenu(
                         () => FormatOptionsStore.Current,
                         FormatActiveEditor,
+                        OpenHistory,
                         RefreshCompletionCache,
                         OpenLogFile,
                         ShowAbout);
@@ -263,6 +288,7 @@ namespace SsmsSqlPlugin
 
                 uint cookie;
                 int hr = rdt.AdviseRunningDocTableEvents(new DocTableEvents(this), out cookie);
+                _rdt = rdt;
                 Log.Info("RDT 事件已挂: hr=0x" + hr.ToString("X8") + " cookie=" + cookie);
             }
             catch (Exception ex)
@@ -279,7 +305,11 @@ namespace SsmsSqlPlugin
 
             public int OnAfterFirstDocumentLock(uint docCookie, uint dwRDTLockType,
                                                 uint dwReadLocksRemaining, uint dwEditLocksRemaining)
-                => 0;
+            {
+                try { _pkg.OnHistoryFileOpened(docCookie); }
+                catch (Exception ex) { Log.Warn("记录文件打开失败: " + ex.Message); }
+                return 0;
+            }
 
             public int OnBeforeLastDocumentUnlock(uint docCookie, uint dwRDTLockType,
                                                   uint dwReadLocksRemaining, uint dwEditLocksRemaining)
@@ -292,7 +322,12 @@ namespace SsmsSqlPlugin
                 return 0;
             }
 
-            public int OnAfterSave(uint docCookie) => 0;
+            public int OnAfterSave(uint docCookie)
+            {
+                try { _pkg.OnHistoryFileSaved(docCookie); }
+                catch (Exception ex) { Log.Warn("记录文件快照失败: " + ex.Message); }
+                return 0;
+            }
             public int OnAfterAttributeChange(uint docCookie, uint grfAttribs) => 0;
 
             public int OnBeforeDocumentWindowShow(uint docCookie, int fFirstShow, IVsWindowFrame pFrame)
@@ -313,6 +348,43 @@ namespace SsmsSqlPlugin
             }
 
             public int OnAfterDocumentWindowHide(uint docCookie, IVsWindowFrame pFrame) => 0;
+        }
+
+        /// <summary>RDT cookie → 完整文件路径（未保存文档通常为空或临时路径）。</summary>
+        private string GetDocumentPathFromCookie(uint docCookie)
+        {
+            var rdt = _rdt;
+            if (rdt == null) return null;
+
+            try
+            {
+                uint flags, readLocks, editLocks, itemId;
+                string moniker;
+                IVsHierarchy hierarchy;
+                IntPtr docData;
+
+                int hr = rdt.GetDocumentInfo(docCookie, out flags, out readLocks, out editLocks,
+                    out moniker, out hierarchy, out itemId, out docData);
+
+                return hr == 0 ? moniker : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void OnHistoryFileOpened(uint docCookie)
+        {
+            string path = GetDocumentPathFromCookie(docCookie);
+            var connection = CompletionRuntime.Current?.Connection;
+            HistoryRuntime.RecordFileOpened(path, connection?.Server, connection?.Database);
+        }
+
+        private void OnHistoryFileSaved(uint docCookie)
+        {
+            string path = GetDocumentPathFromCookie(docCookie);
+            HistoryRuntime.CaptureFileSnapshot(path, "save");
         }
 
         /// <summary>从窗口 frame 拿到 IVsTextView 并挂过滤器。</summary>
@@ -365,7 +437,8 @@ namespace SsmsSqlPlugin
 
             try
             {
-                var filter = new EditorCommandFilter(view, OnFilterFormat, EnsureContextMenuAlive);
+                var filter = new EditorCommandFilter(
+                    view, OnFilterFormat, EnsureContextMenuAlive, ExecutionCapture.OnEditorCommand);
 
                 IOleCommandTarget next;
                 int hr = view.AddCommandFilter(filter, out next);
@@ -449,6 +522,20 @@ namespace SsmsSqlPlugin
             }
         }
 
+        private void OpenHistory()
+        {
+            try
+            {
+                var dte = GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                HistoryWindow.ShowFrom(dte);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("打开 SQL 历史失败", ex);
+                CommandBarInjector.ShowError("SQL 历史", ex.Message);
+            }
+        }
+
         private void RefreshCompletionCache()
         {
             try
@@ -477,6 +564,17 @@ namespace SsmsSqlPlugin
             {
                 CommandBarInjector.ShowError("打开日志失败", ex.Message);
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try { AutoSnapshotTracker.Stop(); } catch { }
+                try { ExecutionCapture.Stop(); } catch { }
+                try { HistoryRuntime.Stop(); } catch { }
+            }
+            base.Dispose(disposing);
         }
 
         private void ShowAbout()
