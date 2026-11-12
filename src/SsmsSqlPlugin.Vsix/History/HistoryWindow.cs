@@ -29,17 +29,19 @@ namespace SsmsSqlPlugin.History
         private readonly ComboBox _database;
         private readonly ComboBox _range;
         private readonly ComboBox _kind;
-        private readonly Button _queryButton;
-        private readonly CheckBox _recycleBin;
-        private readonly ListView _list;
+        private readonly ModernButton _queryButton;
+        private readonly ModernCheckBox _recycleBin;
+        private readonly HistoryListView _list;
+        private readonly Panel _emptyPanel;
         private readonly SplitContainer _split;
         private readonly Label _previewInfo;
+        private readonly Label _previewMeta;
         private readonly Label _previewPath;
         private readonly ToolTip _previewToolTip;
         private readonly TextBox _previewText;
         private readonly ColumnHeader _summaryColumn;
         private readonly ColumnHeader _deletedColumn;
-        private readonly Button _deleteButton;
+        private readonly ModernButton _deleteButton;
         private readonly Label _status;
         private readonly Timer _debounce;
 
@@ -53,12 +55,16 @@ namespace SsmsSqlPlugin.History
             _dte = dte;
 
             Text = "SQL 历史";
-            StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(1320, 680);
-            MinimumSize = new Size(1000, 480);
+            StartPosition = FormStartPosition.CenterScreen;
+            ClientSize = new Size(1380, 740);
+            MinimumSize = new Size(1080, 580);
             ShowInTaskbar = false;
             KeyPreview = true;
-            Font = SystemFonts.MessageBoxFont;
+            DoubleBuffered = true;
+            BackColor = HistoryTheme.Background;
+            ForeColor = HistoryTheme.TextPrimary;
+            Font = HistoryTheme.UiFont;
+            Padding = new Padding(16);
 
             _debounce = new Timer { Interval = 350 };
             _debounce.Tick += (s, e) => { _debounce.Stop(); ReloadAsync(); };
@@ -67,25 +73,123 @@ namespace SsmsSqlPlugin.History
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 3,
-                Padding = new Padding(6),
+                RowCount = 4,
+                BackColor = HistoryTheme.Background,
+                Padding = Padding.Empty,
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
 
-            // ── 筛选行 ──
+            // ── 标题 ──
+            var header = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+            };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            var headerLeft = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty,
+            };
+
+            var accent = new RoundedPanel
+            {
+                Width = 4,
+                Height = 32,
+                Radius = 2,
+                FillColor = HistoryTheme.Accent,
+                BorderColor = HistoryTheme.Accent,
+                Margin = new Padding(0, 8, 10, 0),
+            };
+
+            var titleStack = new TableLayoutPanel
+            {
+                AutoSize = true,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+            };
+
+            var title = new Label
+            {
+                Text = "SQL 历史",
+                AutoSize = true,
+                Font = HistoryTheme.TitleFont,
+                ForeColor = HistoryTheme.TextPrimary,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+            };
+
+            var subtitle = new Label
+            {
+                Text = "搜索、预览、重开与自动记录",
+                AutoSize = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Background,
+                Margin = new Padding(0, 2, 0, 0),
+            };
+
+            titleStack.Controls.Add(title, 0, 0);
+            titleStack.Controls.Add(subtitle, 0, 1);
+            headerLeft.Controls.Add(accent);
+            headerLeft.Controls.Add(titleStack);
+            header.Controls.Add(headerLeft, 0, 0);
+            root.Controls.Add(header, 0, 0);
+
+            // ── 筛选工具条 ──
+            var toolbarCard = new RoundedPanel
+            {
+                Dock = DockStyle.Fill,
+                Radius = 10,
+                FillColor = HistoryTheme.Card,
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(12, 13, 12, 13),
+                Margin = new Padding(0, 0, 0, 12),
+            };
+
             var top = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
                 AutoScroll = true,
-                Padding = new Padding(0, 4, 0, 0),
+                BackColor = HistoryTheme.Card,
+                Padding = Padding.Empty,
             };
 
-            top.Controls.Add(MakeLabel("搜索 SQL"));
-            _search = new TextBox { Width = 240, Margin = new Padding(3, 3, 10, 3) };
+            var searchCard = new RoundedPanel
+            {
+                Width = 300,
+                Height = 32,
+                Radius = 8,
+                FillColor = Color.FromArgb(248, 250, 252),
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(10, 7, 10, 0),
+                Margin = new Padding(0, 0, 16, 0),
+            };
+
+            _search = new TextBox
+            {
+                BorderStyle = BorderStyle.None,
+                Dock = DockStyle.Fill,
+                Font = HistoryTheme.UiFont,
+                BackColor = Color.FromArgb(248, 250, 252),
+                ForeColor = HistoryTheme.TextPrimary,
+            };
             _search.TextChanged += (s, e) => { _debounce.Stop(); _debounce.Start(); };
             _search.KeyDown += (s, e) =>
             {
@@ -93,19 +197,20 @@ namespace SsmsSqlPlugin.History
                 e.SuppressKeyPress = true;
                 ReloadAsync();
             };
-            top.Controls.Add(_search);
+            searchCard.Controls.Add(_search);
+            top.Controls.Add(searchCard);
 
             top.Controls.Add(MakeLabel("服务器"));
-            _server = MakeCombo(150);
+            _server = MakeCombo(140);
             _server.SelectedIndexChanged += async (s, e) => await ReloadDatabasesAsync();
             top.Controls.Add(_server);
 
             top.Controls.Add(MakeLabel("库"));
-            _database = MakeCombo(150);
+            _database = MakeCombo(130);
             top.Controls.Add(_database);
 
             top.Controls.Add(MakeLabel("时间"));
-            _range = MakeCombo(110);
+            _range = MakeCombo(105);
             _range.Items.AddRange(new object[] { "全部时间", "最近 1 天", "最近 7 天", "最近 30 天", "最近 90 天" });
             _range.SelectedIndex = 0;
             top.Controls.Add(_range);
@@ -116,41 +221,55 @@ namespace SsmsSqlPlugin.History
             _kind.SelectedIndex = 0;
             _kind.SelectedIndexChanged += (s, e) => ReloadAsync();
             top.Controls.Add(_kind);
-            _queryButton = new Button { Text = "查询", Width = 70, Height = 26, Margin = new Padding(6, 3, 3, 3) };
+
+            _queryButton = new ModernButton
+            {
+                Text = "查询",
+                Style = ModernButtonStyle.Primary,
+                Width = 80,
+                Height = 32,
+                Margin = new Padding(4, 0, 12, 0),
+            };
             _queryButton.Click += (s, e) => ReloadAsync();
             top.Controls.Add(_queryButton);
 
-            _recycleBin = new CheckBox
+            _recycleBin = new ModernCheckBox
             {
                 Text = "回收站",
-                AutoSize = true,
-                Margin = new Padding(10, 6, 3, 3),
+                Width = 102,
+                Height = 32,
+                Margin = Padding.Empty,
             };
             _recycleBin.CheckedChanged += (s, e) => ApplyRecycleMode();
             top.Controls.Add(_recycleBin);
 
-            root.Controls.Add(top, 0, 0);
+            toolbarCard.Controls.Add(top);
+            root.Controls.Add(toolbarCard, 0, 1);
 
             // ── 列表 + 右侧预览 ──
-            _list = new ListView
+            var contentCard = new RoundedPanel
             {
                 Dock = DockStyle.Fill,
-                View = View.Details,
-                FullRowSelect = true,
-                HideSelection = false,
-                VirtualMode = true,
-                MultiSelect = true,
-                GridLines = false,
+                Radius = 10,
+                FillColor = HistoryTheme.Card,
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(1),
+                Margin = new Padding(0, 0, 0, 10),
             };
-            _list.Columns.Add("时间", 125, HorizontalAlignment.Left);
-            _list.Columns.Add("服务器", 120, HorizontalAlignment.Left);
-            _list.Columns.Add("库", 95, HorizontalAlignment.Left);
-            _list.Columns.Add("文件名", 135, HorizontalAlignment.Left);
-            _list.Columns.Add("耗时", 65, HorizontalAlignment.Right);
-            _list.Columns.Add("行数", 45, HorizontalAlignment.Right);
-            _list.Columns.Add("结果", 45, HorizontalAlignment.Left);
-            _list.Columns.Add("类型", 45, HorizontalAlignment.Left);
-            _summaryColumn = _list.Columns.Add("摘要", 180, HorizontalAlignment.Left);
+
+            _list = new HistoryListView
+            {
+                Dock = DockStyle.Fill,
+                VirtualMode = true,
+            };
+            _list.Columns.Add("时间", 150, HorizontalAlignment.Left);
+            _list.Columns.Add("服务器", 118, HorizontalAlignment.Left);
+            _list.Columns.Add("库", 85, HorizontalAlignment.Left);
+            _list.Columns.Add("文件名", 128, HorizontalAlignment.Left);
+            _list.Columns.Add("耗时", 72, HorizontalAlignment.Right);
+            _list.Columns.Add("行数", 56, HorizontalAlignment.Right);
+            _list.Columns.Add("类型", 52, HorizontalAlignment.Left);
+            _summaryColumn = _list.Columns.Add("摘要", 183, HorizontalAlignment.Left);
             _deletedColumn = _list.Columns.Add("删除时间", 0, HorizontalAlignment.Left);
 
             _list.RetrieveVirtualItem += OnRetrieveVirtualItem;
@@ -167,27 +286,46 @@ namespace SsmsSqlPlugin.History
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 2,
-                Padding = new Padding(6, 0, 0, 0),
+                Padding = new Padding(16, 14, 16, 14),
+                BackColor = HistoryTheme.Card,
             };
-            preview.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+            preview.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
             preview.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var infoPanel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 2,
+                RowCount = 3,
                 Margin = Padding.Empty,
+                BackColor = HistoryTheme.Card,
             };
             infoPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+            infoPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
             infoPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
 
             _previewInfo = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "预览 · 选中一条记录查看 SQL",
+                Text = "SQL 预览",
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
+                Font = HistoryTheme.UiFontMedium,
+                ForeColor = HistoryTheme.TextPrimary,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
+            };
+
+            _previewMeta = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "选中一条记录查看完整 SQL 与连接信息",
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
             };
 
             _previewPath = new Label
@@ -196,13 +334,26 @@ namespace SsmsSqlPlugin.History
                 Text = "",
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
-                Font = new Font(Font.FontFamily, 8.25f),
-                ForeColor = SystemColors.GrayText,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextMuted,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
             };
 
             _previewToolTip = new ToolTip();
             infoPanel.Controls.Add(_previewInfo, 0, 0);
-            infoPanel.Controls.Add(_previewPath, 0, 1);
+            infoPanel.Controls.Add(_previewMeta, 0, 1);
+            infoPanel.Controls.Add(_previewPath, 0, 2);
+
+            var editorCard = new RoundedPanel
+            {
+                Dock = DockStyle.Fill,
+                Radius = 8,
+                FillColor = HistoryTheme.CardSoft,
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(10),
+                Margin = new Padding(0, 6, 0, 0),
+            };
 
             _previewText = new TextBox
             {
@@ -212,45 +363,83 @@ namespace SsmsSqlPlugin.History
                 WordWrap = false,
                 ScrollBars = ScrollBars.Both,
                 HideSelection = false,
-                BorderStyle = BorderStyle.FixedSingle,
-                BackColor = SystemColors.Window,
-                Font = new Font("Consolas", 9.5f),
+                BorderStyle = BorderStyle.None,
+                BackColor = HistoryTheme.CardSoft,
+                ForeColor = HistoryTheme.TextPrimary,
+                Font = HistoryTheme.MonoFont,
             };
 
+            editorCard.Controls.Add(_previewText);
             preview.Controls.Add(infoPanel, 0, 0);
-            preview.Controls.Add(_previewText, 0, 1);
+            preview.Controls.Add(editorCard, 0, 1);
 
             _split = new SplitContainer
             {
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
                 FixedPanel = FixedPanel.Panel2,
-                SplitterWidth = 5,
+                SplitterWidth = 12,
+                BackColor = HistoryTheme.Card,
             };
+            _split.Panel1.BackColor = HistoryTheme.Card;
+            _split.Panel2.BackColor = HistoryTheme.Card;
             _split.Panel1.Controls.Add(_list);
-            _split.Panel2.Controls.Add(preview);
 
-            root.Controls.Add(_split, 0, 1);
+            _emptyPanel = new Panel
+            {
+                BackColor = HistoryTheme.Card,
+                Visible = false,
+            };
+            _emptyPanel.Controls.Add(new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "没有匹配的记录\r\n调整搜索或筛选后再试",
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = HistoryTheme.UiFont,
+                ForeColor = HistoryTheme.TextMuted,
+                BackColor = HistoryTheme.Card,
+            });
+            _split.Panel1.Controls.Add(_emptyPanel);
+            _split.Panel1.Resize += (s, e) => PositionEmptyPanel();
+
+            _split.Panel2.Controls.Add(preview);
+            _split.Paint += (s, e) =>
+            {
+                var rect = _split.SplitterRectangle;
+                using (var pen = new Pen(HistoryTheme.Border))
+                {
+                    int x = rect.Left + rect.Width / 2;
+                    e.Graphics.DrawLine(pen, x, rect.Top + 10, x, rect.Bottom - 10);
+                }
+            };
+
+            contentCard.Controls.Add(_split);
+            root.Controls.Add(contentCard, 0, 2);
 
             // ── 底栏 ──
-            var bottom = new TableLayoutPanel
+            var footer = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
             };
-            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
             _status = new Label
             {
                 Text = "历史存储准备中…",
-                AutoSize = false,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
             };
-            bottom.Controls.Add(_status, 0, 0);
+            footer.Controls.Add(_status, 0, 0);
 
             var buttons = new FlowLayoutPanel
             {
@@ -258,19 +447,59 @@ namespace SsmsSqlPlugin.History
                 FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
                 Dock = DockStyle.Fill,
+                BackColor = HistoryTheme.Background,
+                Padding = new Padding(0, 4, 0, 0),
+                Margin = Padding.Empty,
             };
 
-            var close = new Button { Text = "关闭", Width = 70, Height = 26 };
+            var close = new ModernButton
+            {
+                Text = "关闭",
+                Style = ModernButtonStyle.Ghost,
+                Width = 68,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
             close.Click += (s, e) => Close();
-            var copy = new Button { Text = "复制 SQL", Width = 84, Height = 26 };
-            copy.Click += (s, e) => CopySelected();
-            var open = new Button { Text = "打开 SQL", Width = 84, Height = 26 };
+
+            var open = new ModernButton
+            {
+                Text = "打开 SQL",
+                Style = ModernButtonStyle.Primary,
+                Width = 96,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
             open.Click += (s, e) => OpenSelected();
 
-            _deleteButton = new Button { Text = "删除", Width = 70, Height = 26 };
+            var copy = new ModernButton
+            {
+                Text = "复制 SQL",
+                Style = ModernButtonStyle.Secondary,
+                Width = 94,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
+            copy.Click += (s, e) => CopySelected();
+
+            _deleteButton = new ModernButton
+            {
+                Text = "删除",
+                Style = ModernButtonStyle.Danger,
+                Width = 76,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
             _deleteButton.Click += (s, e) => DeleteOrRestoreSelected();
 
-            var refresh = new Button { Text = "刷新", Width = 70, Height = 26 };
+            var refresh = new ModernButton
+            {
+                Text = "刷新",
+                Style = ModernButtonStyle.Ghost,
+                Width = 68,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
             refresh.Click += async (s, e) =>
             {
                 _filtersLoaded = false;
@@ -278,7 +507,14 @@ namespace SsmsSqlPlugin.History
                 ReloadAsync();
             };
 
-            var openDir = new Button { Text = "打开目录", Width = 84, Height = 26 };
+            var openDir = new ModernButton
+            {
+                Text = "打开目录",
+                Style = ModernButtonStyle.Ghost,
+                Width = 96,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
             openDir.Click += (s, e) => OpenDataDirectory();
 
             // RightToLeft 流：先加的在最右
@@ -288,21 +524,33 @@ namespace SsmsSqlPlugin.History
             buttons.Controls.Add(_deleteButton);
             buttons.Controls.Add(refresh);
             buttons.Controls.Add(openDir);
-            bottom.Controls.Add(buttons, 1, 0);
+            footer.Controls.Add(buttons, 1, 0);
 
-            root.Controls.Add(bottom, 0, 2);
+            root.Controls.Add(footer, 0, 3);
             Controls.Add(root);
         }
 
         private static Label MakeLabel(string text)
-            => new Label { Text = text, AutoSize = true, Margin = new Padding(3, 8, 3, 3) };
+            => new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(6, 10, 6, 0),
+            };
 
         private static ComboBox MakeCombo(int width)
             => new ComboBox
             {
                 Width = width,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Margin = new Padding(3, 3, 10, 3),
+                FlatStyle = FlatStyle.Flat,
+                Font = HistoryTheme.UiFont,
+                BackColor = HistoryTheme.Card,
+                ForeColor = HistoryTheme.TextPrimary,
+                Margin = new Padding(0, 4, 14, 0),
             };
 
         public static void ShowFrom(DTE dte)
@@ -333,11 +581,13 @@ namespace SsmsSqlPlugin.History
 
             try
             {
-                _split.Panel1MinSize = 520;
-                _split.Panel2MinSize = 320;
-                _split.SplitterDistance = Math.Max(520, ClientSize.Width - 445);
+                _split.Panel1MinSize = 620;
+                _split.Panel2MinSize = 340;
+                _split.SplitterDistance = Math.Max(620, ClientSize.Width - 510);
             }
             catch { }
+
+            CueBanner.Set(_search, "搜索 SQL 文本…");
 
             await ReloadFiltersAsync();
             ReloadAsync();
@@ -456,6 +706,13 @@ namespace SsmsSqlPlugin.History
                             _list.VirtualListSize = _rows.Count;
                             _list.Invalidate();
 
+                            _emptyPanel.Visible = _rows.Count == 0;
+                            if (_emptyPanel.Visible)
+                            {
+                                PositionEmptyPanel();
+                                _emptyPanel.BringToFront();
+                            }
+
                             try
                             {
                                 _list.SelectedIndices.Clear();
@@ -544,16 +801,15 @@ namespace SsmsSqlPlugin.History
 
             e.Item = new ListViewItem(new[]
             {
-                FormatTime(row.StartedUtc),
+                FormatListTime(row.StartedUtc),
                 row.ServerName ?? "",
                 row.DatabaseName ?? "",
                 FileName(row),
                 isExecute ? (row.DurationMs > 0 ? row.DurationMs + " ms" : "—") : "—",
                 isExecute && row.Succeeded >= 0 ? row.RowsAffected.ToString() : "—",
-                isExecute ? FormatResult(row.Succeeded) : "—",
                 FormatKind(row.Kind),
                 Summarize(row.SqlText),
-                FormatTime(row.DeletedUtc),
+                FormatListTime(row.DeletedUtc),
             });
         }
 
@@ -564,7 +820,8 @@ namespace SsmsSqlPlugin.History
             var row = GetSelected();
             if (row == null)
             {
-                _previewInfo.Text = "预览 · 选中一条记录查看 SQL";
+                _previewInfo.Text = "SQL 预览";
+                _previewMeta.Text = "选中一条记录查看完整 SQL 与连接信息";
                 _previewPath.Text = "";
                 _previewToolTip.SetToolTip(_previewPath, "");
                 _previewText.Text = "";
@@ -589,12 +846,13 @@ namespace SsmsSqlPlugin.History
                 ? ""
                 : " · 删除于 " + FormatTime(row.DeletedUtc);
 
-            _previewInfo.Text = "预览 #" + row.Id +
-                                " · " + FormatKind(row.Kind) +
-                                " · " + FormatTime(row.StartedUtc) +
-                                " · " + (row.ServerName ?? "?") + " / " + (row.DatabaseName ?? "?") +
-                                " · " + duration +
-                                " · " + result +
+            _previewInfo.Text = "#" + row.Id +
+                                "  ·  " + FormatKind(row.Kind) +
+                                "  ·  " + FormatTime(row.StartedUtc);
+
+            _previewMeta.Text = (row.ServerName ?? "?") + " / " + (row.DatabaseName ?? "?") +
+                                "  ·  " + duration +
+                                "  ·  " + result +
                                 deletedInfo;
 
             string sql = row.SqlText;
@@ -623,6 +881,16 @@ namespace SsmsSqlPlugin.History
                     DateTimeStyles.RoundtripKind, out DateTime value))
             {
                 return value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            return utc ?? "";
+        }
+
+        private static string FormatListTime(string utc)
+        {
+            if (DateTime.TryParse(utc, CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind, out DateTime value))
+            {
+                return value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
             }
             return utc ?? "";
         }
@@ -678,6 +946,16 @@ namespace SsmsSqlPlugin.History
             return sb.ToString().Trim();
         }
 
+        private void PositionEmptyPanel()
+        {
+            if (_emptyPanel == null || _split == null) return;
+
+            const int headerHeight = 30;
+            int width = _split.Panel1.ClientSize.Width;
+            int height = Math.Max(0, _split.Panel1.ClientSize.Height - headerHeight);
+            _emptyPanel.Bounds = new Rectangle(0, headerHeight, width, height);
+        }
+
         private ExecutionRecord GetSelected()
         {
             if (_list.SelectedIndices.Count == 0) return null;
@@ -701,8 +979,11 @@ namespace SsmsSqlPlugin.History
             bool recycle = _recycleBin.Checked;
 
             _deletedColumn.Width = recycle ? 130 : 0;
-            _summaryColumn.Width = recycle ? 50 : 180;
+            _summaryColumn.Width = recycle ? 0 : 183;
             _deleteButton.Text = recycle ? "恢复" : "删除";
+            _deleteButton.Style = recycle
+                ? ModernButtonStyle.Success
+                : ModernButtonStyle.Danger;
 
             ReloadAsync();
         }
