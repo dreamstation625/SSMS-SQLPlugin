@@ -129,3 +129,7 @@ dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
 本项目是第三方 SSMS 扩展，与 Microsoft 无关，不受 Microsoft 支持。
 
 格式化会修改编辑器中的 SQL 文本，可用 <kbd>Ctrl</kbd>+<kbd>Z</kbd> 撤销。自动记录会在本机保存 SQL 内容。请在符合所在组织安全要求的前提下使用。
+
+---
+
+本项目由 WorkBuddy 和 Qoder 完成。
