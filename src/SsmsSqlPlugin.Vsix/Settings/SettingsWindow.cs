@@ -340,14 +340,19 @@ namespace SsmsSqlPlugin.Settings
             };
 
         private static ToggleSwitch MakeToggle(string text)
-            => new ToggleSwitch
+        {
+            var toggle = new ToggleSwitch
             {
                 Text = text,
-                Width = 320,
                 Height = 24,
                 BackColor = HistoryTheme.Card,
                 Margin = new Padding(0, 5, 0, 0),
             };
+
+            // 只让「开关 + 文字」区域响应点击，右侧空白不切换。
+            toggle.Width = 46 + TextRenderer.MeasureText(text, HistoryTheme.UiFont).Width + 14;
+            return toggle;
+        }
 
         private static ComboBox MakeCombo(int width)
             => new ComboBox
