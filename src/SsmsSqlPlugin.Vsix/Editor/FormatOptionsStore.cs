@@ -15,6 +15,7 @@ namespace SsmsSqlPlugin.Editor
         public bool UppercaseKeywords = true;
         public bool VerticalSelectList = true;
         public bool ExpandSubqueries = true;
+        public bool AutoUppercaseKeywordOnSpace = true;
         public int MaxLineWidth = 100;
 
         public FormatOptionsSnapshot Clone()
@@ -25,6 +26,7 @@ namespace SsmsSqlPlugin.Editor
                 UppercaseKeywords = UppercaseKeywords,
                 VerticalSelectList = VerticalSelectList,
                 ExpandSubqueries = ExpandSubqueries,
+                AutoUppercaseKeywordOnSpace = AutoUppercaseKeywordOnSpace,
                 MaxLineWidth = MaxLineWidth,
             };
         }
@@ -116,6 +118,7 @@ namespace SsmsSqlPlugin.Editor
                 sb.AppendLine("  \"uppercaseKeywords\": " + Bool(s.UppercaseKeywords) + ",");
                 sb.AppendLine("  \"verticalSelectList\": " + Bool(s.VerticalSelectList) + ",");
                 sb.AppendLine("  \"expandSubqueries\": " + Bool(s.ExpandSubqueries) + ",");
+                sb.AppendLine("  \"autoUppercaseKeywordOnSpace\": " + Bool(s.AutoUppercaseKeywordOnSpace) + ",");
                 sb.AppendLine("  \"maxLineWidth\": " + s.MaxLineWidth);
                 sb.AppendLine("}");
 
@@ -141,6 +144,7 @@ namespace SsmsSqlPlugin.Editor
                 s.UppercaseKeywords = ReadBool(json, "uppercaseKeywords", s.UppercaseKeywords);
                 s.VerticalSelectList = ReadBool(json, "verticalSelectList", s.VerticalSelectList);
                 s.ExpandSubqueries = ReadBool(json, "expandSubqueries", s.ExpandSubqueries);
+                s.AutoUppercaseKeywordOnSpace = ReadBool(json, "autoUppercaseKeywordOnSpace", s.AutoUppercaseKeywordOnSpace);
                 s.MaxLineWidth = ReadInt(json, "maxLineWidth", s.MaxLineWidth);
             }
             catch (Exception ex)

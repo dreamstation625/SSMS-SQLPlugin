@@ -21,6 +21,7 @@ namespace SsmsSqlPlugin.Settings
         private readonly ToggleSwitch _uppercase;
         private readonly ToggleSwitch _vertical;
         private readonly ToggleSwitch _subquery;
+        private readonly ToggleSwitch _autoCase;
         private readonly ComboBox _autoMode;
         private readonly ComboBox _autoInterval;
         private readonly Label _autoHint;
@@ -29,7 +30,7 @@ namespace SsmsSqlPlugin.Settings
         {
             Text = "SSMS-SQLPlugin 设置";
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(660, 680);
+            ClientSize = new Size(660, 720);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -49,7 +50,7 @@ namespace SsmsSqlPlugin.Settings
                 Padding = Padding.Empty,
             };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 232));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 266));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 202));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 102));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -103,13 +104,13 @@ namespace SsmsSqlPlugin.Settings
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 5,
+                RowCount = 6,
                 BackColor = HistoryTheme.Card,
                 Margin = Padding.Empty,
             };
             format.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
             format.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 6; i++)
                 format.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 0 ? 30 : 34));
 
             format.Controls.Add(CardTitle("格式化"), 0, 0);
@@ -133,12 +134,15 @@ namespace SsmsSqlPlugin.Settings
             _uppercase = MakeToggle("关键字大写");
             _vertical = MakeToggle("SELECT 每列一行");
             _subquery = MakeToggle("展开子查询");
+            _autoCase = MakeToggle("空格后自动大写关键字");
             format.Controls.Add(_uppercase, 0, 2);
             format.SetColumnSpan(_uppercase, 2);
             format.Controls.Add(_vertical, 0, 3);
             format.SetColumnSpan(_vertical, 2);
             format.Controls.Add(_subquery, 0, 4);
             format.SetColumnSpan(_subquery, 2);
+            format.Controls.Add(_autoCase, 0, 5);
+            format.SetColumnSpan(_autoCase, 2);
 
             formatCard.Controls.Add(format);
             root.Controls.Add(formatCard, 0, 1);
@@ -374,6 +378,7 @@ namespace SsmsSqlPlugin.Settings
             _uppercase.Checked = options.UppercaseKeywords;
             _vertical.Checked = options.VerticalSelectList;
             _subquery.Checked = options.ExpandSubqueries;
+            _autoCase.Checked = options.AutoUppercaseKeywordOnSpace;
 
             var auto = HistoryAutoSaveStore.Current;
             _autoMode.SelectedIndex = !auto.Enabled
@@ -405,6 +410,7 @@ namespace SsmsSqlPlugin.Settings
                 options.UppercaseKeywords = _uppercase.Checked;
                 options.VerticalSelectList = _vertical.Checked;
                 options.ExpandSubqueries = _subquery.Checked;
+                options.AutoUppercaseKeywordOnSpace = _autoCase.Checked;
             });
 
             int mode = Math.Max(0, _autoMode.SelectedIndex);
@@ -423,6 +429,7 @@ namespace SsmsSqlPlugin.Settings
                      " 大写=" + _uppercase.Checked +
                      " 每列一行=" + _vertical.Checked +
                      " 展开子查询=" + _subquery.Checked +
+                     " 空格自动大写=" + _autoCase.Checked +
                      " 自动记录=" + HistoryAutoSaveStore.Describe(HistoryAutoSaveStore.Current));
 
             DialogResult = DialogResult.OK;

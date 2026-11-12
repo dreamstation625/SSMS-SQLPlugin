@@ -49,6 +49,9 @@ namespace SsmsSqlPlugin.Completion
                 Log.Info("[补全] GetOrCreate ContentType=" + contentType);
             }
 
+            try { KeywordAutoCaseHook.Attach(textView.TextBuffer); }
+            catch (Exception ex) { Log.Warn("[编辑] 挂自动大写失败: " + ex.Message); }
+
             return Sources.GetValue(textView, view => new SqlCompletionSource(view));
         }
     }
