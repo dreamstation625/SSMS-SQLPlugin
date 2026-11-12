@@ -174,6 +174,7 @@ namespace SsmsSqlPlugin.Menus
             if (controls == null || entries == null) return 0;
 
             int created = 0;
+            bool beginGroup = false;
 
             foreach (var e in entries)
             {
@@ -183,15 +184,8 @@ namespace SsmsSqlPlugin.Menus
 
                     if (e.IsSeparator)
                     {
-                        // 按钮设 BeginGroup 就是分隔线（Automation 里没有独立分隔符类型）
-                        var sep = (CommandBarButton)controls.Add(
-                            MsoControlType.msoControlButton,
-                            Type.Missing, Type.Missing,
-                            controls.Count + 1, true);
-
-                        sep.BeginGroup = true;
-                        sep.Visible = true;
-                        created++;
+                        // 不额外插空白按钮：把 BeginGroup 设到下一条，由系统画标准分隔线。
+                        beginGroup = true;
                         continue;
                     }
 
@@ -207,6 +201,8 @@ namespace SsmsSqlPlugin.Menus
                         popup.Tag = e.Tag;
                         try { popup.TooltipText = e.Tooltip ?? e.Caption; } catch { }
                         popup.Visible = true;
+                        popup.BeginGroup = beginGroup;
+                        beginGroup = false;
 
                         // 注意：不转 CommandBar，直接把 popup 自己的 Controls 传下去
                         Populate(popup.Controls, e.Children);
@@ -224,22 +220,28 @@ namespace SsmsSqlPlugin.Menus
                     btn.Tag = e.Tag;
                     try { btn.TooltipText = e.Tooltip ?? e.Caption; } catch { }
                     btn.Visible = true;
-                    btn.BeginGroup = false;
+                    btn.BeginGroup = beginGroup;
+                    beginGroup = false;
 
-                    // 勾选状态：有 CheckedProvider 的项渲染成勾选按钮
-                    if (e.CheckedProvider != null)
+                    // 左侧原本是 CommandBars 预留的图标位，放个 16x16 图标填充。
+                    // 若宿主 Automation 包装不支持 Picture，退回纯文字。
+                    try
                     {
-                        try
+                        var picture = MenuIcons.Get(e.Tag);
+                        if (picture != null)
                         {
-                            bool on = e.CheckedProvider();
+                            btn.Picture = (stdole.StdPicture)picture;
                             btn.Style = MsoButtonStyle.msoButtonIconAndCaption;
-                            btn.State = on ? MsoButtonState.msoButtonDown
-                                           : MsoButtonState.msoButtonUp;
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Log.Warn("设置勾选状态失败(" + e.Caption + "): " + ex.Message);
+                            btn.Style = MsoButtonStyle.msoButtonCaption;
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warn("设置菜单图标失败(" + e.Caption + "): " + ex.Message);
+                        try { btn.Style = MsoButtonStyle.msoButtonCaption; } catch { }
                     }
 
                     // 闭包捕获：用局部变量，避免循环变量共享

@@ -13,6 +13,7 @@ using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
 using SsmsSqlPlugin.Menus;
+using SsmsSqlPlugin.Settings;
 
 namespace SsmsSqlPlugin
 {
@@ -228,9 +229,9 @@ namespace SsmsSqlPlugin
                 try
                 {
                     _topMenu = new TopLevelMenu(
-                        () => FormatOptionsStore.Current,
                         FormatActiveEditor,
                         OpenHistory,
+                        OpenSettings,
                         RefreshCompletionCache,
                         OpenLogFile,
                         ShowAbout);
@@ -533,6 +534,20 @@ namespace SsmsSqlPlugin
             {
                 Log.Error("打开 SQL 历史失败", ex);
                 CommandBarInjector.ShowError("SQL 历史", ex.Message);
+            }
+        }
+
+        private void OpenSettings()
+        {
+            try
+            {
+                var dte = GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                SettingsWindow.ShowFrom(dte);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("打开设置失败", ex);
+                CommandBarInjector.ShowError("设置", ex.Message);
             }
         }
 

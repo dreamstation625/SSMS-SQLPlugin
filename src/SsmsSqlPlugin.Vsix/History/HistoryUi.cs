@@ -414,6 +414,87 @@ namespace SsmsSqlPlugin.History
         }
     }
 
+    /// <summary>设置页用的开关：药丸滑块 + 右侧文字。</summary>
+    internal sealed class ToggleSwitch : CheckBox
+    {
+        private bool _hover;
+
+        public ToggleSwitch()
+        {
+            AutoSize = false;
+            Height = 24;
+            Width = 260;
+            Font = HistoryTheme.UiFont;
+            ForeColor = HistoryTheme.TextPrimary;
+            BackColor = HistoryTheme.Card;
+            Cursor = Cursors.Hand;
+            SetStyle(ControlStyles.UserPaint |
+                     ControlStyles.AllPaintingInWmPaint |
+                     ControlStyles.OptimizedDoubleBuffer |
+                     ControlStyles.ResizeRedraw, true);
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _hover = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _hover = false;
+            Invalidate();
+        }
+
+        protected override void OnCheckedChanged(EventArgs e)
+        {
+            base.OnCheckedChanged(e);
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (var parentBrush = new SolidBrush(Parent?.BackColor ?? HistoryTheme.Card))
+            {
+                g.FillRectangle(parentBrush, ClientRectangle);
+            }
+
+            const int pillWidth = 36;
+            const int pillHeight = 18;
+            var pill = new Rectangle(0, (Height - pillHeight) / 2, pillWidth, pillHeight);
+
+            Color fill = Checked ? HistoryTheme.Accent
+                       : _hover ? HistoryTheme.BorderStrong
+                       : Color.FromArgb(203, 210, 220);
+
+            using (var path = HistoryTheme.RoundedRect(pill, pillHeight / 2))
+            using (var brush = new SolidBrush(fill))
+            {
+                g.FillPath(brush, path);
+            }
+
+            var knob = new Rectangle(Checked ? pill.Right - 16 : pill.Left + 2,
+                                     pill.Top + 2, 14, 14);
+            using (var brush = new SolidBrush(Color.White))
+            {
+                g.FillEllipse(brush, knob);
+            }
+
+            var textRect = new Rectangle(pill.Right + 10, 0, Width - pill.Right - 10, Height);
+            TextRenderer.DrawText(
+                g, Text, Font, textRect,
+                Enabled ? HistoryTheme.TextPrimary : HistoryTheme.TextMuted,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis |
+                TextFormatFlags.NoPrefix);
+        }
+    }
+
     /// <summary>
     /// 现代列表：自绘表头/行，斑马纹、hover、选中态、类型和结果徽标。
     /// 仍使用 VirtualMode，只绘制可视行。
