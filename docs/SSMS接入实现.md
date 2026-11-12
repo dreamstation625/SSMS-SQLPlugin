@@ -92,6 +92,18 @@ print(data.find('0a88c9e6-4e5f-4d80-9f6a-f88e3f8270bb'.encode('utf-16-le')))
 
 `build.py` 已经加了 `verify_pkgdef()` 主动拦截：检测到注释行直接报错退出。
 
+### 3.1b pkgdef 只允许一个 BOM
+
+```python
+# ❌ 3 个 BOM：读 UTF-16 时把原 BOM 当成字符，又追加了一次
+b"\xff\xfe" + "\ufeff\ufeff[$RootKey$...]".encode("utf-16-le")
+
+# ✅ 恰好一个 BOM
+b"\xff\xfe" + "[$RootKey$...]".encode("utf-16-le")
+```
+
+重复 BOM 会让合并器认不出第一个 `[$RootKey$...]` 段，表现和写 `;` 注释完全一样：包不注册、不加载、日志零输出。`build.py` 已加校验，检测到 `raw[2:]` 解码后仍以 `\ufeff` 开头就报错退出。
+
 ### 3.2 `CommandBarPopup` **不能**强转成 `CommandBar`
 
 ```csharp
@@ -153,6 +165,12 @@ os.remove("ExtensionMetadataCache.mpack")
 ```
 
 `build.py` 已全部自动做。
+
+### 3.6 手工部署时不要改 AssemblyVersion
+
+`privateregistry.bin` 里的 `"Assembly"="SsmsSqlPlugin, Version=x.y.z.0, ..."` 是安装/首次注册时写进去的，手工覆盖文件不会更新它。把 csproj / manifest / pkgdef 的版本一起升上去、却仍然手工拷贝，Shell 会按旧版本号注册、加载新 DLL 失败，**包静默不加载且零日志**。
+
+规则：手工部署时保持 AssemblyVersion 不变；确实要升版本，就走 `VSIXInstaller.exe /quiet /force` 正规安装（注意 Git Bash 要用 `MSYS2_ARG_CONV_EXCL='*'`，否则 `/quiet` 会被当成路径）。
 
 ---
 

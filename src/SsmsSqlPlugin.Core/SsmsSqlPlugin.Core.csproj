@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>SsmsSqlPlugin.Core</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
+  </ItemGroup>
+
+</Project>

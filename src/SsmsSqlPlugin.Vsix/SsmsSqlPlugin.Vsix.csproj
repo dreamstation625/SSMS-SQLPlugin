@@ -29,6 +29,8 @@
     <Reference Include="System.Windows.Forms" />
     <!-- 排版引擎（netstandard2.0，net48 可直接引用） -->
     <ProjectReference Include="..\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
+    <!-- 补全的纯逻辑（词法复用 Formatting，元数据/上下文/排序在 Core） -->
+    <ProjectReference Include="..\SsmsSqlPlugin.Core\SsmsSqlPlugin.Core.csproj" />
   </ItemGroup>
 
 </Project>

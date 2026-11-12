@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
+    <!-- CLI 需要真实的 ScriptDom 运行时；VSIX 里由 SSMS 宿主提供，不打包。 -->
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0" />
   </ItemGroup>
 </Project>

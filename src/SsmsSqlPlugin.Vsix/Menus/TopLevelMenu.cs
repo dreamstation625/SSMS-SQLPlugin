@@ -33,6 +33,7 @@ namespace SsmsSqlPlugin.Menus
 
         private readonly Func<FormatOptionsSnapshot> _getOptions;
         private readonly Action _format;
+        private readonly Action _refreshCompletion;
         private readonly Action _openLog;
         private readonly Action _about;
 
@@ -42,11 +43,13 @@ namespace SsmsSqlPlugin.Menus
         public TopLevelMenu(
             Func<FormatOptionsSnapshot> getOptions,
             Action format,
+            Action refreshCompletion,
             Action openLog,
             Action about)
         {
             _getOptions = getOptions;
             _format = format;
+            _refreshCompletion = refreshCompletion;
             _openLog = openLog;
             _about = about;
         }
@@ -212,6 +215,8 @@ namespace SsmsSqlPlugin.Menus
                 .WithChildren(indent2, indent4, MenuEntry.Separator(), upper, vertical, subq));
 
             list.Add(MenuEntry.Separator());
+            list.Add(new MenuEntry("刷新补全缓存", "重新读取当前数据库的表和字段",
+                                   _refreshCompletion, TagPrefix + "RefreshCompletion"));
             list.Add(new MenuEntry("打开日志", "打开插件日志文件（排查问题用）",
                                    _openLog, TagPrefix + "Log"));
             list.Add(new MenuEntry("关于 SSMS-SQLPlugin", "版本与项目信息",

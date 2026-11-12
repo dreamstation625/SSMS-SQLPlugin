@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TextManager.Interop;
+using SsmsSqlPlugin.Completion;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.Infrastructure;
 using SsmsSqlPlugin.Menus;
@@ -55,6 +56,10 @@ namespace SsmsSqlPlugin
             Log.Info("================ 包初始化开始 ================");
             Log.Info("程序集: " + typeof(SqlPluginPackage).Assembly.Location);
             Log.Info("版本  : " + typeof(SqlPluginPackage).Assembly.GetName().Version);
+            Log.Info("[补全] 探针开关 SQLKIT_COMPLETION_PROBE=" +
+                     (Environment.GetEnvironmentVariable("SQLKIT_COMPLETION_PROBE") ?? "(null)") +
+                     " EXCLUSIVE=" +
+                     (Environment.GetEnvironmentVariable("SQLKIT_COMPLETION_EXCLUSIVE") ?? "(null)"));
             Log.Info("进程  : " + Process.GetCurrentProcess().ProcessName +
                      " / " + (Environment.Is64BitProcess ? "x64" : "x86"));
 
@@ -62,6 +67,17 @@ namespace SsmsSqlPlugin
 
             // 全局 ServiceProvider，供静态工具类取服务
             ServiceProviderHolder.Provider = this;
+
+            // 补全运行时：后台跟踪当前连接 + 元数据缓存
+            try
+            {
+                CompletionRuntime.Start(this);
+                Log.Info("[补全] 运行时已启动");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[补全] 运行时启动失败", ex);
+            }
 
             try
             {
@@ -190,6 +206,7 @@ namespace SsmsSqlPlugin
                     _topMenu = new TopLevelMenu(
                         () => FormatOptionsStore.Current,
                         FormatActiveEditor,
+                        RefreshCompletionCache,
                         OpenLogFile,
                         ShowAbout);
 
@@ -432,6 +449,18 @@ namespace SsmsSqlPlugin
             }
         }
 
+        private void RefreshCompletionCache()
+        {
+            try
+            {
+                CompletionRuntime.Current?.RefreshMetadata();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("刷新补全缓存失败", ex);
+            }
+        }
+
         private void OpenLogFile()
         {
             try
@@ -458,7 +487,7 @@ namespace SsmsSqlPlugin
                 string msg =
                     "SSMS-SQLPlugin " + asm.GetName().Version + "\r\n\r\n" +
                     "SQL 格式化 / 历史 / 表名字段补全\r\n" +
-                    "（当前版本已实现：SQL 格式化）\r\n\r\n" +
+                    "（当前版本已实现：SQL 格式化、按当前库补全）\r\n\r\n" +
                     "快捷键：Ctrl+K, Ctrl+D\r\n" +
                     "配置文件：" + FormatOptionsStore.ConfigPath + "\r\n" +
                     "日志文件：" + Infrastructure.Log.LogFilePath;

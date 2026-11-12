@@ -29,6 +29,7 @@ DIST = os.path.join(HERE, "dist")
 
 DLL = "SsmsSqlPlugin.dll"
 DLL_FORMATTING = "SsmsSqlPlugin.Formatting.dll"
+DLL_CORE = "SsmsSqlPlugin.Core.dll"
 PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
 VSIX = "SSMS-SQLPlugin.vsix"
@@ -81,6 +82,11 @@ def verify_pkgdef():
 
     text = raw[2:].decode("utf-16-le")
 
+    # 只允许一个 BOM。重复 BOM 会让 pkgdef 合并器认不出第一段
+    # [$RootKey$...]，表现和写注释一样：包不注册、不加载、零日志。
+    if text.startswith("\ufeff"):
+        return fail("pkgdef 开头有重复 BOM（只允许一个）")
+
     # 不能有注释行
     for i, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
@@ -118,7 +124,8 @@ def build():
 
 def package():
     for name, path in ((DLL, os.path.join(BIN, DLL)),
-                       (DLL_FORMATTING, os.path.join(BIN, DLL_FORMATTING))):
+                       (DLL_FORMATTING, os.path.join(BIN, DLL_FORMATTING)),
+                       (DLL_CORE, os.path.join(BIN, DLL_CORE))):
         if not os.path.isfile(path):
             return fail("找不到 %s" % path)
 
@@ -131,6 +138,7 @@ def package():
         (os.path.join(HERE, PKGDEF), PKGDEF),
         (os.path.join(BIN, DLL), DLL),
         (os.path.join(BIN, DLL_FORMATTING), DLL_FORMATTING),
+        (os.path.join(BIN, DLL_CORE), DLL_CORE),
     ]
 
     vsix_path = os.path.join(DIST, VSIX)
@@ -171,7 +179,7 @@ def deploy():
     else:
         step("复用扩展目录 " + target)
 
-    for fname in (DLL, DLL_FORMATTING, PKGDEF):
+    for fname in (DLL, DLL_FORMATTING, DLL_CORE, PKGDEF):
         shutil.copy2(os.path.join(BIN if fname != PKGDEF else HERE, fname),
                      os.path.join(target, fname))
         print("       copied %s" % fname)

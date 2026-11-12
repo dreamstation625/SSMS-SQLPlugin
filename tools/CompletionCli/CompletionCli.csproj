@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>completioncli</AssemblyName>
+    <RootNamespace>SsmsSqlPlugin.CompletionCli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SsmsSqlPlugin.Core\SsmsSqlPlugin.Core.csproj" />
+    <!-- CLI 需要真实的 ScriptDom 运行时；VSIX 里由 SSMS 宿主提供，不打包。 -->
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0" />
+  </ItemGroup>
+
+</Project>
