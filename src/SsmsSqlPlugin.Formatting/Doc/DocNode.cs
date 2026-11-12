@@ -178,6 +178,15 @@ namespace SsmsSqlPlugin.Formatting.Doc
                     while (list.Count > 0)
                     {
                         int last = list.Count - 1;
+
+                        // PrefixLines 会在每个硬换行后补一段缩进空格；
+                        // 末尾的空格节点必须一起去掉，否则收尾会多出空白行。
+                        if (list[last] is TextNode tail && string.IsNullOrWhiteSpace(tail.Text))
+                        {
+                            list.RemoveAt(last);
+                            continue;
+                        }
+
                         var trimmed = TrimTrailingHardLines(list[last]);
                         if (IsEmpty(trimmed))
                         {

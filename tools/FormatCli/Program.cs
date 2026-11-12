@@ -8,16 +8,26 @@ using SsmsSqlPlugin.Formatting.Tokens;
 
 // 排版引擎语料回归：输出效果 + 幂等校验 + 注释保留校验
 // 用法：
-//   dotnet run              → 跑全部，打印每个用例
-//   dotnet run -- --quiet   → 只打印失败项和统计
-//   dotnet run -- --idem    → 只做幂等校验
-//   dotnet run -- --file x.sql → 格式化指定文件并输出
+//   dotnet run                     → 跑内置用例，打印每个用例
+//   dotnet run -- --quiet          → 只打印失败项和统计
+//   dotnet run -- --idem           → 只做幂等校验
+//   dotnet run -- --file x.sql     → 格式化指定文件并输出
+//   dotnet run -- --dir Corpus     → 批量跑目录下所有 .sql
+//   dotnet run -- --compare a b    → 比较两个文件的注释序列
 class Program
 {
     static int Main(string[] args)
     {
+        Console.OutputEncoding = new UTF8Encoding(false);
+
         bool quiet = args.Contains("--quiet");
         bool idemOnly = args.Contains("--idem");
+
+        int dirArg = Array.IndexOf(args, "--dir");
+        if (dirArg >= 0 && dirArg + 1 < args.Length)
+        {
+            return FormatDirectory(args[dirArg + 1]);
+        }
 
         int compareArg = Array.IndexOf(args, "--compare");
         if (compareArg >= 0 && compareArg + 2 < args.Length)
@@ -187,6 +197,46 @@ class Program
             string bt = i < b.Count ? b[i].Kind + "[" + b[i].Text + "]" : "<none>";
             if (at != bt) Console.Error.WriteLine("#" + i + " in=" + at + " out=" + bt);
         }
+    }
+
+    private static int FormatDirectory(string path)
+    {
+        var files = Directory.GetFiles(path, "*.sql")
+                             .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                             .ToArray();
+
+        var opt = FormatOptions.Default;
+        opt.MaxLineWidth = 100;
+
+        int failed = 0;
+        foreach (var file in files)
+        {
+            string sql = File.ReadAllText(file);
+            var result = new SqlFormatter().Format(sql, opt);
+            var second = new SqlFormatter().Format(result.Text, opt);
+
+            bool comments = CommentsPreserved(sql, result.Text);
+            bool idempotent = second.Text == result.Text;
+            bool guarded = HasPreservationFallback(result);
+            bool ok = comments && idempotent && !guarded;
+
+            Console.WriteLine(Path.GetFileName(file) +
+                              ": comments=" + comments +
+                              " idem=" + idempotent +
+                              " guardFallback=" + guarded +
+                              " batches=" + result.FormattedBatches +
+                              " skipped=" + result.SkippedBatches +
+                              " errors=" + result.Errors.Count);
+
+            if (!ok)
+            {
+                failed++;
+                foreach (var e in result.Errors) Console.WriteLine("    error: " + e);
+            }
+        }
+
+        Console.WriteLine("files=" + files.Length + " failed=" + failed);
+        return failed == 0 ? 0 : 1;
     }
 
     private static int CompareComments(string pathA, string pathB)

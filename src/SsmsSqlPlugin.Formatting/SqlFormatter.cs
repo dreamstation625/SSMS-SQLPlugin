@@ -129,6 +129,11 @@ namespace SsmsSqlPlugin.Formatting
                 // 在出口统一收一次最可靠）
                 rendered = Regex.Replace(rendered, @"[ \t]+;", ";");
 
+                // RETURN ( 是固定搭配：内联表值函数的 RETURN 和左括号不要被
+                // 组换行拆到两行（子查询本身仍保持块展开）。
+                rendered = Regex.Replace(rendered, @"(?m)^([ \t]*RETURN)[ \t]*\r?\n[ \t]*\(",
+                                         "$1 (", RegexOptions.IgnoreCase);
+
                 // 硬性约束：格式化只能改空白/大小写，不能丢任何内容。
                 // 任何一条结构化路径漏掉 token（最典型是注释落在 AST span 之外），
                 // 都在这里回退成原文，避免用户代码被悄悄改坏。

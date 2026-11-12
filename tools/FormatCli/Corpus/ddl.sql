@@ -1,0 +1,39 @@
+CREATE TABLE dbo.Customer (
+    Id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Customer PRIMARY KEY,
+    Code NVARCHAR(50) NOT NULL,
+    Name NVARCHAR(100) NULL,
+    Price DECIMAL(18,2) NOT NULL,
+    Qty INT NOT NULL,
+    Total AS (Price * Qty) PERSISTED,
+    CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_Customer_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT UQ_Customer_Code UNIQUE (Code),
+    CONSTRAINT CK_Customer_Price CHECK (Price >= 0)
+);
+GO
+CREATE NONCLUSTERED INDEX IX_Customer_Name ON dbo.Customer (Name) INCLUDE (Code) WHERE Name IS NOT NULL;
+GO
+ALTER TABLE dbo.Customer ADD Email NVARCHAR(200) NULL;
+GO
+CREATE OR ALTER VIEW dbo.vw_Customer
+AS
+SELECT Id, Code, Name FROM dbo.Customer WHERE Name IS NOT NULL;
+GO
+CREATE OR ALTER FUNCTION dbo.fn_Total (@Id INT)
+RETURNS TABLE
+AS
+RETURN (
+    SELECT SUM(Amount) AS Total FROM dbo.Orders WHERE CustomerId = @Id
+);
+GO
+CREATE OR ALTER TRIGGER dbo.trg_Customer_Audit
+ON dbo.Customer
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.Audit (Entity, EntityId, Action)
+    SELECT N'Customer', Id, N'UPSERT' FROM inserted;
+END
+GO
+CREATE SEQUENCE dbo.seq_OrderNo START WITH 1000 INCREMENT BY 1 CACHE 50;
+GO

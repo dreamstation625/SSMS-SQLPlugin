@@ -91,6 +91,10 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
                 var doc = BuildStatement(s, e, st) ?? BuildLooseRange(s, e);
 
+                // 语句末尾不要留硬换行：换行由语句序列统一补，
+                // 否则后面的行尾注释会因为 "上一行已结束" 而掉到下一行。
+                doc = TrimTrailingHardLines(doc);
+
                 if (parts.Count > 0)
                 {
                     if (!endsWithHard) parts.Add(HardLine);
@@ -131,13 +135,23 @@ namespace SsmsSqlPlugin.Formatting.Layout
         {
             int cursor = from;
 
-            while (prevStatementLast >= 0 && cursor <= to)
+            while (cursor <= to && parts.Count > 0 && !endsWithHard)
             {
                 var t = _tokens[cursor];
+
+                // AST span 经常不含语句末尾的分号；直接贴回上一行，别单独起行
+                if (t.Kind == SqlTokenKind.Semicolon)
+                {
+                    parts.Add(Text(";"));
+                    cursor++;
+                    prevStatementLast = cursor - 1;
+                    continue;
+                }
+
                 if (t.Kind != SqlTokenKind.Comment) break;
+                if (prevStatementLast < 0) break;
                 if (t.Line != _tokens[prevStatementLast].Line) break;
                 if (t.Text.IndexOf('\n') >= 0 || t.Text.IndexOf('\r') >= 0) break;
-                if (parts.Count == 0 || endsWithHard) break;
 
                 parts.Add(Text(t.IsLineComment ? "  " : " "));
                 parts.Add(Text(t.Text.Trim()));
@@ -250,12 +264,15 @@ namespace SsmsSqlPlugin.Formatting.Layout
             }
 
             var parts = new List<DocNode>();
+
             for (int k = 0; k < clauses.Count; k++)
             {
-                var cl = clauses[k];
                 if (k > 0) parts.Add(HardLine);
 
-                parts.Add(BuildClause(cl, k > 0));
+                // 去掉子句末尾的硬换行（典型：行尾注释），由子句间的 HardLine
+                // 统一提供换行。否则换行落在子句的 Indent 作用域里，
+                // 下一个子句会继承 4 个空格。
+                parts.Add(TrimTrailingHardLines(BuildClause(clauses[k], k > 0)));
             }
             return Concat(parts);
         }
@@ -285,12 +302,26 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 case "MergeStatement":
                     return BuildMerge(span);
 
+                case "BeginTransactionStatement":
+                case "CommitTransactionStatement":
+                case "RollbackTransactionStatement":
+                case "SaveTransactionStatement":
+                case "FetchCursorStatement":
+                case "FetchStatement":
+                    return BuildSimpleRange(span.FirstToken, span.LastToken);
+
                 case "CreateProcedureStatement":
                 case "AlterProcedureStatement":
+                case "CreateOrAlterProcedureStatement":
                 case "CreateFunctionStatement":
                 case "AlterFunctionStatement":
+                case "CreateOrAlterFunctionStatement":
                 case "CreateTriggerStatement":
                 case "AlterTriggerStatement":
+                case "CreateOrAlterTriggerStatement":
+                case "CreateViewStatement":
+                case "AlterViewStatement":
+                case "CreateOrAlterViewStatement":
                     return BuildRoutine(span);
 
                 default:
@@ -334,6 +365,16 @@ namespace SsmsSqlPlugin.Formatting.Layout
             {
                 parts.Add(HardLine);
 
+                // 内联表值函数：AS 之后是 RETURN (SELECT ...)。
+                // 不能走 BuildStatementsBlock —— AST 会把括号里的 SELECT 当成
+                // 独立的语句节点，只排 SELECT 会把 RETURN 和括号丢掉。
+                int firstBody = NextMeaningful(asIdx + 1, span.LastToken);
+                if (firstBody >= 0 && _tokens[firstBody].Is("RETURN"))
+                {
+                    parts.Add(BuildFlatRange(asIdx + 1, span.LastToken));
+                    return Concat(parts);
+                }
+
                 // AS 之后可能是 BEGIN...END 块，也可能直接是语句序列。
                 // DirectChildren 会跳过被外层包住的情况，这里直接取"AS 之后"的最外层语句。
                 var body = _split?.DirectChildren(asIdx + 1, span.LastToken);
@@ -375,7 +416,8 @@ namespace SsmsSqlPlugin.Formatting.Layout
             int usingIdx = FindTopKeyword(first, last, "USING");
             int onIdx = usingIdx > 0 ? FindTopKeyword(usingIdx + 1, last, "ON") : FindTopKeyword(first, last, "ON");
             int firstWhen = FindTopWhen(first, last);
-
+            int outputIdx = FindTopKeyword(firstWhen > 0 ? firstWhen : first, last, "OUTPUT");
+            int branchLimit = outputIdx > 0 ? outputIdx - 1 : last;
 
             int cursor = first;
 
@@ -395,8 +437,7 @@ namespace SsmsSqlPlugin.Formatting.Layout
             {
                 int usingEnd = onIdx > 0 ? onIdx - 1
                              : (firstWhen > 0 ? firstWhen - 1 : last);
-                parts.Add(HardLine);
-                parts.Add(Concat(Text(Ind()), BuildFlatRange(usingIdx, usingEnd)));
+                AddIndentedLine(parts, BuildFlatRange(usingIdx, usingEnd));
                 cursor = usingEnd + 1;
             }
 
@@ -404,27 +445,71 @@ namespace SsmsSqlPlugin.Formatting.Layout
             if (onIdx > 0)
             {
                 int onEnd = firstWhen > 0 ? firstWhen - 1 : last;
-                parts.Add(HardLine);
-                parts.Add(Concat(Text(Ind()), BuildFlatRange(onIdx, onEnd)));
+                AddIndentedLine(parts, BuildFlatRange(onIdx, onEnd));
                 cursor = onEnd + 1;
             }
 
-            // ④ 每个 WHEN ... THEN ... 分支
-            while (cursor <= last)
+            // ④ 每个 WHEN ... THEN ... 分支（遇到顶层 OUTPUT 截止）
+            while (cursor <= branchLimit)
             {
-                int whenIdx = FindTopWhen(cursor, last);
+                int whenIdx = FindTopWhen(cursor, branchLimit);
                 if (whenIdx < 0) break;
 
-                int nextWhen = FindTopWhen(whenIdx + 1, last);
-                int branchEnd = nextWhen > 0 ? nextWhen - 1 : last;
+                int nextWhen = FindTopWhen(whenIdx + 1, branchLimit);
+                int branchEnd = nextWhen > 0 ? nextWhen - 1 : branchLimit;
 
+                AddBreak(parts);
+                var branchDoc = TrimTrailingHardLines(BuildMergeBranch(whenIdx, branchEnd));
+                parts.Add(branchDoc);
+                // 把缩进状态收回到顶层，下一行 WHEN/OUTPUT 不会继承 action 的缩进
                 parts.Add(HardLine);
-                parts.Add(BuildMergeBranch(whenIdx, branchEnd));
 
                 cursor = branchEnd + 1;
             }
 
+            // ⑤ 顶层 OUTPUT ... [INTO ...]
+            if (outputIdx > 0)
+            {
+                int intoIdx = FindTopKeyword(outputIdx + 1, last, "INTO");
+                int outEnd = intoIdx > 0 ? intoIdx - 1 : last;
+
+                AddBreak(parts);
+                parts.Add(BuildFlatRange(outputIdx, outEnd));
+
+                if (intoIdx > 0)
+                {
+                    AddBreak(parts);
+                    parts.Add(BuildFlatRange(intoIdx, last));
+                }
+            }
+
             return Concat(parts);
+        }
+
+        private void AddBreak(List<DocNode> parts)
+        {
+            if (parts.Count == 0) return;
+            if (EndsWithHardLine(parts[parts.Count - 1])) return;
+            parts.Add(HardLine);
+        }
+
+        private void AddIndentedLine(List<DocNode> parts, DocNode content)
+        {
+            var trimmed = TrimTrailingHardLines(content);
+
+            if (parts.Count > 0 && EndsWithHardLine(parts[parts.Count - 1]))
+            {
+                parts.Add(Concat(Text(Ind()), trimmed));
+            }
+            else
+            {
+                parts.Add(Indent(Concat(HardLine, trimmed), _opt.IndentSize));
+            }
+
+            // 缩进块内部的尾换行会留在 indentation 作用域里，
+            // 后面再拼顶层内容（WHEN/OUTPUT）就会带上 4 个空格。
+            // 这里统一补一个作用域外的硬换行，把列位置收回到 0。
+            parts.Add(HardLine);
         }
 
         /// <summary>一个 WHEN 分支：WHEN MATCHED THEN / UPDATE SET ... / INSERT ... VALUES ...</summary>
@@ -459,10 +544,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
             {
                 int actionFrom = thenIdx + 1;
 
-                // 动作部分（UPDATE SET ... / INSERT ... VALUES ...）整体缩进一级。
-                // 逐行加前缀：BuildStatementsBlock 可能有多行（UPDATE + SET），
-                // 只给第一行加前缀会让 SET 掉回行首。
-                parts.Add(PrefixLines(HardLine, BuildStatementsBlock(actionFrom, to), Ind()));
+                // UPDATE SET 是一个整体，不能按普通子句拆成 UPDATE / SET 两行
+                bool isUpdate = _tokens[actionFrom].Is("UPDATE");
+
+                var action = isUpdate
+                    ? BuildFlatRange(actionFrom, to)
+                    : BuildStatementsBlock(actionFrom, to);
+
+                parts.Add(PrefixLines(HardLine, action, Ind()));
             }
 
             return Concat(parts);
@@ -888,6 +977,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
             return body.Build(from, to, "");
         }
 
+        /// <summary>整段压成一行（BEGIN TRANSACTION / FETCH 等定长语句）。</summary>
+        private DocNode BuildSimpleRange(int from, int to)
+        {
+            if (from > to) return Nil;
+            var body = new ClauseBodyBuilder(_tokens, _opt, this, _split);
+            return body.BuildSingleLine(from, to);
+        }
+
         // ── 子句切分 ──
 
         /// <summary>
@@ -974,6 +1071,16 @@ namespace SsmsSqlPlugin.Formatting.Layout
             {
                 var p = _tokens[k];
                 if (p.Kind == SqlTokenKind.Comment) continue;
+
+                // SET NOCOUNT ON / SET XACT_ABORT ON：ON 是选项值，不是 JOIN 条件
+                int setBefore = PrevMeaningful(k);
+                if (setBefore >= from && _tokens[setBefore].Is("SET")) return true;
+
+                if (p.Kind == SqlTokenKind.Identifier)
+                {
+                    return false;
+                }
+
                 if (p.Kind != SqlTokenKind.Keyword) return false;
 
                 if (p.IsAny("GROUP", "ORDER", "PARTITION")) return true;
@@ -1008,22 +1115,38 @@ namespace SsmsSqlPlugin.Formatting.Layout
             if (t.IsAny("LEFT", "RIGHT", "FULL"))
             {
                 int next = NextMeaningful(i, to);
-                return next >= 0 && _tokens[next].IsAny("JOIN", "OUTER");
+                return next >= 0 && IsWord(_tokens[next], "JOIN", "OUTER");
             }
 
             if (t.IsAny("INNER", "CROSS", "OUTER"))
             {
                 int next = NextMeaningful(i, to);
-                return next >= 0 && _tokens[next].IsAny("JOIN", "APPLY");
+                return next >= 0 && IsWord(_tokens[next], "JOIN", "APPLY");
             }
 
             if (t.Is("APPLY"))
             {
                 int prev = PrevMeaningful(i);
-                return prev >= 0 && _tokens[prev].IsAny("CROSS", "OUTER");
+                return prev >= 0 && IsWord(_tokens[prev], "CROSS", "OUTER");
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// 按文本匹配关键字。ScriptDom 会把 APPLY / TRY / CATCH 这类词标成
+        /// Identifier，不能只依赖 KeywordUpper。
+        /// </summary>
+        private static bool IsWord(SqlToken token, params string[] words)
+        {
+            if (token == null) return false;
+            if (token.Kind == SqlTokenKind.Comment) return false;
+
+            foreach (var w in words)
+            {
+                if (string.Equals(token.Text, w, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
         }
 
         private int NextMeaningful(int idx, int to)

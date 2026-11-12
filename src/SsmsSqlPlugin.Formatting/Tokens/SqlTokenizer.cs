@@ -305,6 +305,22 @@ namespace SsmsSqlPlugin.Formatting.Tokens
                 case "WITHIN":
                     return true;
 
+                // DML 的 OUTPUT 子句：ScriptDom 报 Identifier。
+                // 只在同一语句里出现过 INSERT/UPDATE/DELETE/MERGE 时升级，
+                // 避免把名为 output 的列/别名大写。
+                case "OUTPUT":
+                    for (int k = sofar.Count - 1; k >= 0; k--)
+                    {
+                        var t = sofar[k];
+                        if (t.Kind == SqlTokenKind.Semicolon) return false;
+                        if (t.Kind == SqlTokenKind.Keyword &&
+                            t.IsAny("INSERT", "UPDATE", "DELETE", "MERGE"))
+                            return true;
+                        if (t.Kind == SqlTokenKind.Keyword && t.Is("SELECT"))
+                            return false;
+                    }
+                    return false;
+
                 default:
                     return false;
             }

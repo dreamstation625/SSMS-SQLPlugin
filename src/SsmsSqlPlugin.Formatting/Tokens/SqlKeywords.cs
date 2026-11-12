@@ -111,7 +111,7 @@ namespace SsmsSqlPlugin.Formatting.Tokens
             "SELECT","FROM","WHERE","GROUP","HAVING","ORDER","UNION","INTERSECT","EXCEPT",
             "INSERT","UPDATE","DELETE","SET","VALUES","OUTPUT","INTO",
             "JOIN","INNER","LEFT","RIGHT","FULL","CROSS","OUTER","APPLY",
-            "ON","USING",
+            "ON","USING","PIVOT","UNPIVOT","OPTION",
         };
 
         /// <summary>二级关键字：跟在主关键字后，不单独起行。</summary>

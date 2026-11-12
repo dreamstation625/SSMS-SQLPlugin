@@ -38,6 +38,7 @@ namespace SsmsSqlPlugin.Formatting.Layout
         public DocNode Build(int from, int to, string clauseKind)
         {
             var ctx = new Ctx(_tokens, _opt, _split, from, to);
+            ctx.ClauseKind = clauseKind ?? string.Empty;
             return ctx.BuildAll();
         }
 
@@ -114,6 +115,9 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
             /// <summary>内联 CASE 的临时上下文里禁止再次做内联判断，避免递归。</summary>
             public bool DisableCaseInlining;
+
+            /// <summary>当前子句类型（SELECT/FROM/ON/INTO…），用于括号空格判断。</summary>
+            public string ClauseKind = string.Empty;
 
             public Ctx(List<SqlToken> tokens, FormatOptions opt, StatementSplitter.Result split, int first, int last)
             {
@@ -315,6 +319,12 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     }
 
                     // BEGIN...END 的 END：回退一级
+                    if (NoForcedBreak)
+                    {
+                        AppendWithSpacing(t, Text(RenderText(t)));
+                        return;
+                    }
+
                     _blockDepth = Math.Max(0, _blockDepth - 1);
                     Break();
                     string bind = _blockDepth > 0 ? new string(' ', _o.IndentSize * _blockDepth) : string.Empty;
@@ -325,6 +335,12 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 // BEGIN：块开始，强制换行并缩进一级
                 if (t.Is("BEGIN"))
                 {
+                    if (NoForcedBreak)
+                    {
+                        AppendWithSpacing(t, Text(RenderText(t)));
+                        return;
+                    }
+
                     Break();
                     string bind = _blockDepth > 0 ? new string(' ', _o.IndentSize * _blockDepth) : string.Empty;
                     AppendToLine(Text(bind + RenderText(t)));
@@ -332,6 +348,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     FlushLine();
                     _out.Add(HardLine);
                     _out.Add(Text(new string(' ', _o.IndentSize * _blockDepth)));
+                    return;
+                }
+
+                // CREATE OR ALTER 是一个固定搭配，不能把 OR 当逻辑操作符断行
+                if (t.Is("OR") && IsCreateOrAlter(_i))
+                {
+                    AppendWithSpacing(t, Text(RenderText(t)));
+                    AppendToLine(Text(" "));
                     return;
                 }
 
@@ -679,12 +703,37 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 var sub = new TokenLayoutBuilder(_t, _o, _split);
                 var subDoc = TrimTrailingHardLines(sub.BuildRange(open + 1, close - 1));
 
+                // FROM / JOIN / APPLY / WHERE 后面的子查询本身就是子句体，
+                // 当前缩进已经是它的正文层级；表达式里的子查询（IN/EXISTS/AS/…）
+                // 还要再往里缩一级。
+                bool clauseRoot = IsClauseRootParen(open);
+
+                if (!clauseRoot && !IsNilDocLocal(subDoc))
+                {
+                    // Indent 只影响换行后的缩进，第一行要手动补前缀空格
+                    subDoc = Indent(
+                        Concat(Text(new string(' ', _o.IndentSize)), subDoc),
+                        _o.IndentSize);
+                }
+
                 AppendToLine(Concat(HardLine, subDoc));
 
-                // 收括号单独起行，回退一级到子句行首
-                AppendToLine(Indent(Concat(HardLine, Text(")")), -_o.IndentSize));
+                // 收括号：子句根括号回退到子句行首；表达式子查询回到当前行缩进
+                if (clauseRoot)
+                    AppendToLine(Indent(Concat(HardLine, Text(")")), -_o.IndentSize));
+                else
+                    AppendToLine(Concat(HardLine, Text(")")));
 
                 _i = close + 1;
+            }
+
+            private bool IsClauseRootParen(int open)
+            {
+                int prev = PrevMeaningful(open);
+                if (prev < 0) return false;
+
+                // APPLY 被 ScriptDom 标成 Identifier，用文本匹配
+                return IsWordText(_t[prev], "FROM", "JOIN", "APPLY", "WHERE", "HAVING", "ON", "EXISTS");
             }
 
             /// <summary>括号内是否是子查询：第一个有意义的 token 是 SELECT / WITH。</summary>
@@ -730,6 +779,9 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     return p.IsText("(");
                 }
 
+                if (p.Kind == SqlTokenKind.Identifier && IsWordText(p, "APPLY"))
+                    return true;
+
                 if (p.Kind != SqlTokenKind.Keyword) return false;
 
                 return p.IsAny("IN", "EXISTS", "FROM", "AS", "JOIN", "APPLY", "USING",
@@ -769,6 +821,33 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 // 之前只判 Keyword，导致 "* (" 变成 "*(" —— 乘号和括号黏在一起。
                 if (p.Kind == SqlTokenKind.Operator) return true;
 
+                if (p.Kind == SqlTokenKind.Identifier ||
+                    (p.Kind == SqlTokenKind.Literal && p.Text != null && p.Text.StartsWith("@")))
+                {
+                    if (IsWordText(p, "APPLY", "PIVOT", "UNPIVOT", "INCLUDE")) return true;
+
+                    // 表名/变量表后的列清单：ON dbo.T (...)、INTO @ids (...)
+                    if (IsTableLikeClause()) return true;
+
+                    // 表名/列名后的括号：CREATE TABLE t (...)、INSERT INTO t (...)、
+                    // REFERENCES t (...)… 函数名后的括号不加空格（dbo.fn(...)）。
+                    int before = PrevMeaningful(prev);
+                    while (before >= 0 &&
+                           (_t[before].IsText(".") || _t[before].Kind == SqlTokenKind.Identifier))
+                    {
+                        before = PrevMeaningful(before);
+                    }
+
+                    if (before >= 0 && _t[before].Kind == SqlTokenKind.Keyword &&
+                        _t[before].IsAny("TABLE", "INTO", "ON", "INDEX", "INCLUDE",
+                                         "UNIQUE", "CHECK", "REFERENCES", "FOREIGN",
+                                         "PROCEDURE", "FUNCTION", "VIEW", "TRIGGER",
+                                         "ALTER", "CREATE"))
+                        return true;
+
+                    return false;
+                }
+
                 if (p.Kind != SqlTokenKind.Keyword) return false;
 
                 if (p.IsAny("IN", "VALUES", "AS", "EXISTS", "OVER", "ON", "USING",
@@ -776,11 +855,38 @@ namespace SsmsSqlPlugin.Formatting.Layout
                             "BETWEEN", "LIKE", "THEN", "ELSE", "WHEN", "HAVING", "BY",
                             "JOIN", "UNION", "ALL", "DISTINCT", "TOP", "SET", "INTO",
                             "CASE", "RETURN", "PRINT", "EXEC", "EXECUTE", "WITH",
-                            "GROUP", "PARTITION", "ORDER", "ROWS", "RANGE"))
+                            "GROUP", "PARTITION", "ORDER", "ROWS", "RANGE",
+                            "UNIQUE", "CHECK", "INCLUDE", "PIVOT", "UNPIVOT", "OPTION",
+                            "FOREIGN", "REFERENCES", "KEY"))
                     return true;
 
                 return false;
             }
+
+            private bool IsTableLikeClause()
+            {
+                return string.Equals(ClauseKind, "ON", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "INTO", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "FROM", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "JOIN", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "UPDATE", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "DELETE", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "TABLE", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ClauseKind, "INCLUDE", StringComparison.OrdinalIgnoreCase);
+            }
+
+            private static bool IsWordText(SqlToken token, params string[] words)
+            {
+                if (token == null || token.Kind == SqlTokenKind.Comment) return false;
+                foreach (var w in words)
+                {
+                    if (string.Equals(token.Text, w, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+                return false;
+            }
+
+            private static bool IsNilDocLocal(DocNode node)
+                => node == null || (node is ConcatNode c && c.Parts.Count == 0);
 
             // ── 注释 ──
             private void EmitComment(SqlToken t)
@@ -873,6 +979,26 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     if (_t[k].Kind != SqlTokenKind.Comment) return k;
                 }
                 return -1;
+            }
+
+            private int NextMeaningful(int idx)
+            {
+                for (int k = idx + 1; k <= _last; k++)
+                {
+                    if (_t[k].Kind != SqlTokenKind.Comment) return k;
+                }
+                return -1;
+            }
+
+            private bool IsCreateOrAlter(int idx)
+            {
+                int prev = PrevMeaningful(idx);
+                int next = NextMeaningful(idx);
+                if (prev < 0 || next < 0) return false;
+
+                return _t[prev].Kind == SqlTokenKind.Keyword
+                       && _t[prev].Is("CREATE")
+                       && string.Equals(_t[next].Text, "ALTER", StringComparison.OrdinalIgnoreCase);
             }
 
             private void AppendToLine(DocNode d)
