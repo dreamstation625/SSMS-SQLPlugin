@@ -29,7 +29,7 @@ namespace SsmsSqlPlugin.Formatting
     public sealed class SqlFormatter
     {
         private static readonly Regex GoLine =
-            new Regex(@"^[ \t]*GO[ \t]*(\d+)?[ \t]*(--.*)?$",
+            new Regex(@"^[ \t]*GO[ \t]*(\d+)?[ \t]*(--.*)?\r?$",
                       RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
         public FormatResult Format(string sql, FormatOptions options = null)
