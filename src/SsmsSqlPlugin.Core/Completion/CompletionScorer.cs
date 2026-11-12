@@ -25,7 +25,8 @@ namespace SsmsSqlPlugin.Core.Completion
             int index = text.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
             if (index < 0)
             {
-                return IsSubsequence(text, prefix) ? 10 : 0;
+                // 不做子序列匹配：cbo_ 会被 ABC_...（c/b/o/_ 分散出现）误命中
+                return 0;
             }
 
             bool wordStart = index == 0 || IsBoundary(text[index - 1]);
@@ -48,14 +49,5 @@ namespace SsmsSqlPlugin.Core.Completion
         private static bool IsBoundary(char c)
             => c == '_' || c == '.' || c == '@' || c == '#' || c == ' ' || c == '[';
 
-        private static bool IsSubsequence(string text, string prefix)
-        {
-            int j = 0;
-            for (int i = 0; i < text.Length && j < prefix.Length; i++)
-            {
-                if (char.ToUpperInvariant(text[i]) == char.ToUpperInvariant(prefix[j])) j++;
-            }
-            return j == prefix.Length;
-        }
     }
 }

@@ -17,6 +17,7 @@ class Program
         public string SqlWithCaret;
         public string Slot;
         public string[] Contains;
+        public string[] Absent;
         public string TopDisplay;
     }
 
@@ -99,6 +100,15 @@ class Program
                 return "缺少候选 " + expected;
         }
 
+        if (s.Absent != null)
+        {
+            foreach (var bad in s.Absent)
+            {
+                if (names.Contains(bad))
+                    return "不应出现候选 " + bad;
+            }
+        }
+
         if (!string.IsNullOrEmpty(s.TopDisplay))
         {
             if (result.Items.Count == 0 || !string.Equals(
@@ -125,6 +135,10 @@ class Program
             ("reader_id", "int"), ("name", "nvarchar"));
         AddTable(snapshot, "dbo", "Library", "U",
             ("id", "int"), ("title", "nvarchar"));
+        AddTable(snapshot, "dbo", "CBO_Cl", "U",
+            ("id", "int"), ("name", "nvarchar"));
+        AddTable(snapshot, "dbo", "ABC_ABCClassGroup", "U",
+            ("id", "int"), ("name", "nvarchar"));
         AddTable(snapshot, "dbo", "vw_UserOrders", "V",
             ("user_id", "int"), ("total", "decimal"));
 
@@ -188,6 +202,15 @@ class Program
             S("函数参数", "SELECT COUNT(|) FROM dbo.Users", "column", "id", "COUNT"),
             S("CTE 表位置", "WITH cte AS (SELECT 1 AS x) SELECT * FROM |", "table", "cte"),
             S("临时表", "CREATE TABLE #tmp (a INT, b NVARCHAR(20)); SELECT * FROM |", "table", "#tmp"),
+            S("多行新语句", "SELECT * FROM dbo.Users u\nselect |", "default", "SELECT"),
+            new Scenario
+            {
+                Name = "下划线前缀",
+                SqlWithCaret = "SELECT * FROM cbo_|",
+                Slot = "table",
+                Contains = new[] { "CBO_Cl" },
+                Absent = new[] { "ABC_ABCClassGroup" },
+            },
         };
     }
 

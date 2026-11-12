@@ -23,6 +23,9 @@ namespace SsmsSqlPlugin.Core.Metadata
 
         public TimeSpan Ttl = TimeSpan.FromMinutes(5);
 
+        /// <summary>加载开始回调（调用线程）：连接描述。</summary>
+        public Action<ConnectionDescriptor> OnLoadStarted;
+
         /// <summary>加载完成回调（后台线程）：snapshot, 用时, 错误。</summary>
         public Action<MetadataSnapshot, TimeSpan, string> OnLoaded;
 
@@ -121,6 +124,9 @@ namespace SsmsSqlPlugin.Core.Metadata
                 _loading = true;
             }
 
+            try { OnLoadStarted?.Invoke(descriptor); }
+            catch { }
+
             Task.Run(() => LoadAsync(descriptor, generation));
             return true;
         }
@@ -143,6 +149,7 @@ namespace SsmsSqlPlugin.Core.Metadata
 
             stopwatch.Stop();
 
+            bool applied = false;
             lock (_gate)
             {
                 if (generation == _generation)
@@ -152,8 +159,12 @@ namespace SsmsSqlPlugin.Core.Metadata
                     _lastError = error;
                     _lastLoadMs = stopwatch.ElapsedMilliseconds;
                     _loading = false;
+                    applied = true;
                 }
             }
+
+            // 旧连接/旧库的慢加载结果已被丢弃，不能再触发 OnLoaded 去关新加载的进度窗
+            if (!applied) return;
 
             try { OnLoaded?.Invoke(snapshot, stopwatch.Elapsed, error); }
             catch { }

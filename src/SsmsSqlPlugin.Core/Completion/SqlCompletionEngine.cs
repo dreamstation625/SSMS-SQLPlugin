@@ -11,6 +11,9 @@ namespace SsmsSqlPlugin.Core.Completion
     /// </summary>
     public sealed class SqlCompletionEngine
     {
+        /// <summary>超大库（数千表）先截断候选池，避免每次按键排序上万项。</summary>
+        private const int MaxPool = 400;
+
         private enum Clause
         {
             None, Select, From, Join, Where, On, Group, Order, Having, Set,
@@ -56,6 +59,15 @@ namespace SsmsSqlPlugin.Core.Completion
                 var lineStarts = BuildLineStarts(window.Text);
                 int prevIndex = FindPreviousToken(tokens, lineStarts, localPrefixStart);
                 int stmtStart = FindStatementStart(tokens, prevIndex);
+
+                // 新行以 SELECT/INSERT/... 开头（没有分号）时，视为新语句。
+                // 否则上一行 FROM 的表列表会污染下一行 select 的上下文。
+                if (TryDetectNewStatement(tokens, lineStarts, prevIndex, localPrefixStart, out int newStart))
+                {
+                    stmtStart = newStart;
+                    prevIndex = -1;
+                }
+
                 var depth = BuildDepth(tokens);
 
                 int selectIndex = -1, fromIndex = -1, execIndex = -1;
@@ -272,34 +284,37 @@ namespace SsmsSqlPlugin.Core.Completion
             string schemaFilter,
             string prefix)
         {
-            if (metadata != null)
-            {
-                foreach (var obj in metadata.Objects)
-                {
-                    if (!obj.IsTable) continue;
-                    if (schemaFilter != null &&
-                        !string.Equals(obj.Schema, schemaFilter, StringComparison.OrdinalIgnoreCase))
-                        continue;
+            // CTE / 临时表优先进入候选池，避免被海量表挤掉
+            AddTableObjectList(list, seen, ctes, prefix, "CTE", CompletionKind.Cte);
+            AddTableObjectList(list, seen, temps, prefix, "临时表", CompletionKind.TempTable);
 
-                    int score = Math.Max(
+            if (metadata == null) return;
+
+            foreach (var obj in metadata.Objects)
+            {
+                if (prefix.Length == 0 && list.Count >= MaxPool) break;
+                if (!obj.IsTable) continue;
+                if (schemaFilter != null &&
+                    !string.Equals(obj.Schema, schemaFilter, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                int score = prefix.Length == 0
+                    ? 1
+                    : Math.Max(
                         CompletionScorer.Score(obj.Name, prefix),
                         CompletionScorer.Score(obj.FullName, prefix));
 
-                    if (prefix.Length > 0 && score == 0) continue;
+                if (prefix.Length > 0 && score == 0) continue;
 
-                    AddCandidate(list, seen,
-                        obj.Name,
-                        QualifyForInsert(obj),
-                        obj.FullName + " " + obj.Name,
-                        obj.Schema,
-                        KindText(obj) + " · " + obj.FullName,
-                        obj.IsView ? CompletionKind.View : CompletionKind.Table,
-                        score + 1200);
-                }
+                AddCandidate(list, seen,
+                    obj.Name,
+                    QualifyForInsert(obj),
+                    obj.FullName + " " + obj.Name,
+                    obj.Schema,
+                    KindText(obj) + " · " + obj.FullName,
+                    obj.IsView ? CompletionKind.View : CompletionKind.Table,
+                    score + 1200);
             }
-
-            AddTableObjectList(list, seen, ctes, prefix, "CTE", CompletionKind.Cte);
-            AddTableObjectList(list, seen, temps, prefix, "临时表", CompletionKind.TempTable);
         }
 
         private static void AddTableObjectList(
@@ -314,9 +329,13 @@ namespace SsmsSqlPlugin.Core.Completion
 
             foreach (var obj in objects)
             {
-                int score = Math.Max(
-                    CompletionScorer.Score(obj.Name, prefix),
-                    CompletionScorer.Score(obj.FullName, prefix));
+                if (prefix.Length == 0 && list.Count >= MaxPool) return;
+
+                int score = prefix.Length == 0
+                    ? 1
+                    : Math.Max(
+                        CompletionScorer.Score(obj.Name, prefix),
+                        CompletionScorer.Score(obj.FullName, prefix));
                 if (prefix.Length > 0 && score == 0) continue;
 
                 AddCandidate(list, seen,
@@ -341,14 +360,17 @@ namespace SsmsSqlPlugin.Core.Completion
 
             foreach (var obj in metadata.Objects)
             {
+                if (prefix.Length == 0 && list.Count >= MaxPool) break;
                 if (!obj.IsProcedure) continue;
                 if (schemaFilter != null &&
                     !string.Equals(obj.Schema, schemaFilter, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                int score = Math.Max(
-                    CompletionScorer.Score(obj.Name, prefix),
-                    CompletionScorer.Score(obj.FullName, prefix));
+                int score = prefix.Length == 0
+                    ? 1
+                    : Math.Max(
+                        CompletionScorer.Score(obj.Name, prefix),
+                        CompletionScorer.Score(obj.FullName, prefix));
                 if (prefix.Length > 0 && score == 0) continue;
 
                 AddCandidate(list, seen,
@@ -398,7 +420,11 @@ namespace SsmsSqlPlugin.Core.Completion
             {
                 foreach (var column in table.Columns)
                 {
-                    int score = CompletionScorer.Score(column.Name, prefix);
+                    if (prefix.Length == 0 && list.Count >= MaxPool) return;
+
+                    int score = prefix.Length == 0
+                        ? 1
+                        : CompletionScorer.Score(column.Name, prefix);
                     if (prefix.Length > 0 && score == 0) continue;
 
                     string desc = table.FullName + "." + column.Name +
@@ -1047,6 +1073,68 @@ namespace SsmsSqlPlugin.Core.Completion
                 if (tokens[i].Kind == SqlTokenKind.Semicolon) return i + 1;
             }
             return 0;
+        }
+
+        private static readonly string[] StatementStarterWords =
+        {
+            "SELECT", "INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "ALTER", "DROP",
+            "WITH", "EXEC", "EXECUTE", "DECLARE", "SET", "USE", "IF", "WHILE", "BEGIN",
+            "RETURN", "TRUNCATE", "GRANT", "DENY", "REVOKE", "PRINT", "RAISERROR",
+            "THROW", "WAITFOR", "OPEN", "CLOSE", "DEALLOCATE", "FETCH",
+        };
+
+        private static bool TryDetectNewStatement(
+            List<SqlToken> tokens,
+            int[] lineStarts,
+            int previousIndex,
+            int prefixStart,
+            out int newStart)
+        {
+            newStart = -1;
+
+            // 情况一：光标前的完整单词就是新行开头的语句起始词（select| / select |）
+            if (previousIndex > 0)
+            {
+                var current = tokens[previousIndex];
+                int previousLine = tokens[previousIndex - 1].Line;
+                if (current.Line > previousLine && IsStatementStarterPrefix(current.Text))
+                {
+                    newStart = previousIndex;
+                    return true;
+                }
+            }
+
+            // 情况二：正在输入新行开头的语句起始词（s| / se| / sel|）
+            int index = previousIndex + 1;
+            if (index < 0 || index >= tokens.Count) return false;
+
+            var token = tokens[index];
+            int tokenStart = TokenStart(token, lineStarts);
+
+            // token 必须就是光标前的那个词；否则说明光标在空白/行尾
+            if (tokenStart != prefixStart) return false;
+
+            // 必须换到新行
+            if (previousIndex >= 0 && token.Line <= tokens[previousIndex].Line) return false;
+
+            if (!IsStatementStarterPrefix(token.Text)) return false;
+
+            newStart = index;
+            return true;
+        }
+
+        private static bool IsStatementStarterPrefix(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            string typed = CleanIdentifier(text);
+            if (typed.Length == 0) return false;
+
+            for (int i = 0; i < StatementStarterWords.Length; i++)
+            {
+                if (StatementStarterWords[i].StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static int[] BuildDepth(List<SqlToken> tokens)
