@@ -60,6 +60,7 @@ namespace SsmsSqlPlugin.Menus
                 case "SsmsSqlPlugin:Settings": return "\uE713";           // 设置
                 case "SsmsSqlPlugin:RefreshCompletion": return "\uE72C";  // 刷新
                 case "SsmsSqlPlugin:Log": return "\uE8A5";                // 文档
+                case "SsmsSqlPlugin:CheckUpdates": return "\uE895";       // 同步/更新
                 case "SsmsSqlPlugin:About": return "\uE946";              // 信息
                 default: return null;
             }

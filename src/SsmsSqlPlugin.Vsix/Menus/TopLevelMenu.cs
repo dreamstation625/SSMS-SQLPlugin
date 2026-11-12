@@ -19,6 +19,7 @@ namespace SsmsSqlPlugin.Menus
     ///            ├─ ──────────
     ///            ├─ 刷新补全缓存
     ///            ├─ 打开日志
+    ///            ├─ 检查更新
     ///            └─ 关于
     ///
     /// 设置项集中在独立 SettingsWindow，菜单不再放带勾选项；
@@ -35,6 +36,7 @@ namespace SsmsSqlPlugin.Menus
         private readonly Action _openSettings;
         private readonly Action _refreshCompletion;
         private readonly Action _openLog;
+        private readonly Action _checkUpdates;
         private readonly Action _about;
 
         public TopLevelMenu(
@@ -44,6 +46,7 @@ namespace SsmsSqlPlugin.Menus
             Action openSettings,
             Action refreshCompletion,
             Action openLog,
+            Action checkUpdates,
             Action about)
         {
             _format = format;
@@ -52,6 +55,7 @@ namespace SsmsSqlPlugin.Menus
             _openSettings = openSettings;
             _refreshCompletion = refreshCompletion;
             _openLog = openLog;
+            _checkUpdates = checkUpdates;
             _about = about;
         }
 
@@ -199,6 +203,8 @@ namespace SsmsSqlPlugin.Menus
                               _refreshCompletion, TagPrefix + "RefreshCompletion"),
                 new MenuEntry("打开日志", "打开插件日志文件（排查问题用）",
                               _openLog, TagPrefix + "Log"),
+                new MenuEntry("检查更新", "打开 GitHub 仓库，查看最新版本",
+                              _checkUpdates, TagPrefix + "CheckUpdates"),
                 new MenuEntry("关于 SSMS-SQLPlugin", "版本与项目信息",
                               _about, TagPrefix + "About"),
             };

@@ -251,6 +251,7 @@ namespace SsmsSqlPlugin
                         OpenSettings,
                         RefreshCompletionCache,
                         OpenLogFile,
+                        AboutWindow.OpenRepository,
                         ShowAbout);
 
                     _topMenu.Install(dte);
@@ -635,21 +636,19 @@ namespace SsmsSqlPlugin
         {
             try
             {
-                var asm = typeof(SqlPluginPackage).Assembly;
-                string msg =
-                    "SSMS-SQLPlugin " + asm.GetName().Version + "\r\n\r\n" +
-                    "SQL 格式化 / 历史 / 表名字段补全\r\n" +
-                    "（当前版本已实现：SQL 格式化、按当前库补全）\r\n\r\n" +
-                    "快捷键：Ctrl+K, Ctrl+D 格式化全文；Ctrl+K, Ctrl+F 格式化选定内容\r\n" +
-                    "配置文件：" + FormatOptionsStore.ConfigPath + "\r\n" +
-                    "日志文件：" + Infrastructure.Log.LogFilePath;
-
+                var dte = GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                AboutWindow.ShowFrom(dte);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("打开关于窗口失败", ex);
                 System.Windows.Forms.MessageBox.Show(
-                    msg, "关于 SSMS-SQLPlugin",
+                    "SSMS-SQLPlugin\r\n\r\n" +
+                    "仓库：https://github.com/dreamstation625/SSMS-SQLPlugin",
+                    "关于 SSMS-SQLPlugin",
                     System.Windows.Forms.MessageBoxButtons.OK,
                     System.Windows.Forms.MessageBoxIcon.Information);
             }
-            catch { }
         }
     }
 }
