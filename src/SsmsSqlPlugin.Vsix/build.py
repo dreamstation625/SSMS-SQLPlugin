@@ -22,6 +22,15 @@ import sys
 import time
 import zipfile
 
+# GitHub Actions 的 Windows Python 默认是 cp1252；打印中文会抛
+# UnicodeEncodeError，导致构建在 verify_pkgdef() 就退出。
+# PYTHONUTF8=1 时输出仍是 UTF-8，这里只兜底避免异常。
+try:
+    sys.stdout.reconfigure(errors="replace")
+    sys.stderr.reconfigure(errors="replace")
+except Exception:
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 VSIX_PROJ = os.path.join(HERE, "SsmsSqlPlugin.Vsix.csproj")
