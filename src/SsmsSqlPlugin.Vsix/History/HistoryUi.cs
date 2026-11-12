@@ -42,6 +42,7 @@ namespace SsmsSqlPlugin.History
         public static readonly Font SmallFont = MakeFont("Microsoft YaHei UI", 8.25f, FontStyle.Regular);
         public static readonly Font TitleFont = MakeFont("Microsoft YaHei UI", 15f, FontStyle.Bold);
         public static readonly Font MonoFont = new Font("Consolas", 10f);
+        public static readonly Font PreviewMonoFont = new Font("Consolas", 10.5f);
         public static readonly Font BadgeFont = MakeFont("Microsoft YaHei UI", 8f, FontStyle.Regular);
 
         private static Font MakeFont(string family, float size, FontStyle style)

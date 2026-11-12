@@ -38,11 +38,14 @@ namespace SsmsSqlPlugin.History
         private readonly Label _previewMeta;
         private readonly Label _previewPath;
         private readonly ToolTip _previewToolTip;
-        private readonly TextBox _previewText;
+        private readonly RichTextBox _previewText;
         private readonly ColumnHeader _summaryColumn;
         private readonly ColumnHeader _deletedColumn;
         private readonly ModernButton _deleteButton;
         private readonly Label _status;
+        private readonly Label _selectionLabel;
+        private readonly Label _toast;
+        private readonly Timer _toastTimer;
         private readonly Timer _debounce;
 
         private List<ExecutionRecord> _rows = new List<ExecutionRecord>();
@@ -274,11 +277,29 @@ namespace SsmsSqlPlugin.History
 
             _list.RetrieveVirtualItem += OnRetrieveVirtualItem;
             _list.ItemActivate += (s, e) => OpenSelected();
-            _list.SelectedIndexChanged += (s, e) => UpdatePreview();
+            _list.SelectedIndexChanged += (s, e) => { UpdatePreview(); UpdateSelectionStatus(); };
             _list.KeyDown += (s, e) =>
             {
-                if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; OpenSelected(); }
-                else if (e.Control && e.KeyCode == Keys.C) CopySelected();
+                if (e.Control && e.KeyCode == Keys.A)
+                {
+                    e.SuppressKeyPress = true;
+                    SelectAllRows();
+                }
+                else if (e.Control && e.KeyCode == Keys.C)
+                {
+                    e.SuppressKeyPress = true;
+                    CopySelected();
+                }
+                else if (e.KeyCode == Keys.Delete)
+                {
+                    e.SuppressKeyPress = true;
+                    DeleteOrRestoreSelected();
+                }
+                else if (e.KeyCode == Keys.Enter)
+                {
+                    e.SuppressKeyPress = true;
+                    OpenSelected();
+                }
             };
 
             var preview = new TableLayoutPanel
@@ -355,18 +376,19 @@ namespace SsmsSqlPlugin.History
                 Margin = new Padding(0, 6, 0, 0),
             };
 
-            _previewText = new TextBox
+            _previewText = new RichTextBox
             {
                 Dock = DockStyle.Fill,
                 Multiline = true,
                 ReadOnly = true,
-                WordWrap = false,
-                ScrollBars = ScrollBars.Both,
+                WordWrap = true,
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                DetectUrls = false,
                 HideSelection = false,
                 BorderStyle = BorderStyle.None,
                 BackColor = HistoryTheme.CardSoft,
                 ForeColor = HistoryTheme.TextPrimary,
-                Font = HistoryTheme.MonoFont,
+                Font = HistoryTheme.PreviewMonoFont,
             };
 
             editorCard.Controls.Add(_previewText);
@@ -517,6 +539,32 @@ namespace SsmsSqlPlugin.History
             };
             openDir.Click += (s, e) => OpenDataDirectory();
 
+            var selectAll = new ModernButton
+            {
+                Text = "全选",
+                Style = ModernButtonStyle.Ghost,
+                Width = 68,
+                Height = 32,
+                Margin = new Padding(8, 0, 0, 0),
+            };
+            selectAll.Click += (s, e) => SelectAllRows();
+
+            _selectionLabel = new Label
+            {
+                AutoSize = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.Accent,
+                BackColor = HistoryTheme.Background,
+                Margin = new Padding(8, 8, 0, 0),
+                Text = "",
+            };
+
+            _previewToolTip.SetToolTip(open, "在新查询窗口打开选中 SQL（双击或回车）");
+            _previewToolTip.SetToolTip(copy, "复制选中 SQL（Ctrl+C）");
+            _previewToolTip.SetToolTip(_deleteButton,
+                "删除选中记录（Ctrl/Shift 多选，Ctrl+A 全选，Delete 键删除）");
+            _previewToolTip.SetToolTip(selectAll, "选中当前列表全部记录（Ctrl+A）");
+
             // RightToLeft 流：先加的在最右
             buttons.Controls.Add(close);
             buttons.Controls.Add(open);
@@ -524,10 +572,32 @@ namespace SsmsSqlPlugin.History
             buttons.Controls.Add(_deleteButton);
             buttons.Controls.Add(refresh);
             buttons.Controls.Add(openDir);
+            buttons.Controls.Add(selectAll);
+            buttons.Controls.Add(_selectionLabel);
             footer.Controls.Add(buttons, 1, 0);
 
             root.Controls.Add(footer, 0, 3);
             Controls.Add(root);
+
+            _toast = new Label
+            {
+                AutoSize = true,
+                Visible = false,
+                Font = HistoryTheme.UiFontMedium,
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(22, 163, 74),
+                Padding = new Padding(16, 10, 16, 10),
+                TextAlign = ContentAlignment.MiddleCenter,
+            };
+            Controls.Add(_toast);
+            _toast.BringToFront();
+
+            _toastTimer = new Timer { Interval = 2400 };
+            _toastTimer.Tick += (s, e) =>
+            {
+                _toastTimer.Stop();
+                _toast.Visible = false;
+            };
         }
 
         private static Label MakeLabel(string text)
@@ -597,6 +667,8 @@ namespace SsmsSqlPlugin.History
         {
             _debounce.Stop();
             _debounce.Dispose();
+            _toastTimer.Stop();
+            _toastTimer.Dispose();
             _previewToolTip.Dispose();
             base.OnFormClosed(e);
         }
@@ -721,6 +793,7 @@ namespace SsmsSqlPlugin.History
                             catch { }
 
                             UpdatePreview();
+                            UpdateSelectionStatus();
 
                             _status.Text = (_recycleBin.Checked ? "回收站 · " : "") +
                                            "共 " + _rows.Count + " 条" +
@@ -870,9 +943,24 @@ namespace SsmsSqlPlugin.History
             }
 
             _previewText.Text = sql;
-            _previewText.SelectionStart = 0;
-            _previewText.SelectionLength = 0;
-            try { _previewText.ScrollToCaret(); } catch { }
+            ApplyPreviewFormatting();
+        }
+
+        private void ApplyPreviewFormatting()
+        {
+            try
+            {
+                _previewText.SelectAll();
+                // 左右留白 + 悬挂缩进：自动换行后的续行会明显缩进，
+                // 不会把整段 SQL 挤成一坨。
+                _previewText.SelectionIndent = 8;
+                _previewText.SelectionRightIndent = 8;
+                _previewText.SelectionHangingIndent = 18;
+                _previewText.SelectionStart = 0;
+                _previewText.SelectionLength = 0;
+                _previewText.ScrollToCaret();
+            }
+            catch { }
         }
 
         private static string FormatTime(string utc)
@@ -963,13 +1051,82 @@ namespace SsmsSqlPlugin.History
             return index >= 0 && index < _rows.Count ? _rows[index] : null;
         }
 
+        private void SelectAllRows()
+        {
+            if (_rows.Count == 0) return;
+
+            _list.BeginUpdate();
+            try
+            {
+                _list.SelectedIndices.Clear();
+                for (int i = 0; i < _rows.Count; i++) _list.SelectedIndices.Add(i);
+            }
+            finally
+            {
+                _list.EndUpdate();
+            }
+
+            UpdatePreview();
+            UpdateSelectionStatus();
+        }
+
+        private void UpdateSelectionStatus()
+        {
+            int count = _list.SelectedIndices.Count;
+            _selectionLabel.Text = count > 1 ? "已选 " + count + " 条" : "";
+        }
+
+        private void ShowToast(string message, bool error = false)
+        {
+            _toast.Text = message;
+            _toast.BackColor = error
+                ? Color.FromArgb(220, 53, 69)
+                : Color.FromArgb(22, 163, 74);
+            _toast.MaximumSize = new Size(Math.Max(240, ClientSize.Width - 80), 0);
+            _toast.Visible = true;
+            _toast.BringToFront();
+
+            _toast.Left = Math.Max(16, (ClientSize.Width - _toast.Width) / 2);
+            _toast.Top = ClientSize.Height - 96 - _toast.Height;
+
+            _toastTimer.Stop();
+            _toastTimer.Start();
+        }
+
         private void CopySelected()
         {
             var row = GetSelected();
-            if (row == null || string.IsNullOrEmpty(row.SqlText)) return;
+            if (row == null)
+            {
+                _status.Text = "先选中一条记录";
+                ShowToast("请先选中一条 SQL 记录", true);
+                return;
+            }
 
-            try { Clipboard.SetText(row.SqlText); }
-            catch (Exception ex) { _status.Text = "复制失败：" + ex.Message; }
+            if (string.IsNullOrEmpty(row.SqlText))
+            {
+                _status.Text = "这条记录没有 SQL 文本";
+                ShowToast("这条记录没有 SQL 文本", true);
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetDataObject(row.SqlText, true);
+                int selected = _list.SelectedIndices.Count;
+                string suffix = selected > 1 ? "（选中 " + selected + " 条，已复制第一条）" : "";
+                _status.Text = "已复制 SQL #" + row.Id +
+                               "（" + row.SqlText.Length + " 字符）" + suffix;
+                ShowToast("已复制 SQL（" + row.SqlText.Length + " 字符）" + suffix);
+                Log.Info("[历史] 已复制 SQL #" + row.Id + "，长度=" + row.SqlText.Length +
+                         (selected > 1 ? "，选中=" + selected : ""));
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[历史] 复制失败: " + ex.Message);
+                _status.Text = "复制失败：" + ex.Message;
+                ShowToast("复制失败：" + ex.Message, true);
+            }
         }
 
         // ── 回收站 / 删除 ──
@@ -997,6 +1154,7 @@ namespace SsmsSqlPlugin.History
             if (ids.Count == 0)
             {
                 _status.Text = "先选中要" + action + "的记录";
+                ShowToast("请先选中要" + action + "的记录", true);
                 return;
             }
 
@@ -1040,6 +1198,7 @@ namespace SsmsSqlPlugin.History
                         }
 
                         _status.Text = "已" + action + " " + t.Result + " 条";
+                        ShowToast("已" + action + " " + t.Result + " 条");
                         ReloadAsync();
                     }));
                 }
@@ -1082,11 +1241,17 @@ namespace SsmsSqlPlugin.History
         private void OpenSelected()
         {
             var row = GetSelected();
-            if (row == null) return;
+            if (row == null)
+            {
+                _status.Text = "先选中一条记录";
+                ShowToast("请先选中一条 SQL 记录", true);
+                return;
+            }
 
             if (string.IsNullOrEmpty(row.SqlText))
             {
                 _status.Text = "这条记录没有 SQL 文本";
+                ShowToast("这条记录没有 SQL 文本", true);
                 return;
             }
 
@@ -1140,6 +1305,7 @@ namespace SsmsSqlPlugin.History
 
                 textDocument.StartPoint.CreateEditPoint().Insert(text);
                 _status.Text = "已在新的查询窗口打开（历史 #" + row.Id + "）";
+                ShowToast("已在新的查询窗口打开（历史 #" + row.Id + "）");
             }
             catch (Exception ex)
             {
