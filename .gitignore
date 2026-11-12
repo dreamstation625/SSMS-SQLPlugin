@@ -112,3 +112,6 @@ src/SsmsSqlPlugin.Vsix/dist/
 # 本机工具状态（不进版本库）
 # 注意：.agentmem/ 按项目约定必须纳入版本控制，不要在此添加忽略规则
 .workbuddy/
+
+# 安装器内嵌 payload（由 build.py --installer 生成）
+src/SsmsSqlPlugin.Installer/Payload.zip

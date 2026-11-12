@@ -3,6 +3,7 @@
 用法：
     python build.py            构建、打包 vsix、部署到用户扩展目录
     python build.py --no-deploy  只构建打包，不部署
+    python build.py --installer  额外构建单文件安装器
 
 为什么不走官方 VSIX 打包链：
     本机 `dotnet build` 走到 VsixUtil 时 Process.Start 抛异常，
@@ -213,8 +214,39 @@ def deploy():
     return 0
 
 
+def build_installer():
+    """把刚打好的 VSIX 作为内嵌 payload，构建单文件安装器。"""
+    vsix_path = os.path.join(DIST, VSIX)
+    if not os.path.isfile(vsix_path):
+        return fail("VSIX 不存在，无法构建安装器：" + vsix_path)
+
+    installer_dir = os.path.join(ROOT, "src", "SsmsSqlPlugin.Installer")
+    payload = os.path.join(installer_dir, "Payload.zip")
+    csproj = os.path.join(installer_dir, "SsmsSqlPlugin.Installer.csproj")
+    if not os.path.isfile(csproj):
+        return fail("安装器工程不存在：" + csproj)
+
+    shutil.copy2(vsix_path, payload)
+    step("已写入安装器 payload: " + payload)
+
+    cmd = ["dotnet", "build", csproj, "-c", "Release", "--nologo"]
+    rc = subprocess.call(cmd)
+    if rc != 0:
+        return fail("安装器构建失败（dotnet build 退出码 %d）" % rc)
+
+    exe = os.path.join(installer_dir, "bin", "Release", "net48", "SSMS-SQLPlugin-Setup.exe")
+    if not os.path.isfile(exe):
+        return fail("找不到安装器产物：" + exe)
+
+    out = os.path.join(DIST, "SSMS-SQLPlugin-Setup.exe")
+    shutil.copy2(exe, out)
+    step("安装器 %s (%.1f KB)" % (out, os.path.getsize(out) / 1024.0))
+    return 0
+
+
 def main():
     no_deploy = "--no-deploy" in sys.argv
+    with_installer = "--installer" in sys.argv
 
     rc = verify_pkgdef()
     if rc != 0:
@@ -227,6 +259,11 @@ def main():
     rc = package()
     if rc != 0:
         return rc
+
+    if with_installer:
+        rc = build_installer()
+        if rc != 0:
+            return rc
 
     if no_deploy:
         step("跳过部署（--no-deploy）")

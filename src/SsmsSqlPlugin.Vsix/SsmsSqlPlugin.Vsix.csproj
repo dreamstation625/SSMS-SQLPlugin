@@ -18,6 +18,7 @@
          CLR 解析失败后是静默的：包不加载、菜单不出现、日志一个字都没有。
          ExcludeAssets=runtime 保证这些 DLL 不会被打进 VSIX（宿主自己提供）。 -->
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
