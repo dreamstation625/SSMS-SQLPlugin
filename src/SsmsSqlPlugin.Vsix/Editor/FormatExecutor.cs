@@ -30,7 +30,7 @@ namespace SsmsSqlPlugin.Editor
             public bool IsError;
         }
 
-        public static Outcome Run(IVsTextView view, FormatOptions options)
+        public static Outcome Run(IVsTextView view, FormatOptions options, bool requireSelection = false)
         {
             options = options ?? FormatOptions.Default;
 
@@ -50,7 +50,13 @@ namespace SsmsSqlPlugin.Editor
             // ── 2. 确定范围：选区优先，否则全文 ──
             int startLine, startCol, endLine, endCol;
 
-            if (!TryGetSelection(view, out startLine, out startCol, out endLine, out endCol))
+            bool hasSelection = TryGetSelection(view, out startLine, out startCol, out endLine, out endCol);
+            if (requireSelection && !hasSelection)
+            {
+                return Fail("请先选择要格式化的 SQL。");
+            }
+
+            if (!hasSelection)
             {
                 int lastLine = 0, lastIndex = 0;
                 hr = buffer.GetLastLineIndex(out lastLine, out lastIndex);

@@ -12,6 +12,7 @@ namespace SsmsSqlPlugin.Menus
     ///     菜单栏
     ///       └─ SSMS-SQLPlugin
     ///            ├─ 格式化 SQL        Ctrl+K Ctrl+D
+    ///            ├─ 格式化选定内容    Ctrl+K Ctrl+F
     ///            ├─ ──────────
     ///            ├─ SQL 历史...
     ///            ├─ 设置...
@@ -29,6 +30,7 @@ namespace SsmsSqlPlugin.Menus
         private const string TagPrefix = "SsmsSqlPlugin:";
 
         private readonly Action _format;
+        private readonly Action _formatSelection;
         private readonly Action _openHistory;
         private readonly Action _openSettings;
         private readonly Action _refreshCompletion;
@@ -37,6 +39,7 @@ namespace SsmsSqlPlugin.Menus
 
         public TopLevelMenu(
             Action format,
+            Action formatSelection,
             Action openHistory,
             Action openSettings,
             Action refreshCompletion,
@@ -44,6 +47,7 @@ namespace SsmsSqlPlugin.Menus
             Action about)
         {
             _format = format;
+            _formatSelection = formatSelection;
             _openHistory = openHistory;
             _openSettings = openSettings;
             _refreshCompletion = refreshCompletion;
@@ -181,6 +185,10 @@ namespace SsmsSqlPlugin.Menus
                               "格式化当前选区；没有选区则格式化全文",
                               _format,
                               TagPrefix + "Format"),
+                new MenuEntry("格式化选定内容\tCtrl+K, Ctrl+F",
+                              "只格式化选中的 SQL；没有选区会提示",
+                              _formatSelection,
+                              TagPrefix + "FormatSelection"),
                 MenuEntry.Separator(),
                 new MenuEntry("SQL 历史...", "搜索、筛选执行历史，双击在查询窗口重开",
                               _openHistory, TagPrefix + "History"),

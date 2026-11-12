@@ -27,6 +27,7 @@ namespace SsmsSqlPlugin.Editor
 
         private readonly IVsTextView _view;
         private readonly Func<IVsTextView, bool> _formatCallback;
+        private readonly Func<IVsTextView, bool> _formatSelectionCallback;
         private readonly Action<IVsTextView, Guid, uint> _executeCallback;
 
         // ── 右键菜单保活节流 ──
@@ -38,21 +39,27 @@ namespace SsmsSqlPlugin.Editor
         public EditorCommandFilter(
             IVsTextView view,
             Func<IVsTextView, bool> formatCallback,
+            Func<IVsTextView, bool> formatSelectionCallback,
             Action ensureContextMenu,
             Action<IVsTextView, Guid, uint> executeCallback = null)
         {
             _view = view;
             _formatCallback = formatCallback;
+            _formatSelectionCallback = formatSelectionCallback;
             _ensureContextMenu = ensureContextMenu;
             _executeCallback = executeCallback;
         }
 
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
         {
+            int hr = Next != null
+                ? Next.QueryStatus(ref pguidCmdGroup, cCmds, prgCmds, pCmdText)
+                : OleCmdErrNotSupported;
+
+            bool handled = false;
+
             try
             {
-                // 让 Ctrl+K / Ctrl+D 保持"可能被处理"的状态，
-                // 否则 Shell 可能在键序走完前就把它交给别人。
                 if (pguidCmdGroup == VsConstants.GUID_VSStandardCommandSet97 && prgCmds != null)
                 {
                     for (int i = 0; i < cCmds && i < prgCmds.Length; i++)
@@ -61,14 +68,17 @@ namespace SsmsSqlPlugin.Editor
                         if (id == CmdFormatDocument || id == CmdFormatSelection || id == CmdCompleteWord)
                         {
                             prgCmds[i].cmdf = OleCmdfSupported | OleCmdfEnabled;
+                            handled = true;
                         }
                     }
                 }
             }
             catch { }
 
-            if (Next == null) return OleCmdErrNotSupported;
-            return Next.QueryStatus(ref pguidCmdGroup, cCmds, prgCmds, pCmdText);
+            // 关键：我们声明支持的格式化命令必须返回 S_OK。
+            // 如果最后仍返回 Next 的 QueryStatus，SSMS 会把命令标成“当前不可用”，
+            // 快捷键根本不会进 Exec。
+            return handled ? S_OK : hr;
         }
 
         public int Exec(ref Guid pguidCmdGroup, uint nCmdID, uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
@@ -101,25 +111,14 @@ namespace SsmsSqlPlugin.Editor
         }
 
         /// <summary>
-        /// 处理快捷键。
-        ///
-        /// 两条路径都留，因为 SSMS 里"Ctrl+K Ctrl+D"到底派发成什么命令
-        /// 取决于用户的键绑定设置：
-        ///
-        ///   路径一（主）：看到 FormatDocument(0x0002) / FormatSelection(0x0003)
-        ///       就直接替换成我们的格式化。
-        ///       VS 默认的 Ctrl+K Ctrl+D 最终就是 FormatDocument，
-        ///       所以要先用这个 —— 简单可靠。
-        ///
-        ///   路径二（兜底）：如果用户改过键绑定、或者 SSMS 没绑定，
-        ///       上面那条命令根本不会来。这时靠 EditorKeyChord 的按键捕获。
-        ///       见 InstallKeyChord / EditorKeyChord.cs。
+        /// 处理命令过滤路径上的格式化命令。
+        /// Ctrl+K,Ctrl+D / Ctrl+K,Ctrl+F 的原始按键由 FormatKeyHandler 直接捕获；
+        /// 这里保留 VS 命令绑定路径，作为键绑定确实存在时的第二入口。
         /// </summary>
         private bool TryHandleChord(Guid group, uint cmdId)
         {
             if (group != VsConstants.GUID_VSStandardCommandSet97) return false;
 
-            // 主路径：Ctrl+K Ctrl+D 最终派发 FormatDocument
             if (cmdId == CmdFormatDocument || cmdId == CmdFormatSelection)
             {
                 if (!EditorLocator.IsSqlView(_view))
@@ -128,9 +127,14 @@ namespace SsmsSqlPlugin.Editor
                     return false;
                 }
 
+                bool selectionOnly = cmdId == CmdFormatSelection;
+                Log.Info("快捷键命令命中: " + (selectionOnly ? "FormatSelection" : "FormatDocument"));
 
-                Log.Info("快捷键命中: " + (cmdId == CmdFormatDocument ? "FormatDocument" : "FormatSelection"));
-                _formatCallback?.Invoke(_view);
+                var callback = selectionOnly
+                    ? (_formatSelectionCallback ?? _formatCallback)
+                    : _formatCallback;
+
+                callback?.Invoke(_view);
                 return true;
             }
 

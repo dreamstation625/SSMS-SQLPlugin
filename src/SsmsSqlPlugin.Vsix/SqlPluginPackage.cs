@@ -104,6 +104,22 @@ namespace SsmsSqlPlugin
                 Log.Error("[历史] 执行捕获启动失败", ex);
             }
 
+            // 快捷键钩子：不依赖 VS 键绑定，只在 SSMS 前台时处理
+            try
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                FormatKeyHandler.Start(selectionOnly =>
+                {
+                    var view = EditorLocator.GetActiveView(this, mustBeSql: true);
+                    if (view == null) return;
+                    DoFormat(view, selectionOnly);
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[格式化] 快捷键钩子启动失败", ex);
+            }
+
             try
             {
                 await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
@@ -230,6 +246,7 @@ namespace SsmsSqlPlugin
                 {
                     _topMenu = new TopLevelMenu(
                         FormatActiveEditor,
+                        FormatSelectionActiveEditor,
                         OpenHistory,
                         OpenSettings,
                         RefreshCompletionCache,
@@ -249,7 +266,7 @@ namespace SsmsSqlPlugin
             {
                 try
                 {
-                    _contextMenu = new EditorContextMenu(FormatActiveEditor);
+                    _contextMenu = new EditorContextMenu(FormatActiveEditor, FormatSelectionActiveEditor);
                     _contextMenu.TryInstall(dte);
                 }
                 catch (Exception ex)
@@ -439,7 +456,8 @@ namespace SsmsSqlPlugin
             try
             {
                 var filter = new EditorCommandFilter(
-                    view, OnFilterFormat, EnsureContextMenuAlive, ExecutionCapture.OnEditorCommand);
+                    view, OnFilterFormat, OnFilterFormatSelection,
+                    EnsureContextMenuAlive, ExecutionCapture.OnEditorCommand);
 
                 IOleCommandTarget next;
                 int hr = view.AddCommandFilter(filter, out next);
@@ -464,6 +482,11 @@ namespace SsmsSqlPlugin
         private bool OnFilterFormat(IVsTextView view)
         {
             return DoFormat(view);
+        }
+
+        private bool OnFilterFormatSelection(IVsTextView view)
+        {
+            return DoFormat(view, requireSelection: true);
         }
 
         /// <summary>右键菜单保活：Shell 会重建编辑器上下文菜单，这里补回来。</summary>
@@ -496,13 +519,28 @@ namespace SsmsSqlPlugin
             DoFormat(view);
         }
 
+        /// <summary>只格式化选中内容；没有选区时提示用户。</summary>
+        private void FormatSelectionActiveEditor()
+        {
+            var view = EditorLocator.GetActiveView(this, mustBeSql: true);
+            if (view == null)
+            {
+                CommandBarInjector.ShowError(
+                    "SSMS-SQLPlugin",
+                    "当前没有活动的 SQL 查询窗口。\r\n请先打开或切换到 .sql 文件再试。");
+                return;
+            }
+
+            DoFormat(view, requireSelection: true);
+        }
+
         /// <summary>真正的格式化执行，返回是否成功改动。</summary>
-        private bool DoFormat(IVsTextView view)
+        private bool DoFormat(IVsTextView view, bool requireSelection = false)
         {
             try
             {
                 var options = FormatOptionsStore.Current.ToFormatOptions();
-                var outcome = FormatExecutor.Run(view, options);
+                var outcome = FormatExecutor.Run(view, options, requireSelection);
 
                 Log.Info("格式化结果: changed=" + outcome.Changed +
                          " error=" + outcome.IsError + " msg=" + outcome.Message);
@@ -585,6 +623,7 @@ namespace SsmsSqlPlugin
         {
             if (disposing)
             {
+                try { FormatKeyHandler.Stop(); } catch { }
                 try { AutoSnapshotTracker.Stop(); } catch { }
                 try { ExecutionCapture.Stop(); } catch { }
                 try { HistoryRuntime.Stop(); } catch { }
@@ -601,7 +640,7 @@ namespace SsmsSqlPlugin
                     "SSMS-SQLPlugin " + asm.GetName().Version + "\r\n\r\n" +
                     "SQL 格式化 / 历史 / 表名字段补全\r\n" +
                     "（当前版本已实现：SQL 格式化、按当前库补全）\r\n\r\n" +
-                    "快捷键：Ctrl+K, Ctrl+D\r\n" +
+                    "快捷键：Ctrl+K, Ctrl+D 格式化全文；Ctrl+K, Ctrl+F 格式化选定内容\r\n" +
                     "配置文件：" + FormatOptionsStore.ConfigPath + "\r\n" +
                     "日志文件：" + Infrastructure.Log.LogFilePath;
 

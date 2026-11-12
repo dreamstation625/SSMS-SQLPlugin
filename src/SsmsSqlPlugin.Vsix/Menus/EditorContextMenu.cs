@@ -38,10 +38,12 @@ namespace SsmsSqlPlugin.Menus
         };
 
         private readonly Action _format;
+        private readonly Action _formatSelection;
 
-        public EditorContextMenu(Action format)
+        public EditorContextMenu(Action format, Action formatSelection)
         {
             _format = format;
+            _formatSelection = formatSelection;
         }
 
         /// <summary>
@@ -89,33 +91,44 @@ namespace SsmsSqlPlugin.Menus
 
                     // 清旧的
                     CommandBarInjector.RemoveByTag(bar, TagPrefix + "CtxFormat");
+                    CommandBarInjector.RemoveByTag(bar, TagPrefix + "CtxFormatSelection");
 
                     var entries = new System.Collections.Generic.List<MenuEntry>
                     {
-                        MenuEntry.Separator(),
                         new MenuEntry("格式化 SQL", "格式化当前选区或全文",
                                       _format, TagPrefix + "CtxFormat"),
+                        new MenuEntry("格式化选定内容", "只格式化选中的 SQL",
+                                      _formatSelection, TagPrefix + "CtxFormatSelection"),
                     };
 
-                    // 分隔线要挂在上一个真实项之后，这里手动置 BeginGroup 更省事
-                    var added = bar.Controls.Add(
-                        MsoControlType.msoControlButton,
-                        Type.Missing, Type.Missing,
-                        bar.Controls.Count + 1, true);
-
-                    var btn = (CommandBarButton)added;
-                    btn.Caption = "格式化 SQL";
-                    btn.Tag = TagPrefix + "CtxFormat";
-                    try { btn.TooltipText = "格式化当前选区或全文 (Ctrl+K, Ctrl+D)"; } catch { }
-                    btn.BeginGroup = true;      // 前面画一条分隔线
-                    btn.Visible = true;
-                    btn.Click += delegate(CommandBarButton ctrl, ref bool cancelDefault)
+                    for (int i = 0; i < entries.Count; i++)
                     {
-                        cancelDefault = false;
-                        CommandBarInjector.Invoke(entries[1]);
-                    };
+                        var added = bar.Controls.Add(
+                            MsoControlType.msoControlButton,
+                            Type.Missing, Type.Missing,
+                            bar.Controls.Count + 1, true);
 
-                    Log.Info("右键菜单：已注入「格式化 SQL」");
+                        var btn = (CommandBarButton)added;
+                        var entry = entries[i];
+                        btn.Caption = i == 0 ? "格式化 SQL" : "格式化选定内容";
+                        btn.Tag = entry.Tag;
+                        try
+                        {
+                            btn.TooltipText = i == 0
+                                ? "格式化当前选区或全文 (Ctrl+K, Ctrl+D)"
+                                : "只格式化选中的 SQL (Ctrl+K, Ctrl+F)";
+                        }
+                        catch { }
+                        btn.BeginGroup = i == 0;   // 前面画一条分隔线
+                        btn.Visible = true;
+                        btn.Click += delegate(CommandBarButton ctrl, ref bool cancelDefault)
+                        {
+                            cancelDefault = false;
+                            CommandBarInjector.Invoke(entry);
+                        };
+                    }
+
+                    Log.Info("右键菜单：已注入「格式化 SQL / 格式化选定内容」");
                     return true;
                 }
                 catch (Exception ex)

@@ -109,18 +109,7 @@ namespace SsmsSqlPlugin.Editor
         /// </summary>
         private static string GetContentTypeName(IVsTextView view)
         {
-            var provider = ServiceProviderHolder.Provider;
-            if (provider == null) return null;
-
-            var componentModel = provider.GetService(typeof(SComponentModel)) as IComponentModel;
-            if (componentModel == null) return null;
-
-            var adapter = componentModel.GetService<IVsEditorAdaptersFactoryService>();
-            if (adapter == null) return null;
-
-            // 注意：这里拿到的是 object（运行时是 IWpfTextView），
-            // 全程用反射访问，静态类型里不出现 ITextView。
-            object textView = adapter.GetWpfTextView(view);
+            object textView = GetWpfTextViewObject(view);
             if (textView == null) return null;
 
             object buffer = textView.GetType()
@@ -138,6 +127,20 @@ namespace SsmsSqlPlugin.Editor
                 ?.GetValue(contentType, null);
 
             return typeName as string;
+        }
+
+        private static object GetWpfTextViewObject(IVsTextView view)
+        {
+            var provider = ServiceProviderHolder.Provider;
+            if (provider == null) return null;
+
+            var componentModel = provider.GetService(typeof(SComponentModel)) as IComponentModel;
+            if (componentModel == null) return null;
+
+            var adapter = componentModel.GetService<IVsEditorAdaptersFactoryService>();
+            if (adapter == null) return null;
+
+            return adapter.GetWpfTextView(view);
         }
 
         internal static string GetDocumentPath(IVsTextView view)

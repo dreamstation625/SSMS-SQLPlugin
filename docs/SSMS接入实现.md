@@ -15,6 +15,7 @@
 文件  编辑  视图  查询  项目  工具  扩展  窗口  帮助  搜索…  SSMS-SQLPlugin
                                                                 │
   ├─ 格式化 SQL              Ctrl+K, Ctrl+D
+  ├─ 格式化选定内容          Ctrl+K, Ctrl+F
   ├──────────────────────
   ├─ SQL 历史...
   ├─ 设置...
@@ -34,11 +35,26 @@ SSMS 22 的 CommandBars Automation 包装不渲染 `msoButtonDown` 的勾选状�
 ```
 ──────────────────────
 格式化 SQL
+格式化选定内容
 ```
 
 ### 1.3 快捷键
 
-`Ctrl+K, Ctrl+D`（VS 传统"设置文档格式"键序）在 SQL 编辑器里触发格式化。
+| 键序 | 行为 |
+|---|---|
+| `Ctrl+K, Ctrl+D` | 格式化整个文档；有选区时格式化选区 |
+| `Ctrl+K, Ctrl+F` | 只格式化选区；没有选区时提示「请先选择要格式化的 SQL」 |
+
+VS 的命令路由不可靠：`Ctrl+K, Ctrl+F` 虽绑到 `FormatSelection`，但命令目标经常返回「当前不可用」，
+按键进不到编辑器命令过滤器，`QueryStatus` 修正也无效。因此改为在包内装进程级低层键盘钩子
+（`WH_KEYBOARD_LL`），在命令路由之前识别键序：
+
+- 只在 SSMS 自身是前台窗口时处理，其它应用里的 `Ctrl+K` 不受影响；
+- 钩子在 UI 线程安装，回调 `Post` 回 UI 线程再执行格式化；
+- `Ctrl+K` 等待第二键 2 秒；Ctrl 中途松开不清状态（键序本身会松开 Ctrl）；
+- 第二个键被吞掉，避免 VS 再报「命令不可用」；随后在 Ctrl 松开后补发两次 `Esc`，
+  清掉 VS 残留的 `Ctrl+K` 前缀状态，否则后续菜单点击会被阻塞（状态栏可能短暂显示
+  「组合键(Ctrl+K, Esc)不是命令」，属预期代价）。
 
 ---
 
@@ -46,13 +62,14 @@ SSMS 22 的 CommandBars Automation 包装不渲染 `msoButtonDown` 的勾选状�
 
 | 文件 | 职责 | 行数 |
 |---|---|---|
-| `SqlPluginPackage.cs` | 包入口：注入 UI、挂过滤器、动作实现、自检 | 474 |
+| `SqlPluginPackage.cs` | 包入口：注入 UI、挂过滤器/键盘钩子、动作实现、自检 | 655 |
 | `Menus/CommandBarInjector.cs` | CommandBars 注入公共逻辑 + MenuEntry 模型 | 300 |
-| `Menus/TopLevelMenu.cs` | 顶部一级菜单 + 二级"格式化选项" | 281 |
-| `Menus/EditorContextMenu.cs` | 编辑器右键菜单 | 150 |
-| `Editor/FormatExecutor.cs` | 读编辑器 → 格式化 → 写回 + 选区恢复 | 240 |
+| `Menus/TopLevelMenu.cs` | 顶部一级菜单 + 二级"格式化选项" | 208 |
+| `Menus/EditorContextMenu.cs` | 编辑器右键菜单 | 144 |
+| `Editor/FormatExecutor.cs` | 读编辑器 → 格式化 → 写回 + 选区恢复（支持仅选区） | 232 |
 | `Editor/EditorLocator.cs` | 取活动 IVsTextView + 判断是否 SQL 编辑器 | 170 |
-| `Editor/EditorCommandFilter.cs` | 命令链过滤器：快捷键 + 右键菜单保活 | 175 |
+| `Editor/EditorCommandFilter.cs` | 命令链过滤器：查询状态 + 双格式化命令分发 | 188 |
+| `Editor/FormatKeyHandler.cs` | 低层键盘钩子：`Ctrl+K,Ctrl+D/F` 键序识别 + 清理 VS 前缀态 | 248 |
 | `Editor/FormatOptionsStore.cs` | 选项值对象 + JSON 持久化 | 250 |
 | `Infrastructure/Log.cs` | 日志（写 %TEMP%） | 95 |
 
@@ -205,20 +222,22 @@ try {
 
 ## 5. 快捷键怎么生效的
 
-`Ctrl+K Ctrl+D` 在 VS 里最终派发 `CMDSETID_StandardCommandSet97` 的
-`FormatDocument (0x0002)`。
+VS 传统上把 `Ctrl+K Ctrl+D` 派发成 `CMDSETID_StandardCommandSet97` 的
+`FormatDocument (0x0002)`，`Ctrl+K Ctrl+F` 对应 `FormatSelection`。但这条路由在 SSMS 里不可靠：
+命令目标经常返回「当前不可用」，按键进不到编辑器的命令过滤器；把过滤器的 `QueryStatus`
+改成返回 `S_OK` 也解决不了；WPF `PreviewKeyDown` 同样收不到。
 
-我们挂在编辑器命令链上：
+最终方案是包内装进程级低层键盘钩子（`Editor/FormatKeyHandler.cs`）：
 
-```csharp
-vsView.AddCommandFilter(filter, out next);   // IVsTextView 的命令过滤器
-```
+- `WH_KEYBOARD_LL` 在 UI 线程安装，在命令路由之前拿到原始按键；
+- 只处理当前 SSMS 进程是前台窗口时的按键，其它应用不受影响；
+- `Ctrl+K` 进入 2 秒等待，随后 `Ctrl+D` → 全文、`Ctrl+F` → 仅选区；
+- 回调 `Post` 回 UI 线程，再走 `FormatExecutor`；
+- 吞掉第二键后，等 Ctrl 松开补发两次 `Esc`，清掉 VS 残留的 `Ctrl+K` 前缀态。
 
-过滤器里看到 `FormatDocument` 且当前是 SQL 编辑器，就换成自己的格式化并返回 `S_OK`
-（吞掉命令，不往下传）。
-
-判据 `IsSqlView` 靠**内容类型名**（含 "SQL"）+ `.sql` 扩展名双保险，
-不硬编码编辑器 GUID（那玩意儿不是公开常量，随版本变）。
+命令过滤器（`IVsTextView.AddCommandFilter`）仍然保留：负责双格式化命令的 `QueryStatus`、
+菜单命令保活，以及 VS 键绑定偶尔能走通时的兜底。判据 `IsSqlView` 靠**内容类型名**
+（含 "SQL"）+ `.sql` 扩展名双保险，不硬编码编辑器 GUID（随版本变）。
 
 ---
 
@@ -331,7 +350,7 @@ python build.py --no-deploy  # 只构建打包
 
 | 项 | 说明 |
 |---|---|
-| 快捷键依赖默认键绑定 | 若用户把 Ctrl+K Ctrl+D 改掉了，拦截就失效；顶部菜单和右键菜单不受影响 |
+| 快捷键靠进程级键盘钩子 | 只在 SSMS 前台时响应；`Ctrl+K` 等待第二键 2 秒。吞键后状态栏可能短暂显示「组合键(Ctrl+K, Esc)不是命令」，属清理前缀态的预期代价 |
 | 勾选状态不再用菜单 | SSMS 22 不渲染 `msoButtonDown`，设置项集中在独立「设置」窗口；菜单左侧改放图标填充原生图标位 |
 | 右键菜单需要保活 | Shell 会重建编辑器上下文菜单，靠命令过滤器每 2 秒检查一次补回来 |
 | 单实例假设 | 多开 SSMS 时各进程各装一套菜单，日志会写到同一个文件（追加模式，可能交错） |
