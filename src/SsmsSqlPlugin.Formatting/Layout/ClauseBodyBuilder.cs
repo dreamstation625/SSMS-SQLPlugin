@@ -112,6 +112,9 @@ namespace SsmsSqlPlugin.Formatting.Layout
             /// </summary>
             public bool NoForcedBreak;
 
+            /// <summary>内联 CASE 的临时上下文里禁止再次做内联判断，避免递归。</summary>
+            public bool DisableCaseInlining;
+
             public Ctx(List<SqlToken> tokens, FormatOptions opt, StatementSplitter.Result split, int first, int last)
             {
                 _t = tokens;
@@ -128,6 +131,17 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 {
                     int before = _i;
                     var t = _t[_i];
+
+                    // 短 CASE 尽量压成一行：SQL Prompt 风格下
+                    // MAX(CASE WHEN ... THEN ... END) 不应该拆成多行。
+                    if (t.Kind == SqlTokenKind.Keyword && t.Is("CASE") &&
+                        !NoForcedBreak && !DisableCaseInlining &&
+                        TryFindInlineCase(_i, out int caseEnd, out int caseFlatLen) &&
+                        caseFlatLen <= Math.Min(60, Math.Max(20, _o.MaxLineWidth - 20)))
+                    {
+                        EmitInlineCase(caseEnd);
+                        continue;
+                    }
 
                     switch (t.Kind)
                     {
@@ -165,6 +179,62 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 return Concat(_out);
             }
 
+            /// <summary>
+            /// 判断从 start 开始的 CASE 是否能安全地压成一行：
+            /// 没有注释、没有子查询、没有跨行 token，且平铺长度不超过阈值。
+            /// </summary>
+            private bool TryFindInlineCase(int start, out int end, out int flatLen)
+            {
+                end = -1;
+                flatLen = 0;
+                int depth = 0;
+
+                for (int k = start; k <= _last; k++)
+                {
+                    var tk = _t[k];
+
+                    if (tk.Kind == SqlTokenKind.Comment) return false;
+                    if (tk.Text.IndexOf('\n') >= 0 || tk.Text.IndexOf('\r') >= 0) return false;
+
+                    if (tk.Kind == SqlTokenKind.Keyword)
+                    {
+                        if (tk.Is("CASE")) depth++;
+                        else if (tk.Is("END"))
+                        {
+                            depth--;
+                            if (depth == 0) { end = k; break; }
+                        }
+                        else if (tk.IsAny("SELECT", "WITH"))
+                        {
+                            return false;   // 子查询/CTE 必须展开
+                        }
+                    }
+
+                    flatLen += tk.Text.Length + 1;
+                }
+
+                return end > start;
+            }
+
+            /// <summary>
+            /// 把 CASE...END 整段交给一个平铺上下文渲染，再作为一个整体贴到当前行。
+            /// 这样 MAX(CASE WHEN ... THEN ... END) 不会被 WHEN/END 的强制换行拆开。
+            /// </summary>
+            private void EmitInlineCase(int end)
+            {
+                int start = _i;
+                var inner = new Ctx(_t, _o, _split, start, end)
+                {
+                    NoForcedBreak = true,
+                    DisableCaseInlining = true,
+                };
+
+                var doc = inner.BuildAll();
+                if (NeedsSpaceBefore(_t[start])) AppendToLine(Text(" "));
+                AppendToLine(doc);
+                _i = end + 1;
+            }
+
             // ── 关键字 ──
             private void HandleKeyword(SqlToken t)
             {
@@ -185,12 +255,17 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
                 if (t.Is("WHEN"))
                 {
+                    if (NoForcedBreak)
+                    {
+                        AppendWithSpacing(t, Text(RenderText(t)));
+                        return;
+                    }
+
                     Break();
-                    // 缩进 = (层数 - 1) 级。
-                    // 外层 CASE 的 WHEN 与子句体同级（缩进由外层 Indent 提供，这里补 0）；
-                    // 嵌套 CASE 的 WHEN 要多缩一级，否则内外层 WHEN 会压到同一列。
-                    int lv = Math.Max(1, _caseDepth) - 1;
-                    string ind = lv > 0 ? new string(' ', _o.IndentSize * lv) : string.Empty;
+                    // CASE 展开时 WHEN/ELSE 比 CASE 多缩进一级；
+                    // 嵌套 CASE 再逐层累加。
+                    int lv = _caseDepth;
+                    string ind = new string(' ', _o.IndentSize * lv);
                     AppendToLine(Text(ind + RenderText(t)));
                     return;
                 }
@@ -206,9 +281,15 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
                 if (t.Is("ELSE") && _caseDepth > 0)
                 {
+                    if (NoForcedBreak)
+                    {
+                        AppendWithSpacing(t, Text(RenderText(t)));
+                        return;
+                    }
+
                     Break();
-                    int lv = _caseDepth - 1;
-                    string ind = lv > 0 ? new string(' ', _o.IndentSize * lv) : string.Empty;
+                    int lv = _caseDepth;
+                    string ind = new string(' ', _o.IndentSize * lv);
                     AppendToLine(Text(ind + RenderText(t)));
                     return;
                 }
@@ -219,6 +300,13 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     if (_caseDepth > 0)
                     {
                         _caseDepth--;
+
+                        if (NoForcedBreak)
+                        {
+                            AppendWithSpacing(t, Text(RenderText(t)));
+                            return;
+                        }
+
                         Break();
                         // 外层子句的 Indent 已经缩了一级，CASE 的 END 与 WHEN 同一层，
                         // 不再额外加缩进。
@@ -275,8 +363,20 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     }
 
                     Break();
+                    if (_caseDepth > 0)
+                    {
+                        // CASE 条件里的 AND/OR 与 WHEN 对齐，避免掉回 CASE 的层级
+                        AppendToLine(Text(new string(' ', _o.IndentSize * _caseDepth)));
+                    }
                     AppendToLine(Text(RenderText(t)));
                     AppendToLine(Text(" "));
+                    return;
+                }
+
+                // 条件后跟了行尾注释时，THEN 会落在新行；按 CASE 层级缩进
+                if (t.Is("THEN") && _caseDepth > 0 && _line.Count == 0)
+                {
+                    AppendToLine(Text(new string(' ', _o.IndentSize * _caseDepth) + RenderText(t)));
                     return;
                 }
 
@@ -379,6 +479,44 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     }
                 }
 
+                bool functionCall = IsFunctionCall(open);
+                if (functionCall)
+                {
+                    bool hasComma = HasTopLevelComma(open + 1, close - 1);
+
+                    // 函数参数里有子查询：按 SQL Prompt 风格展开，
+                    // 每个参数一行，子查询块再往里缩进一级。
+                    if (hasComma && HasSubquery(open + 1, close - 1))
+                    {
+                        EmitExpandedFunctionArgs(open, close);
+                        _i = close + 1;
+                        return;
+                    }
+
+                    // COUNT(*) / LEN(x) / MAX(CASE ...) 这类没有逗号的调用
+                    // 不要在括号内侧加软换行 —— 否则外层行一满就会变成
+                    //     COUNT(
+                    //         *
+                    //     )
+                    if (!hasComma)
+                    {
+                        if (!HasComment(open + 1, close - 1) &&
+                            !HasSubquery(open + 1, close - 1))
+                        {
+                            var inline = new Ctx(_t, _o, _split, open + 1, close - 1);
+                            AppendToLine(inline.BuildAll());
+                            AppendToLine(Text(")"));
+                        }
+                        else
+                        {
+                            // 参数里有注释/子查询：强制展开，保证收括号和函数起点对齐
+                            EmitExpandedFunctionArgs(open, close);
+                        }
+                        _i = close + 1;
+                        return;
+                    }
+                }
+
                 // 内部递归，独立 Group
                 var inner = new Ctx(_t, _o, _split, open + 1, close - 1);
                 var innerDoc = inner.BuildAll();
@@ -389,6 +527,137 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     Text(")"))));
 
                 _i = close + 1;
+            }
+
+            /// <summary>前一个 token 是函数名/类型名 → 这是函数调用括号。</summary>
+            private bool IsFunctionCall(int open)
+            {
+                int prev = PrevMeaningful(open);
+                if (prev < 0) return false;
+
+                var p = _t[prev];
+                if (p.Kind == SqlTokenKind.Identifier) return true;
+                if (p.Kind == SqlTokenKind.Keyword && !NeedsSpaceBeforeParen(open)) return true;
+                return false;
+            }
+
+            private bool HasTopLevelComma(int from, int to)
+            {
+                int depth = 0, caseDepth = 0;
+                for (int k = from; k <= to; k++)
+                {
+                    var t = _t[k];
+                    if (t.Kind == SqlTokenKind.Punctuation)
+                    {
+                        if (t.IsText("(")) depth++;
+                        else if (t.IsText(")")) { if (depth > 0) depth--; }
+                        else if (t.IsText(",") && depth == 0 && caseDepth == 0) return true;
+                        continue;
+                    }
+
+                    if (t.Kind == SqlTokenKind.Keyword && depth == 0)
+                    {
+                        if (t.Is("CASE")) caseDepth++;
+                        else if (t.Is("END") && caseDepth > 0) caseDepth--;
+                    }
+                }
+                return false;
+            }
+
+            private bool HasSubquery(int from, int to)
+            {
+                for (int k = from; k <= to; k++)
+                {
+                    var t = _t[k];
+                    if (t.Kind == SqlTokenKind.Keyword && t.IsAny("SELECT", "WITH")) return true;
+                }
+                return false;
+            }
+
+            private bool HasComment(int from, int to)
+            {
+                for (int k = from; k <= to; k++)
+                {
+                    if (_t[k].Kind == SqlTokenKind.Comment) return true;
+                }
+                return false;
+            }
+
+            /// <summary>
+            /// 展开函数参数：每项一行，最后一项的收括号回退到函数调用起始缩进。
+            /// 仅用于参数中包含子查询的情况（普通短参数仍走 Group 压平）。
+            /// </summary>
+            private void EmitExpandedFunctionArgs(int open, int close)
+            {
+                var args = SplitTopLevelArgs(open + 1, close - 1);
+                if (args.Count == 0) return;
+
+                var parts = new List<DocNode>();
+                for (int k = 0; k < args.Count; k++)
+                {
+                    if (k > 0) parts.Add(HardLine);
+
+                    var ctx = new Ctx(_t, _o, _split, args[k].From, args[k].To);
+                    var argDoc = ctx.BuildAll();
+
+                    // 单个子查询参数：额外缩进一级，让 SELECT 落在括号内侧，
+                    // 而不是和 "(" 挤在同一列。
+                    if (IsSingleSubqueryArg(args[k].From, args[k].To))
+                        argDoc = Indent(argDoc, _o.IndentSize);
+
+                    if (k < args.Count - 1)
+                    {
+                        parts.Add(argDoc);
+                        parts.Add(Text(","));
+                    }
+                    else
+                    {
+                        // 最后一项末尾的硬换行会让收括号前多空行；收括号自己补换行
+                        parts.Add(TrimTrailingHardLines(argDoc));
+                    }
+                }
+
+                AppendToLine(Indent(Concat(HardLine, Concat(parts)), _o.IndentSize));
+                AppendToLine(Concat(HardLine, Text(")")));
+            }
+
+            private bool IsSingleSubqueryArg(int from, int to)
+            {
+                if (from > to || !_t[from].IsText("(")) return false;
+                int close = FindClose(from);
+                return close == to && close > from && IsSubqueryBody(from, close);
+            }
+
+            private List<(int From, int To)> SplitTopLevelArgs(int from, int to)
+            {
+                var items = new List<(int, int)>();
+                int depth = 0, caseDepth = 0, start = from;
+
+                for (int i = from; i <= to; i++)
+                {
+                    var t = _t[i];
+
+                    if (t.Kind == SqlTokenKind.Punctuation)
+                    {
+                        if (t.IsText("(")) depth++;
+                        else if (t.IsText(")")) { if (depth > 0) depth--; }
+                        else if (t.IsText(",") && depth == 0 && caseDepth == 0)
+                        {
+                            items.Add((start, i - 1));
+                            start = i + 1;
+                        }
+                        continue;
+                    }
+
+                    if (t.Kind == SqlTokenKind.Keyword && depth == 0)
+                    {
+                        if (t.Is("CASE")) caseDepth++;
+                        else if (t.Is("END") && caseDepth > 0) caseDepth--;
+                    }
+                }
+
+                if (start <= to) items.Add((start, to));
+                return items;
             }
 
             /// <summary>
@@ -408,7 +677,7 @@ namespace SsmsSqlPlugin.Formatting.Layout
             private void EmitSubquery(int open, int close)
             {
                 var sub = new TokenLayoutBuilder(_t, _o, _split);
-                var subDoc = sub.BuildRange(open + 1, close - 1);
+                var subDoc = TrimTrailingHardLines(sub.BuildRange(open + 1, close - 1));
 
                 AppendToLine(Concat(HardLine, subDoc));
 
@@ -444,14 +713,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
             {
                 // 找括号前有意义 token：优先本段内，本段没有就跨段往前找
                 int prev = -1;
-                for (int k = open - 1; k >= 0; k--)
+                for (int k = open - 1; k >= _first; k--)
                 {
                     if (_t[k].Kind == SqlTokenKind.Comment) continue;
                     prev = k;
                     break;
                 }
 
-                if (prev < 0) return true;      // 整个批次的第一个 token 就是 "("
+                if (prev < 0) return true;      // 本段恰好以 "(" 开头（典型：函数参数）
 
                 var p = _t[prev];
 
@@ -549,13 +818,17 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
                 Break();
 
-                // 多行块注释：每一行都去掉原有前导空白，靠 printer 的缩进重新对齐。
-                // 否则原始缩进 + 新缩进会叠加，格式化两次缩进就越跑越远（幂等被破坏）。
+                // 多行块注释：只去掉与 "/*" 起始列对齐的那部分缩进，保留注释内部
+                // 的相对缩进（否则 ASCII 边框、说明文字的层次会被抹掉），
+                // 再由 printer 按当前层级统一缩进。
                 var raw = t.Text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+                int dedent = Math.Max(0, t.Column - 1);
                 for (int k = 0; k < raw.Length; k++)
                 {
                     if (k > 0) _out.Add(HardLine);
-                    _out.Add(Text(raw[k].Trim()));
+                    string line = raw[k];
+                    if (k > 0) line = StripIndent(line, dedent);
+                    _out.Add(Text(line.TrimEnd()));
                 }
                 if (raw.Length > 0) _out.Add(HardLine);
             }
@@ -634,6 +907,13 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     return _o.UppercaseKeywords ? (t.KeywordUpper ?? t.Text) : t.Text.ToLowerInvariant();
                 }
                 return t.Text;
+            }
+
+            private static string StripIndent(string s, int count)
+            {
+                int i = 0;
+                while (i < s.Length && i < count && (s[i] == ' ' || s[i] == '\t')) i++;
+                return i > 0 ? s.Substring(i) : s;
             }
         }
     }

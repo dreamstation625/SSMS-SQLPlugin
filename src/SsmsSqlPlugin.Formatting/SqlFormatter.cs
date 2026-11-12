@@ -129,12 +129,79 @@ namespace SsmsSqlPlugin.Formatting
                 // 在出口统一收一次最可靠）
                 rendered = Regex.Replace(rendered, @"[ \t]+;", ";");
 
+                // 硬性约束：格式化只能改空白/大小写，不能丢任何内容。
+                // 任何一条结构化路径漏掉 token（最典型是注释落在 AST span 之外），
+                // 都在这里回退成原文，避免用户代码被悄悄改坏。
+                if (opt.PreserveComments)
+                {
+                    var formattedTokens = SqlTokenizer.Tokenize(rendered);
+                    if (!SameContent(tokResult.Tokens, formattedTokens.Tokens))
+                    {
+                        return (null, new FormatError(0, 0,
+                            "格式化结果与原文内容不一致，已保留原文"));
+                    }
+                }
+
                 return (rendered, error);
             }
             catch (Exception ex)
             {
                 return (null, new FormatError(0, 0, ex.Message));
             }
+        }
+
+        /// <summary>
+        /// 逐 token 比较内容：关键字忽略大小写，注释忽略行首/行尾空白，
+        /// 其余 token 必须完全一致。顺序与数量都要一致 —— 少一个注释也会失败。
+        /// </summary>
+        private static bool SameContent(List<SqlToken> input, List<SqlToken> output)
+        {
+            if (input.Count != output.Count) return false;
+
+            for (int i = 0; i < input.Count; i++)
+            {
+                var a = input[i];
+                var b = output[i];
+
+                if (a.Kind == SqlTokenKind.Comment || b.Kind == SqlTokenKind.Comment)
+                {
+                    if (a.Kind != b.Kind) return false;
+                    if (!string.Equals(NormalizeComment(a.Text), NormalizeComment(b.Text),
+                                       StringComparison.Ordinal))
+                        return false;
+                    continue;
+                }
+
+                if (a.Kind == SqlTokenKind.Keyword)
+                {
+                    if (!string.Equals(a.Text, b.Text, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+                else if (!string.Equals(a.Text, b.Text, StringComparison.Ordinal))
+                {
+                    // ScriptDom 会把 TRY / CATCH 这类骨架词标成 Identifier，
+                    // 排版层按固定写法做了大写。它们仍是关键字，比较时忽略大小写。
+                    string au = a.Text?.ToUpperInvariant();
+                    string bu = b.Text?.ToUpperInvariant();
+                    bool keywordLike = SqlKeywords.IsKeyword(au) || SqlKeywords.IsKeyword(bu);
+
+                    if (!keywordLike ||
+                        !string.Equals(a.Text, b.Text, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static string NormalizeComment(string text)
+        {
+            var lines = (text ?? string.Empty)
+                .Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++) lines[i] = lines[i].Trim();
+            return string.Join("\n", lines);
         }
 
         private static string TrimTrailingBlankLines(string s, string newLine)

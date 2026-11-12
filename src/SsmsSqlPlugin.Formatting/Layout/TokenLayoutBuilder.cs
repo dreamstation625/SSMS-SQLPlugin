@@ -48,37 +48,177 @@ namespace SsmsSqlPlugin.Formatting.Layout
 
             var stmts = _split != null ? _split.DirectChildren(first, last) : null;
 
-            // 只有一个语句且正好覆盖整个范围 → 直接建它（避免多余空行）
-            if (stmts != null && stmts.Count == 0 && _split.AllStatements.Count > 0)
-            {
-                // 范围内没有任何语句节点（子查询体 / 表达式片段）：当一条语句处理
-                return BuildStatement(first, last, null);
-            }
-
-            var docs = new List<DocNode>();
-
+            // 子查询体 / 表达式片段 / AST 切分失败：当一条语句处理
             if (stmts == null || stmts.Count == 0)
             {
                 return BuildStatement(first, last, null);
             }
 
+            return BuildStatementSequence(first, last, stmts, true);
+        }
+
+        /// <summary>
+        /// 按语句区间排版，并把落在语句区间之外的 token 插回原位。
+        ///
+        /// ScriptDom 的语句区间不包含注释，所以顶层语句之间、文件开头/结尾的
+        /// 注释都落在所有 span 之外。只按 span 循环会把它们丢掉 —— 这正是
+        /// 「格式化后注释消失」的根因。这里用 cursor 扫描整个范围，把空隙里的
+        /// token 也输出。
+        /// </summary>
+        private DocNode BuildStatementSequence(
+            int from, int to, List<StatementSplitter.Span> stmts, bool blankBetweenStatements)
+        {
+            var parts = new List<DocNode>();
+            int cursor = from;
+            int prevStatementLast = -1;
+            int prevEmittedToken = -1;
+            bool prevIsStatement = false;
+            bool endsWithHard = false;
+
             foreach (var st in stmts)
             {
-                var doc = BuildStatement(st.FirstToken, st.LastToken, st);
-                if (doc != null) docs.Add(doc);
+                int s = Math.Max(st.FirstToken, from);
+                int e = Math.Min(st.LastToken, to);
+                if (s > e) continue;
+
+                if (s > cursor)
+                {
+                    EmitGap(parts, cursor, s - 1, prevStatementLast, prevEmittedToken,
+                            ref endsWithHard, ref prevIsStatement);
+                    prevEmittedToken = s - 1;
+                    cursor = s;
+                }
+
+                var doc = BuildStatement(s, e, st) ?? BuildLooseRange(s, e);
+
+                if (parts.Count > 0)
+                {
+                    if (!endsWithHard) parts.Add(HardLine);
+
+                    // 保留原文空行（最多 2 行）；顶层语句至少保留配置的空行数。
+                    int blanks = SourceBlankLines(prevEmittedToken, s);
+                    if (prevIsStatement && blankBetweenStatements)
+                        blanks = Math.Max(blanks, _opt.BlankLinesBetweenStatements);
+                    blanks = Math.Min(blanks, 2);
+
+                    for (int b = 0; b < blanks; b++) parts.Add(HardLine);
+                }
+
+                parts.Add(doc);
+                prevIsStatement = true;
+                endsWithHard = EndsWithHardLine(doc);
+                cursor = e + 1;
+                prevStatementLast = e;
+                prevEmittedToken = e;
             }
 
-            var list = new List<DocNode>();
-            for (int k = 0; k < docs.Count; k++)
+            if (cursor <= to)
             {
-                if (k > 0)
-                {
-                    list.Add(HardLine);
-                    for (int b = 0; b < _opt.BlankLinesBetweenStatements; b++) list.Add(HardLine);
-                }
-                list.Add(docs[k]);
+                EmitGap(parts, cursor, to, prevStatementLast, prevEmittedToken,
+                        ref endsWithHard, ref prevIsStatement);
             }
-            return Concat(list);
+
+            return Concat(parts);
+        }
+
+        /// <summary>
+        /// 输出语句之间的空隙 token（基本上是注释）。
+        /// 与上一语句同行的尾注释直接贴回行尾，其余按独立行输出。
+        /// </summary>
+        private void EmitGap(
+            List<DocNode> parts, int from, int to, int prevStatementLast, int prevEmittedToken,
+            ref bool endsWithHard, ref bool prevIsStatement)
+        {
+            int cursor = from;
+
+            while (prevStatementLast >= 0 && cursor <= to)
+            {
+                var t = _tokens[cursor];
+                if (t.Kind != SqlTokenKind.Comment) break;
+                if (t.Line != _tokens[prevStatementLast].Line) break;
+                if (t.Text.IndexOf('\n') >= 0 || t.Text.IndexOf('\r') >= 0) break;
+                if (parts.Count == 0 || endsWithHard) break;
+
+                parts.Add(Text(t.IsLineComment ? "  " : " "));
+                parts.Add(Text(t.Text.Trim()));
+                endsWithHard = false;
+                cursor++;
+                prevStatementLast = cursor - 1;
+
+                if (t.IsLineComment) break;   // 行注释吃掉本行剩余部分
+            }
+
+            if (cursor > to) return;
+
+            var gapDoc = BuildLooseRange(cursor, to);
+            if (IsNilDoc(gapDoc)) return;
+
+            if (parts.Count > 0 && !endsWithHard) parts.Add(HardLine);
+
+            // 原文里注释与上一条语句/下一条语句之间的空行
+            int blankFrom = cursor > from ? cursor - 1 : prevEmittedToken;
+            int blanks = Math.Min(SourceBlankLines(blankFrom, cursor), 2);
+            for (int b = 0; b < blanks; b++) parts.Add(HardLine);
+
+            parts.Add(gapDoc);
+            endsWithHard = EndsWithHardLine(gapDoc);
+            prevIsStatement = false;
+        }
+
+        private int SourceBlankLines(int prevIndex, int nextIndex)
+        {
+            if (prevIndex < 0 || prevIndex >= _tokens.Count) return 0;
+            if (nextIndex < 0 || nextIndex >= _tokens.Count) return 0;
+            if (_tokens[prevIndex].Line <= 0 || _tokens[nextIndex].Line <= 0) return 0;
+
+            int prevEndLine = EndLine(_tokens[prevIndex]);
+            return Math.Max(0, _tokens[nextIndex].Line - prevEndLine - 1);
+        }
+
+        private static int EndLine(SqlToken token)
+        {
+            int extra = 0;
+            string text = token.Text ?? string.Empty;
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '\n') extra++;
+            }
+            return token.Line + extra;
+        }
+
+        /// <summary>不切子句、不按语句分块，逐 token 输出一段范围（用于语句间隙）。</summary>
+        private DocNode BuildLooseRange(int from, int to)
+        {
+            if (from > to) return Nil;
+            var body = new ClauseBodyBuilder(_tokens, _opt, this, _split);
+            return body.Build(from, to, "");
+        }
+
+        /// <summary>文档最后是否以硬换行结束（用于避免注释和语句之间多出空行）。</summary>
+        private static bool EndsWithHardLine(DocNode node)
+        {
+            switch (node)
+            {
+                case LineNode l:
+                    return l.IsHard;
+
+                case ConcatNode c:
+                    for (int i = c.Parts.Count - 1; i >= 0; i--)
+                    {
+                        if (IsNilDoc(c.Parts[i])) continue;
+                        return EndsWithHardLine(c.Parts[i]);
+                    }
+                    return false;
+
+                case IndentNode ind:
+                    return EndsWithHardLine(ind.Child);
+
+                case GroupNode g:
+                    return EndsWithHardLine(g.Child);
+
+                default:
+                    return false;
+            }
         }
 
         // ── 语句 → 子句列表 ──
@@ -471,10 +611,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
             int headEnd = bodySpan != null ? bodySpan.FirstToken - 1 : span.LastToken;
 
             var parts = new List<DocNode>();
+            DocNode headDoc = null;
 
             // 头部：IF <cond> / WHILE <cond>
             if (headEnd >= span.FirstToken)
-                parts.Add(BuildFlatRange(span.FirstToken, headEnd));
+            {
+                headDoc = BuildFlatRange(span.FirstToken, headEnd);
+                parts.Add(headDoc);
+            }
 
             if (bodySpan != null)
             {
@@ -487,6 +631,11 @@ namespace SsmsSqlPlugin.Formatting.Layout
                     parts.Add(HardLine);
                     parts.Add(bodyDoc);
                 }
+                else if (headDoc != null && EndsWithHardLine(headDoc))
+                {
+                    // 条件后面跟了行尾注释，body 已经在下一行，不要再补前导空格
+                    parts.Add(bodyDoc);
+                }
                 else
                 {
                     parts.Add(Text(" "));
@@ -497,28 +646,64 @@ namespace SsmsSqlPlugin.Formatting.Layout
             var elseSpan = _split?.FindByNode(elseBody);
             if (elseSpan != null)
             {
+                int searchFrom = bodySpan != null ? bodySpan.LastToken + 1 : span.FirstToken;
+                int elseIdx = FindPrevKeyword(searchFrom, elseSpan.FirstToken - 1, "ELSE");
+
                 parts.Add(HardLine);
 
-                // ELSE IF 是链式判断，写成一行（"ELSE IF @a = 2"）比
-                //    ELSE
-                //    IF @a = 2
-                // 更符合惯例，也不会越缩越深。
-                if (elseSpan.Kind == "IfStatement")
+                // body 与 ELSE 之间的注释
+                if (elseIdx > 0)
                 {
-                    var elseDoc = BuildStatement(elseSpan.FirstToken, elseSpan.LastToken, elseSpan);
+                    var before = BuildLooseRange(searchFrom, elseIdx - 1);
+                    if (!IsNilDoc(before))
+                    {
+                        parts.Add(before);
+                        if (!EndsWithHardLine(before)) parts.Add(HardLine);
+                    }
                     parts.Add(Text(Head("ELSE")));
-                    parts.Add(Text(" "));
-                    parts.Add(elseDoc);
                 }
                 else
                 {
                     parts.Add(Text(Head("ELSE")));
+                }
+
+                // ELSE 与 else-body 之间的注释
+                DocNode after = elseIdx > 0
+                    ? BuildLooseRange(elseIdx + 1, elseSpan.FirstToken - 1)
+                    : Nil;
+
+                if (!IsNilDoc(after))
+                {
+                    parts.Add(HardLine);
+                    parts.Add(after);
+                    if (!EndsWithHardLine(after)) parts.Add(HardLine);
+                    parts.Add(BuildStatement(elseSpan.FirstToken, elseSpan.LastToken, elseSpan));
+                }
+                else if (elseSpan.Kind == "IfStatement")
+                {
+                    // ELSE IF 链式判断写成一行
+                    parts.Add(Text(" "));
+                    parts.Add(BuildStatement(elseSpan.FirstToken, elseSpan.LastToken, elseSpan));
+                }
+                else
+                {
                     parts.Add(HardLine);
                     parts.Add(BuildStatement(elseSpan.FirstToken, elseSpan.LastToken, elseSpan));
                 }
             }
 
             return Concat(parts);
+        }
+
+        /// <summary>在 [from, to] 里从后往前找关键字（跳过注释）。</summary>
+        private int FindPrevKeyword(int from, int to, string keyword)
+        {
+            for (int i = to; i >= from && i >= 0 && i < _tokens.Count; i--)
+            {
+                var t = _tokens[i];
+                if (t.Kind == SqlTokenKind.Keyword && t.Is(keyword)) return i;
+            }
+            return -1;
         }
 
         /// <summary>
@@ -566,26 +751,64 @@ namespace SsmsSqlPlugin.Formatting.Layout
         {
             if (!(span.Node is TryCatchStatement tc)) return null;
 
-            var tryList = tc.TryStatements?.Statements;
-            var catchList = tc.CatchStatements?.Statements;
+            var trySpans = SpansOf(tc.TryStatements?.Statements);
+            var catchSpans = SpansOf(tc.CatchStatements?.Statements);
+
+            int beginTry = span.FirstToken;
+            int tryKw = FindTopKeyword(beginTry, span.LastToken, "TRY");
+            if (tryKw < 0) tryKw = beginTry + 1;
+
+            int endTryEnd = -1, endTryKw = -1, beginCatch = -1, catchKw = -1;
+
+            if (catchSpans.Count > 0)
+            {
+                catchKw = PrevKeywordIndex(catchSpans[0].FirstToken - 1, beginTry, "CATCH");
+                beginCatch = catchKw > 0 ? PrevKeywordIndex(catchKw - 1, beginTry, "BEGIN") : -1;
+                endTryKw = beginCatch > 0 ? PrevKeywordIndex(beginCatch - 1, beginTry, "TRY") : -1;
+                endTryEnd = endTryKw > 0 ? PrevKeywordIndex(endTryKw - 1, beginTry, "END") : -1;
+            }
+            else
+            {
+                endTryKw = PrevKeywordIndex(span.LastToken, beginTry, "TRY");
+                endTryEnd = endTryKw > 0 ? PrevKeywordIndex(endTryKw - 1, beginTry, "END") : -1;
+            }
 
             var parts = new List<DocNode>();
-
             parts.Add(Text(Head("BEGIN TRY")));
 
-            var tryBody = BuildNodeList(tryList);
+            // 用 token 区间（而不是节点首尾）排版，才能把 try 体首尾的注释也带上
+            int tryBodyFrom = tryKw + 1;
+            int tryBodyTo = endTryEnd > 0 ? endTryEnd - 1 : span.LastToken;
+            var tryBody = BuildStatementSequence(tryBodyFrom, tryBodyTo, trySpans, false);
             if (!IsNilDoc(tryBody))
                 parts.Add(Indent(Concat(HardLine, tryBody), _opt.IndentSize));
 
             parts.Add(HardLine);
             parts.Add(Text(Head("END TRY")));
 
-            if (catchList != null && catchList.Count > 0)
+            if (beginCatch > 0 && catchKw > 0)
             {
                 parts.Add(HardLine);
+
+                // END TRY 与 BEGIN CATCH 之间的注释
+                var between = BuildLooseRange(endTryKw + 1, beginCatch - 1);
+                if (!IsNilDoc(between))
+                {
+                    parts.Add(between);
+                    if (!EndsWithHardLine(between)) parts.Add(HardLine);
+                }
+
                 parts.Add(Text(Head("BEGIN CATCH")));
 
-                var catchBody = BuildNodeList(catchList);
+                int afterLastCatch = catchSpans.Count > 0
+                    ? catchSpans[catchSpans.Count - 1].LastToken + 1
+                    : catchKw + 1;
+                int catchEnd = FindTopKeyword(afterLastCatch, span.LastToken, "END");
+
+                int catchBodyFrom = catchKw + 1;
+                int catchBodyTo = catchEnd > 0 ? catchEnd - 1 : span.LastToken;
+
+                var catchBody = BuildStatementSequence(catchBodyFrom, catchBodyTo, catchSpans, false);
                 if (!IsNilDoc(catchBody))
                     parts.Add(Indent(Concat(HardLine, catchBody), _opt.IndentSize));
 
@@ -596,29 +819,34 @@ namespace SsmsSqlPlugin.Formatting.Layout
             return Concat(parts);
         }
 
-        /// <summary>把一批 AST 语句节点排成多行文档。</summary>
-        private DocNode BuildNodeList(IList<TSqlStatement> nodes)
+        private List<StatementSplitter.Span> SpansOf(IList<TSqlStatement> nodes)
         {
-            if (nodes == null || nodes.Count == 0) return Nil;
+            var spans = new List<StatementSplitter.Span>();
+            if (nodes == null) return spans;
 
-            var docs = new List<DocNode>();
             foreach (var n in nodes)
             {
                 var sp = _split?.FindByNode(n);
-                if (sp == null) continue;
-                var d = BuildStatement(sp.FirstToken, sp.LastToken, sp);
-                if (d != null) docs.Add(d);
+                if (sp != null) spans.Add(sp);
             }
 
-            if (docs.Count == 0) return Nil;
+            spans.Sort((a, b) => a.FirstToken.CompareTo(b.FirstToken));
+            return spans;
+        }
 
-            var list = new List<DocNode>();
-            for (int k = 0; k < docs.Count; k++)
+        /// <summary>
+        /// 从 from 往前找最近的指定骨架词（跳过注释）。
+        /// TRY / CATCH 会被 ScriptDom 标成 Identifier，所以按文本比较，不只看 Kind。
+        /// </summary>
+        private int PrevKeywordIndex(int from, int min, string keyword)
+        {
+            for (int i = from; i >= min && i >= 0 && i < _tokens.Count; i--)
             {
-                if (k > 0) list.Add(HardLine);
-                list.Add(docs[k]);
+                var t = _tokens[i];
+                if (t.Kind == SqlTokenKind.Comment) continue;
+                if (string.Equals(t.Text, keyword, StringComparison.OrdinalIgnoreCase)) return i;
             }
-            return Concat(list);
+            return -1;
         }
 
         /// <summary>把一段范围当成"若干语句"排（有 AST 走 AST，没有就逐条切子句）。</summary>
@@ -632,25 +860,7 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 return BuildStatement(from, to, null);
             }
 
-            var docs = new List<DocNode>();
-            foreach (var st in stmts)
-            {
-                int s = Math.Max(st.FirstToken, from);
-                int e = Math.Min(st.LastToken, to);
-                if (s > e) continue;
-                var d = BuildStatement(s, e, st);
-                if (d != null) docs.Add(d);
-            }
-
-            if (docs.Count == 0) return Nil;
-
-            var list = new List<DocNode>();
-            for (int k = 0; k < docs.Count; k++)
-            {
-                if (k > 0) list.Add(HardLine);
-                list.Add(docs[k]);
-            }
-            return Concat(list);
+            return BuildStatementSequence(from, to, stmts, false);
         }
 
         /// <summary>
@@ -716,6 +926,7 @@ namespace SsmsSqlPlugin.Formatting.Layout
                 if (caseDepth > 0) continue;
 
                 if (!SqlKeywords.IsMajorClause(t.KeywordUpper)) continue;
+                if (!IsRealClauseStart(i, to)) continue;
                 if (IsSecondaryPosition(i, from)) continue;
 
                 // 切一刀：把 [segStart, i-1] 收成一个 clause
@@ -783,6 +994,75 @@ namespace SsmsSqlPlugin.Formatting.Layout
             return false;
         }
 
+        /// <summary>
+        /// JOIN 相关词只有真的构成 JOIN 语义时才切子句。
+        /// 否则 `WHERE LEFT(@s, 1) = …` / `SELECT LEFT(name, 1)` 里的 LEFT
+        /// 会被当成 LEFT JOIN，强制断行成两个子句。
+        /// </summary>
+        private bool IsRealClauseStart(int i, int to)
+        {
+            var t = _tokens[i];
+
+            if (t.Is("JOIN")) return true;
+
+            if (t.IsAny("LEFT", "RIGHT", "FULL"))
+            {
+                int next = NextMeaningful(i, to);
+                return next >= 0 && _tokens[next].IsAny("JOIN", "OUTER");
+            }
+
+            if (t.IsAny("INNER", "CROSS", "OUTER"))
+            {
+                int next = NextMeaningful(i, to);
+                return next >= 0 && _tokens[next].IsAny("JOIN", "APPLY");
+            }
+
+            if (t.Is("APPLY"))
+            {
+                int prev = PrevMeaningful(i);
+                return prev >= 0 && _tokens[prev].IsAny("CROSS", "OUTER");
+            }
+
+            return true;
+        }
+
+        private int NextMeaningful(int idx, int to)
+        {
+            for (int k = idx + 1; k <= to; k++)
+            {
+                if (_tokens[k].Kind != SqlTokenKind.Comment) return k;
+            }
+            return -1;
+        }
+
+        private bool ContainsSubqueryToken(int from, int to)
+        {
+            for (int k = from; k <= to && k < _tokens.Count; k++)
+            {
+                var t = _tokens[k];
+                if (t.Kind == SqlTokenKind.Keyword && t.IsAny("SELECT", "WITH")) return true;
+            }
+            return false;
+        }
+
+        private bool ContainsCommentToken(int from, int to)
+        {
+            for (int k = from; k <= to && k < _tokens.Count; k++)
+            {
+                if (_tokens[k].Kind == SqlTokenKind.Comment) return true;
+            }
+            return false;
+        }
+
+        private int PrevMeaningful(int idx)
+        {
+            for (int k = idx - 1; k >= 0; k--)
+            {
+                if (_tokens[k].Kind != SqlTokenKind.Comment) return k;
+            }
+            return -1;
+        }
+
         // ── 子句 → Doc ──
 
         private DocNode BuildClause(Clause c, bool isContinuation)
@@ -819,8 +1099,14 @@ namespace SsmsSqlPlugin.Formatting.Layout
             if (vertical)
             {
                 var items = body.SplitByComma(c.BodyFrom, c.BodyTo);
+                // 单列且含子查询/注释时也展开：否则函数调用的参数块会从
+                // "SELECT ISNULL(" 中间开始，收括号无法和函数起点对齐。
+                bool complexSingle = items.Count == 1
+                                     && (ContainsSubqueryToken(c.BodyFrom, c.BodyTo)
+                                         || ContainsCommentToken(c.BodyFrom, c.BodyTo));
+
                 // 只有一列（或 SELECT *）不值得展开
-                if (items.Count > 1)
+                if (items.Count > 1 || complexSingle)
                 {
                     var rendered = new List<DocNode>();
                     for (int k = 0; k < items.Count; k++)

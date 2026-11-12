@@ -157,5 +157,50 @@ namespace SsmsSqlPlugin.Formatting.Doc
             }
             return Concat(list);
         }
+
+        /// <summary>
+        /// 去掉文档末尾的硬换行。
+        /// 用于「子查询/函数参数最后是行尾注释」时，避免收括号前多出一个空行；
+        /// 收括号自己会补一个硬换行并回退缩进。
+        /// </summary>
+        public static DocNode TrimTrailingHardLines(DocNode node)
+        {
+            switch (node)
+            {
+                case null:
+                    return Nil;
+
+                case LineNode l when l.IsHard:
+                    return Nil;
+
+                case ConcatNode c:
+                    var list = new List<DocNode>(c.Parts);
+                    while (list.Count > 0)
+                    {
+                        int last = list.Count - 1;
+                        var trimmed = TrimTrailingHardLines(list[last]);
+                        if (IsEmpty(trimmed))
+                        {
+                            list.RemoveAt(last);
+                            continue;
+                        }
+                        list[last] = trimmed;
+                        break;
+                    }
+                    return Concat(list);
+
+                case IndentNode ind:
+                    return Indent(TrimTrailingHardLines(ind.Child), ind.ExtraIndent);
+
+                case GroupNode g:
+                    return new GroupNode(TrimTrailingHardLines(g.Child), g.ForceBreak);
+
+                default:
+                    return node;
+            }
+        }
+
+        private static bool IsEmpty(DocNode node)
+            => node == null || (node is ConcatNode c && c.Parts.Count == 0);
     }
 }

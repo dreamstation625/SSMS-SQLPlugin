@@ -4,18 +4,39 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using SsmsSqlPlugin.Formatting;
+using SsmsSqlPlugin.Formatting.Tokens;
 
-// 排版引擎语料回归：输出效果 + 幂等校验
+// 排版引擎语料回归：输出效果 + 幂等校验 + 注释保留校验
 // 用法：
 //   dotnet run              → 跑全部，打印每个用例
 //   dotnet run -- --quiet   → 只打印失败项和统计
 //   dotnet run -- --idem    → 只做幂等校验
+//   dotnet run -- --file x.sql → 格式化指定文件并输出
 class Program
 {
     static int Main(string[] args)
     {
         bool quiet = args.Contains("--quiet");
         bool idemOnly = args.Contains("--idem");
+
+        int compareArg = Array.IndexOf(args, "--compare");
+        if (compareArg >= 0 && compareArg + 2 < args.Length)
+        {
+            return CompareComments(args[compareArg + 1], args[compareArg + 2]);
+        }
+
+        int spansArg = Array.IndexOf(args, "--spans");
+        if (spansArg >= 0 && spansArg + 1 < args.Length)
+        {
+            DumpSpans(args[spansArg + 1]);
+            return 0;
+        }
+
+        int fileArg = Array.IndexOf(args, "--file");
+        if (fileArg >= 0 && fileArg + 1 < args.Length)
+        {
+            return FormatFile(args[fileArg + 1], !args.Contains("--no-guard"));
+        }
 
         var cases = LoadCases();
         var opt = FormatOptions.Default;
@@ -27,9 +48,10 @@ class Program
         foreach (var c in cases)
         {
             string once, twice;
+            FormatResult r1;
             try
             {
-                var r1 = new SqlFormatter().Format(c.Sql, opt);
+                r1 = new SqlFormatter().Format(c.Sql, opt);
                 once = r1.Text;
                 var r2 = new SqlFormatter().Format(once, opt);
                 twice = r2.Text;
@@ -42,6 +64,8 @@ class Program
             }
 
             bool idem = once == twice;
+            bool preserved = CommentsPreserved(c.Sql, once);
+            bool guarded = HasPreservationFallback(r1);
 
             if (!quiet && !idemOnly)
             {
@@ -56,21 +80,44 @@ class Program
                 Console.WriteLine();
             }
 
-            if (idem)
+            if (idem && preserved && !guarded)
             {
                 pass++;
             }
             else
             {
                 fail++;
-                failures.Add(c.Name);
-                Console.WriteLine(new string('=', 78));
-                Console.WriteLine("⚠ 幂等失败: " + c.Name);
-                Console.WriteLine("--- 第一次 ---");
-                Console.WriteLine(once);
-                Console.WriteLine("--- 第二次 ---");
-                Console.WriteLine(twice);
-                Console.WriteLine();
+                string reason = !preserved ? " (注释丢失)"
+                              : guarded ? " (内容保护回退原文)"
+                              : "";
+                failures.Add(c.Name + reason);
+
+                if (guarded)
+                {
+                    Console.WriteLine(new string('=', 78));
+                    Console.WriteLine("⚠ 内容保护回退原文: " + c.Name);
+                    Console.WriteLine("--- 输出 ---");
+                    Console.WriteLine(once);
+                    Console.WriteLine();
+                }
+                else if (!preserved)
+                {
+                    Console.WriteLine(new string('=', 78));
+                    Console.WriteLine("⚠ 注释丢失: " + c.Name);
+                    Console.WriteLine("--- 输出 ---");
+                    Console.WriteLine(once);
+                    Console.WriteLine();
+                }
+                else
+                {
+                    Console.WriteLine(new string('=', 78));
+                    Console.WriteLine("⚠ 幂等失败: " + c.Name);
+                    Console.WriteLine("--- 第一次 ---");
+                    Console.WriteLine(once);
+                    Console.WriteLine("--- 第二次 ---");
+                    Console.WriteLine(twice);
+                    Console.WriteLine();
+                }
             }
         }
 
@@ -82,6 +129,113 @@ class Program
             foreach (var f in failures) Console.WriteLine("  - " + f);
         }
         return fail == 0 ? 0 : 1;
+    }
+
+    private static int FormatFile(string path, bool guard)
+    {
+        string sql = File.ReadAllText(path);
+        var opt = FormatOptions.Default;
+        opt.MaxLineWidth = 100;
+        opt.PreserveComments = guard;
+
+        var result = new SqlFormatter().Format(sql, opt);
+        Console.WriteLine(result.Text);
+
+        if (!guard) DumpTokenDiff(sql, result.Text);
+
+        var second = new SqlFormatter().Format(result.Text, opt);
+        bool idempotent = second.Text == result.Text;
+
+        bool preserved = CommentsPreserved(sql, result.Text);
+        Console.Error.WriteLine("formatted=" + result.FormattedBatches +
+                                " skipped=" + result.SkippedBatches +
+                                " commentsPreserved=" + preserved +
+                                " idempotent=" + idempotent);
+        foreach (var e in result.Errors) Console.Error.WriteLine("error: " + e);
+
+        return preserved && idempotent && result.IsSuccess ? 0 : 1;
+    }
+
+    private static void DumpSpans(string path)
+    {
+        string sql = File.ReadAllText(path);
+        var tok = SqlTokenizer.Tokenize(sql);
+        for (int i = 0; i < tok.Tokens.Count; i++)
+        {
+            var t = tok.Tokens[i];
+            Console.WriteLine("#" + i + " " + t.Kind + "[" + t.Text + "] line=" + t.Line);
+        }
+
+        var split = StatementSplitter.Split(sql, tok.Tokens.Count, tok.RawToLayout);
+        Console.WriteLine("--- spans ---");
+        foreach (var s in split.AllStatements)
+        {
+            Console.WriteLine(s.FirstToken + ".." + s.LastToken + " " + s.Kind);
+        }
+        Console.WriteLine("outside: " + string.Join(",", split.OutsideTokens));
+    }
+
+    private static void DumpTokenDiff(string input, string output)
+    {
+        var a = SqlTokenizer.Tokenize(input).Tokens;
+        var b = SqlTokenizer.Tokenize(output).Tokens;
+        Console.Error.WriteLine("tokens: input=" + a.Count + " output=" + b.Count);
+        int n = Math.Max(a.Count, b.Count);
+        for (int i = 0; i < n; i++)
+        {
+            string at = i < a.Count ? a[i].Kind + "[" + a[i].Text + "]" : "<none>";
+            string bt = i < b.Count ? b[i].Kind + "[" + b[i].Text + "]" : "<none>";
+            if (at != bt) Console.Error.WriteLine("#" + i + " in=" + at + " out=" + bt);
+        }
+    }
+
+    private static int CompareComments(string pathA, string pathB)
+    {
+        var a = CommentsOf(File.ReadAllText(pathA));
+        var b = CommentsOf(File.ReadAllText(pathB));
+        bool equal = a.SequenceEqual(b);
+        Console.WriteLine("commentsA=" + a.Count + " commentsB=" + b.Count + " equal=" + equal);
+
+        if (!equal)
+        {
+            int n = Math.Max(a.Count, b.Count);
+            for (int i = 0; i < n; i++)
+            {
+                string at = i < a.Count ? a[i] : "<none>";
+                string bt = i < b.Count ? b[i] : "<none>";
+                if (at != bt) Console.WriteLine("#" + i + " A=" + at + " B=" + bt);
+            }
+        }
+
+        return equal ? 0 : 1;
+    }
+
+    private static bool HasPreservationFallback(FormatResult result)
+    {
+        foreach (var e in result.Errors)
+        {
+            if (e.Message.IndexOf("已保留原文", StringComparison.Ordinal) >= 0) return true;
+        }
+        return false;
+    }
+
+    private static bool CommentsPreserved(string input, string output)
+    {
+        return CommentsOf(input).SequenceEqual(CommentsOf(output));
+    }
+
+    private static List<string> CommentsOf(string sql)
+    {
+        var tokens = SqlTokenizer.Tokenize(sql);
+        var list = new List<string>();
+        foreach (var t in tokens.Tokens)
+        {
+            if (t.Kind != SqlTokenKind.Comment) continue;
+            var lines = t.Text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++) lines[i] = lines[i].Trim();
+            list.Add(string.Join("\n", lines));
+        }
+        return list;
     }
 
     private sealed class Case
@@ -159,6 +313,53 @@ order by total desc"),
             C("多行注释夹在语句中", "select a, -- 第一列\n b /* 第二列 */, c from t"),
             C("注释后接 AND", "select * from t where a = 1 -- 注释\n and b = 2 -- 另一条\n and c = 3"),
             C("纯注释批", "-- 只有注释\n-- 什么都不做"),
+            C("注释-语句间隙", @"-- 顶部说明
+DECLARE @a INT = 1;   -- 行尾说明
+/* 中间块注释
+   第二行 */
+DECLARE @b INT = 2;
+-- 尾注释
+SELECT @a, @b;"),
+            C("注释-块内语句间", @"IF @a > 0
+BEGIN
+    -- 第一条之前
+    SELECT 1;   -- 第一条行尾
+    /* 两条之间 */
+    SELECT 2;
+END"),
+            C("注释-IF ELSE", @"IF @a > 0
+BEGIN
+    SELECT 1;
+END
+-- ELSE 之前
+ELSE
+BEGIN
+    -- ELSE 之后
+    SELECT 2;
+END"),
+            C("注释-IF 单语句", @"IF @a > 0
+-- before body
+SELECT 1;
+ELSE
+-- before else body
+SELECT 2;"),
+            C("注释-存储过程体", @"create procedure p @a int as
+begin
+    -- 过程体第一条之前
+    select 1;   -- 尾注释
+    /* 两条之间 */
+    select 2;
+end"),
+            C("注释-TRY CATCH", @"begin try
+    -- try 内
+    select 1;
+    /* 两条之间 */
+    select 2;
+end try
+begin catch
+    -- catch 内
+    select error_message();
+end catch"),
 
             // ── 真实场景 ──
             C("分页查询", "select * from (select row_number() over (order by id desc) as rn, t.* from t where status = 1) x where x.rn between 1 and 20"),
@@ -180,6 +381,12 @@ when not matched by source then delete;"),
             C("PIVOT", "select * from (select a, b, v from t) p pivot (sum(v) for b in ([x], [y], [z])) as pv"),
             C("STRING_AGG", "select a, string_agg(cast(b as nvarchar(max)), ',') within group (order by b) as bs from t group by a"),
             C("长 IN 列表", "select * from t where status in ('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p')"),
+            C("LEFT/RIGHT 函数不切子句", "select left(name,1) as c, right(code,2) as d from t where left(code,1)='0' and right(code,1)='x'"),
+            C("短 CASE 内联", "select max(case when lv = 1 then code end) as c from t"),
+            C("长 CASE 展开", "select case when aaaaaaaaaaaaaaaaaaaa = 1 and bbbbbbbbbbbbbbbbbbbb = 2 then 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' else 'zzzzzzzzzzzzzzzzzzzzzzzz' end as r from t"),
+            C("函数参数子查询", "select isnull((select max(a) from t1 where x=1), (select max(b) from t2 where y=2)) as v from t"),
+            C("单列标量子查询", "select (select max(a) from t1 where x=1) as v from t"),
+            C("空行保留", "select 1;\n\n\nselect 2;"),
             C("多语句串", "declare @a int = 1; set @a = 2; select @a as v;"),
         };
     }
