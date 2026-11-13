@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace SsmsSqlPlugin.Storage
 {
@@ -61,9 +62,10 @@ namespace SsmsSqlPlugin.Storage
                 try
                 {
                     RegisterResolver(dir);
+                    ConfigureNativeSearch(dir);
 
                     Assembly.LoadFrom(Path.Combine(dir, "SQLitePCLRaw.core.dll"));
-                    Assembly.LoadFrom(Path.Combine(dir, "SQLitePCLRaw.provider.e_sqlite3.dll"));
+                    LoadProvider(dir);
 
                     var batteries = Assembly.LoadFrom(
                         Path.Combine(dir, "SQLitePCLRaw.batteries_v2.dll"));
@@ -121,6 +123,47 @@ namespace SsmsSqlPlugin.Storage
 
             AppDomain.CurrentDomain.AssemblyResolve += ResolveHostAssembly;
         }
+
+        /// <summary>
+        /// SSMS 22 用 provider.e_sqlite3；SSMS 21 的 PublicAssemblies\SQLite
+        /// 只有 provider.dynamic_cdecl，native 在 runtimes\win-x64\native。
+        /// </summary>
+        private static void LoadProvider(string sqliteDir)
+        {
+            string eSqlite = Path.Combine(sqliteDir, "SQLitePCLRaw.provider.e_sqlite3.dll");
+            if (File.Exists(eSqlite))
+            {
+                Assembly.LoadFrom(eSqlite);
+                return;
+            }
+
+            string dynamic = Path.Combine(sqliteDir, "SQLitePCLRaw.provider.dynamic_cdecl.dll");
+            if (File.Exists(dynamic))
+            {
+                Assembly.LoadFrom(dynamic);
+                return;
+            }
+
+            throw new InvalidOperationException("找不到 SQLitePCLRaw provider");
+        }
+
+        private static void ConfigureNativeSearch(string sqliteDir)
+        {
+            try
+            {
+                string arch = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+                string nativeDir = Path.Combine(sqliteDir, "runtimes", arch, "native");
+                if (Directory.Exists(nativeDir))
+                {
+                    ProbeDirs.Add(nativeDir);
+                    SetDllDirectory(nativeDir);
+                }
+            }
+            catch { }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetDllDirectory(string lpPathName);
 
         /// <summary>
         /// CLI 进程没有 SSMS.exe.config 的探测路径；System.Memory 等依赖

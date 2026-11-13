@@ -147,6 +147,17 @@ namespace SsmsSqlPlugin
                 Log.Error("文档事件监听安装失败", ex);
             }
 
+            // 诊断开关：P5 SSMS 21 回归时可在现有实例里直接打开一份 SQL 文件
+            try
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                OpenProbeFileIfRequested(GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[诊断] 打开查询文件失败: " + ex.Message);
+            }
+
             Log.Info("================ 包初始化结束 ================");
 
             // ── 自检模式（诊断用，默认关闭）──
@@ -298,8 +309,26 @@ namespace SsmsSqlPlugin
             ScheduleWelcome(dte);
         }
 
-        private void ScheduleWelcome(EnvDTE.DTE dte)
+        private void OpenProbeFileIfRequested(EnvDTE.DTE dte)
         {
+            if (dte == null) return;
+
+            string path = Environment.GetEnvironmentVariable("SQLKIT_OPEN_FILE");
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
+
+            try
+            {
+                Log.Info("[诊断] 打开查询文件: " + path);
+                dte.ItemOperations.OpenFile(path, EnvDTE.Constants.vsViewKindTextView);
+                Log.Info("[诊断] 查询文件已打开");
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[诊断] 打开查询文件失败: " + ex.Message);
+            }
+        }
+
+        private void ScheduleWelcome(EnvDTE.DTE dte)        {
             if (dte == null) return;
 
             if (FormatOptionsStore.Current.WelcomeShown)
