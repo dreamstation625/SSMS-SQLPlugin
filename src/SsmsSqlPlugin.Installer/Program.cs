@@ -101,7 +101,7 @@ namespace SsmsSqlPlugin.Installer
 
             var subtitle = new Label
             {
-                Text = "安装到已检测到的 SSMS 21 / 22 用户扩展目录，卸载时保留历史记录和设置。",
+                Text = "安装到已检测到的 SSMS 20 / 21 / 22 扩展目录，卸载时保留历史记录和设置。SSMS 20 使用文件部署。",
                 Font = new Font("Microsoft YaHei UI", 9f),
                 ForeColor = Color.FromArgb(107, 114, 128),
                 AutoSize = true,
@@ -131,7 +131,7 @@ namespace SsmsSqlPlugin.Installer
 
             _status = new Label
             {
-                Text = "正在检查 SSMS 21 / 22…",
+                Text = "正在检查 SSMS 20 / 21 / 22…",
                 ForeColor = Color.FromArgb(107, 114, 128),
                 AutoSize = false,
                 Location = new Point(24, 256),
@@ -217,7 +217,7 @@ namespace SsmsSqlPlugin.Installer
             {
                 if (!_busy) return;
                 e.Cancel = true;
-                MessageBox.Show("正在调用 SSMS VSIXInstaller，请等待操作完成。",
+                MessageBox.Show("正在安装扩展，请等待操作完成。",
                     "SSMS-SQLPlugin", MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
@@ -257,10 +257,10 @@ namespace SsmsSqlPlugin.Installer
 
             if (products.Count == 0)
             {
-                _pathValue.Text = "未找到 SSMS 21 / 22";
+                _pathValue.Text = "未找到 SSMS 20 / 21 / 22";
                 _install.Enabled = false;
                 _uninstall.Enabled = false;
-                _status.Text = "未找到已安装的 SSMS 21 或 SSMS 22，请先安装或修复 SSMS。";
+                _status.Text = "未找到已安装的 SSMS 20、21 或 22，请先安装或修复 SSMS。";
                 _status.ForeColor = Color.FromArgb(185, 28, 28);
                 return;
             }
@@ -289,8 +289,8 @@ namespace SsmsSqlPlugin.Installer
         {
             if (_busy) return;
 
-            SetBusy(true, "正在安装 / 更新…\r\n正在调用 VSIXInstaller；如有安全软件弹窗，请先处理。");
-            _status.Text = "正在调用 VSIXInstaller…";
+            SetBusy(true, "正在安装 / 更新…\r\n正在部署扩展；如有安全软件弹窗，请先处理。");
+            _status.Text = "正在部署扩展…";
 
             Task.Run(() =>
             {
@@ -317,8 +317,8 @@ namespace SsmsSqlPlugin.Installer
                     MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                 return;
 
-            SetBusy(true, "正在卸载…\r\n正在调用 VSIXInstaller；如有安全软件弹窗，请先处理。");
-            _status.Text = "正在调用 VSIXInstaller…";
+            SetBusy(true, "正在卸载…\r\n正在移除扩展；如有安全软件弹窗，请先处理。");
+            _status.Text = "正在卸载扩展…";
 
             Task.Run(() =>
             {

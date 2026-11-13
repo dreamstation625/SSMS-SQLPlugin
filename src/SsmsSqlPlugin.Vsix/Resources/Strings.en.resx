@@ -176,6 +176,9 @@
   <data name="No active database connection; completion cache was not refreshed." xml:space="preserve">
     <value>No active database connection; completion cache was not refreshed.</value>
   </data>
+  <data name="SSMS built-in IntelliSense is off; completion is provided by SSMS-SQLPlugin." xml:space="preserve">
+    <value>SSMS built-in IntelliSense is off; completion is provided by SSMS-SQLPlugin.</value>
+  </data>
   <data name="Connected to {0}; metadata completion is unavailable in this host." xml:space="preserve">
     <value>Connected to {0}; metadata completion is unavailable in this host.</value>
   </data>
@@ -584,8 +587,44 @@
   <data name="Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved." xml:space="preserve">
     <value>Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved.</value>
   </data>
+  <data name="SSMS 20: table and column completion comes from the database selected in Object Explorer. Toggle built-in IntelliSense in Settings." xml:space="preserve">
+    <value>SSMS 20: table and column completion comes from the database selected in Object Explorer. Toggle built-in IntelliSense in Settings.</value>
+  </data>
+  <data name="SSMS-SQLPlugin — formatting, history and completion; select a database in Object Explorer for table completion." xml:space="preserve">
+    <value>SSMS-SQLPlugin — formatting, history and completion; select a database in Object Explorer for table completion.</value>
+  </data>
+  <data name="Formatting, completion, auto-save and history; switch built-in IntelliSense for SSMS 20" xml:space="preserve">
+    <value>Formatting, completion, auto-save and history; switch built-in IntelliSense for SSMS 20</value>
+  </data>
+  <data name="SSMS 20: select a database in Object Explorer, then refresh tables and columns" xml:space="preserve">
+    <value>SSMS 20: select a database in Object Explorer, then refresh tables and columns</value>
+  </data>
   <data name="Completion" xml:space="preserve">
     <value>Completion</value>
+  </data>
+  <data name="Completion Tip (SSMS 20)..." xml:space="preserve">
+    <value>Completion Tip (SSMS 20)...</value>
+  </data>
+  <data name="Completion Tip" xml:space="preserve">
+    <value>Completion Tip</value>
+  </data>
+  <data name="SSMS 20 completion:&#xD;&#xA;1. Select the target database in Object Explorer; tables and columns are loaded from it.&#xD;&#xA;2. Built-in IntelliSense can be switched in Settings &gt; Completion." xml:space="preserve">
+    <value>SSMS 20 completion:&#xD;&#xA;1. Select the target database in Object Explorer; tables and columns are loaded from it.&#xD;&#xA;2. Built-in IntelliSense can be switched in Settings &gt; Completion.</value>
+  </data>
+  <data name="Disable built-in IntelliSense (use plugin completion)" xml:space="preserve">
+    <value>Disable built-in IntelliSense (use plugin completion)</value>
+  </data>
+  <data name="SSMS 20 table metadata comes from the database selected in Object Explorer." xml:space="preserve">
+    <value>SSMS 20 table metadata comes from the database selected in Object Explorer.</value>
+  </data>
+  <data name="Completion setting saved. Restart SSMS for the change to take effect." xml:space="preserve">
+    <value>Completion setting saved. Restart SSMS for the change to take effect.</value>
+  </data>
+  <data name="SSMS 20: select a database in Object Explorer to load table metadata." xml:space="preserve">
+    <value>SSMS 20: select a database in Object Explorer to load table metadata.</value>
+  </data>
+  <data name="Completion ready from Object Explorer: {0} ({1} tables, {2} views)." xml:space="preserve">
+    <value>Completion ready from Object Explorer: {0} ({1} tables, {2} views).</value>
   </data>
   <data name="Completes tables, columns and types for the current database; press Tab to commit." xml:space="preserve">
     <value>Completes tables, columns and types for the current database; press Tab to commit.</value>

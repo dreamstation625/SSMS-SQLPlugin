@@ -40,6 +40,12 @@ jobs:
       - name: Complex SQL corpus (SSMS 21 / ScriptDom 170)
         run: dotnet run --project tools/FormatCli -c Debug21 -- --dir tools/FormatCli/Corpus
 
+      - name: Formatter regression (SSMS 20 / ScriptDom 160)
+        run: dotnet run --project tools/FormatCli -c Debug20 -- --quiet
+
+      - name: Complex SQL corpus (SSMS 20 / ScriptDom 160)
+        run: dotnet run --project tools/FormatCli -c Debug20 -- --dir tools/FormatCli/Corpus
+
       - name: Pack release files
         shell: pwsh
         run: |
@@ -47,6 +53,7 @@ jobs:
           Copy-Item src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin-Setup.exe release/
           Copy-Item src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.vsix release/
           Copy-Item src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS21.vsix release/
+          Copy-Item src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS20.vsix release/
           Copy-Item README.md release/
           Compress-Archive -Path release/* -DestinationPath "release/SSMS-SQLPlugin-${{ github.ref_name }}.zip" -Force
 
@@ -57,4 +64,5 @@ jobs:
             release/SSMS-SQLPlugin-Setup.exe
             release/SSMS-SQLPlugin.vsix
             release/SSMS-SQLPlugin.SSMS21.vsix
+            release/SSMS-SQLPlugin.SSMS20.vsix
             release/SSMS-SQLPlugin-${{ github.ref_name }}.zip

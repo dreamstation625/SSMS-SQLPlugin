@@ -17,6 +17,7 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <EmbeddedResource Include="Payload.V20.vsix" LogicalName="Payload.V20.vsix" Condition="Exists('Payload.V20.vsix')" />
     <EmbeddedResource Include="Payload.V21.vsix" LogicalName="Payload.V21.vsix" Condition="Exists('Payload.V21.vsix')" />
     <EmbeddedResource Include="Payload.V22.vsix" LogicalName="Payload.V22.vsix" Condition="Exists('Payload.V22.vsix')" />
   </ItemGroup>

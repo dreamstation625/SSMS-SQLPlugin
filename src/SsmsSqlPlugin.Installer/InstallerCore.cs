@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
@@ -28,6 +29,12 @@ namespace SsmsSqlPlugin.Installer
         public string PayloadFileName
         {
             get { return "SSMS-SQLPlugin.V" + Version + ".vsix"; }
+        }
+
+        /// <summary>SSMS 20 的 VSIXInstaller 不受理扩展包，走文件部署。</summary>
+        public bool UsesFileDeployment
+        {
+            get { return Version == "20"; }
         }
     }
 
@@ -67,21 +74,24 @@ namespace SsmsSqlPlugin.Installer
             {
                 if (!Directory.Exists(root)) continue;
 
-                foreach (string version in new[] { "21", "22" })
+                foreach (string version in new[] { "20", "21", "22" })
                 {
                     if (products.Any(p => p.Version == version)) continue;
 
                     string dir = Path.Combine(root,
                         "Microsoft SQL Server Management Studio " + version);
-                    string vsixInstaller = Path.Combine(dir, "Release", "Common7", "IDE",
-                        "VSIXInstaller.exe");
-                    if (!File.Exists(vsixInstaller)) continue;
+                    string marker = version == "20"
+                        ? Path.Combine(dir, "Common7", "IDE", "Ssms.exe")
+                        : Path.Combine(dir, "Release", "Common7", "IDE", "VSIXInstaller.exe");
+                    if (!File.Exists(marker)) continue;
 
                     products.Add(new SsmsProduct
                     {
                         Version = version,
                         InstallDirectory = dir,
-                        VsixInstaller = vsixInstaller,
+                        VsixInstaller = version == "20"
+                            ? null
+                            : Path.Combine(dir, "Release", "Common7", "IDE", "VSIXInstaller.exe"),
                     });
                 }
             }
@@ -116,6 +126,15 @@ namespace SsmsSqlPlugin.Installer
 
         public static string FindInstalledDirectory(SsmsProduct product)
         {
+            if (product == null) return null;
+
+            if (product.UsesFileDeployment)
+            {
+                string dir = Path.Combine(product.InstallDirectory,
+                    "Common7", "IDE", "Extensions", "SSMS-SQLPlugin");
+                return File.Exists(Path.Combine(dir, PkgdefName)) ? dir : null;
+            }
+
             foreach (string root in FindExtensionRoots(product))
             {
                 try
@@ -187,7 +206,7 @@ namespace SsmsSqlPlugin.Installer
             List<SsmsProduct> products = FindProducts();
             if (products.Count == 0)
             {
-                message = "未找到已安装的 SSMS 21 或 SSMS 22。\r\n" +
+                message = "未找到已安装的 SSMS 20、21 或 22。\r\n" +
                           "请先安装 SSMS，或重新修复安装后重试。";
                 return false;
             }
@@ -211,6 +230,15 @@ namespace SsmsSqlPlugin.Installer
                                        (uninstallMessage ?? "未知错误"));
                             continue;
                         }
+                    }
+
+                    if (product.UsesFileDeployment)
+                    {
+                        string fileInstalled = InstallFileDeployment(product, out temp);
+                        RefreshExtensionCache(product);
+                        succeeded.Add(product.DisplayName + "：" + fileInstalled);
+                        if (firstInstalled == null) firstInstalled = fileInstalled;
+                        continue;
                     }
 
                     string vsix = ExtractPayloadVsix(product, out temp);
@@ -321,6 +349,27 @@ namespace SsmsSqlPlugin.Installer
 
         private static bool RunUninstall(SsmsProduct product, out string message)
         {
+            if (product.UsesFileDeployment)
+            {
+                string directory = FindInstalledDirectory(product);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    try
+                    {
+                        Directory.Delete(directory, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        message = "删除扩展目录失败：" + ex.Message;
+                        return false;
+                    }
+                }
+
+                RefreshExtensionCache(product);
+                message = null;
+                return true;
+            }
+
             int code = RunVsixInstaller(product.VsixInstaller,
                 "/quiet /uninstall:" + ExtensionId);
             if (code != 0)
@@ -403,6 +452,52 @@ namespace SsmsSqlPlugin.Installer
         /// </summary>
         private static void RefreshExtensionCache(SsmsProduct product)
         {
+            if (product.Version == "20")
+            {
+                string baseDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Microsoft", "SQL Server Management Studio", "20.0_IsoShell");
+                string extensions = Path.Combine(baseDir, "Extensions");
+
+                if (Directory.Exists(extensions))
+                {
+                    try
+                    {
+                        string marker = Path.Combine(extensions, "extensions.configurationchanged");
+                        if (!File.Exists(marker)) File.Create(marker).Dispose();
+                        File.SetLastWriteTimeUtc(marker, DateTime.UtcNow);
+                    }
+                    catch { }
+
+                    foreach (string pattern in new[]
+                             {
+                                 "extensions.*.cache",
+                                 "extensionSdks.*.cache",
+                                 "ExtensionMetadata*.sqlite",
+                                 "ExtensionMetadata*.mpack",
+                                 "*.mpack",
+                             })
+                    {
+                        try
+                        {
+                            foreach (string file in Directory.GetFiles(extensions, pattern))
+                            {
+                                try { File.Delete(file); } catch { }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                string componentCache = Path.Combine(baseDir, "ComponentModelCache");
+                if (Directory.Exists(componentCache))
+                {
+                    try { Directory.Delete(componentCache, true); } catch { }
+                }
+
+                return;
+            }
+
             foreach (string root in FindExtensionRoots(product))
             {
                 try
@@ -436,6 +531,48 @@ namespace SsmsSqlPlugin.Installer
         {
             return ExtractPayloadVsix(product.PayloadResource, product.PayloadFileName,
                 out tempDir);
+        }
+
+        /// <summary>SSMS 20：把 VSIX 解压成普通文件放到 IDE\Extensions。</summary>
+        private static string InstallFileDeployment(SsmsProduct product, out string tempDir)
+        {
+            string vsix = ExtractPayloadVsix(product, out tempDir);
+            string target = Path.Combine(product.InstallDirectory,
+                "Common7", "IDE", "Extensions", "SSMS-SQLPlugin");
+
+            if (Directory.Exists(target))
+                Directory.Delete(target, true);
+
+            string extracted = Path.Combine(tempDir, "payload");
+            Directory.CreateDirectory(extracted);
+            ZipFile.ExtractToDirectory(vsix, extracted);
+            CopyDirectory(extracted, target);
+
+            if (!File.Exists(Path.Combine(target, PkgdefName)))
+                throw new InvalidOperationException("文件部署后缺少 " + PkgdefName);
+
+            return target;
+        }
+
+        private static void CopyDirectory(string source, string target)
+        {
+            Directory.CreateDirectory(target);
+
+            foreach (string dir in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
+            {
+                string relative = dir.Substring(source.Length)
+                    .TrimStart(Path.DirectorySeparatorChar);
+                Directory.CreateDirectory(Path.Combine(target, relative));
+            }
+
+            foreach (string file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+            {
+                string relative = file.Substring(source.Length)
+                    .TrimStart(Path.DirectorySeparatorChar);
+                string destination = Path.Combine(target, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination));
+                File.Copy(file, destination, true);
+            }
         }
 
         private static string ExtractPayloadVsix(string resource, string fileName,

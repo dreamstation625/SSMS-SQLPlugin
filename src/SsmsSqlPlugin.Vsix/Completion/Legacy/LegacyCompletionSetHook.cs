@@ -12,6 +12,7 @@ using SsmsSqlPlugin.Core.Completion;
 using SsmsSqlPlugin.Core.Metadata;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Completion.Legacy
 {
@@ -23,6 +24,7 @@ namespace SsmsSqlPlugin.Completion.Legacy
     {
         private static readonly HashSet<int> Attached = new HashSet<int>();
         private static readonly SqlCompletionEngine Engine = new SqlCompletionEngine();
+        private static bool _metadataHintShown;
 
         public static void Attach(IVsTextView view)
         {
@@ -131,6 +133,15 @@ namespace SsmsSqlPlugin.Completion.Legacy
 
                     if (result.Items.Count == 0)
                     {
+                        if (!_metadataHintShown &&
+                            metadata.Objects.Count == 0 &&
+                            string.Equals(result.Slot, "table", StringComparison.Ordinal))
+                        {
+                            _metadataHintShown = true;
+                            Toast.Show(Loc.T(
+                                "SSMS 20: select a database in Object Explorer to load table metadata."), true);
+                        }
+
                         // 不能用 UpdateCompletionStatus(null, 0) 强制关闭：
                         // SSMS 20 的内建 CompletionSession 之后还会收到文本变更并 Match，
                         // 已 Dismiss 的会话会抛 "Cannot Match. The session is dismissed."。

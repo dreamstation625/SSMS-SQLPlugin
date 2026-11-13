@@ -42,6 +42,20 @@ namespace SsmsSqlPlugin.Completion
         private PropertyInfo _connectionStateIsConnected;
         private PropertyInfo _connectionStateConnection;
 
+        private Type _objectExplorerServiceType;
+        private Type _nodeContextType;
+        private PropertyInfo _nodeContextConnection;
+        private PropertyInfo _nodeContextUrnPath;
+        private PropertyInfo _nodeInformationItem;
+        private PropertyInfo _nodeInformationName;
+        private DateTime _nextObjectExplorerProbeUtc;
+        private bool _objectExplorerMissingLogged;
+        private bool _objectExplorerNoSelectionLogged;
+        private bool _objectExplorerMethodsLogged;
+        private bool _objectExplorerNodeTypeLogged;
+        private bool _objectExplorerNullConnectionLogged;
+        private string _lastObjectExplorerSignature;
+
         private string _lastSignature;
         private string _lastMoniker;
         private string _lastTitleDatabase;
@@ -105,6 +119,7 @@ namespace SsmsSqlPlugin.Completion
             if (_provider == null) return;
             if (!EnsureServiceTypes()) return;
 
+            object connectionObject = null;
             object service = ResolveService();
             if (service == null)
             {
@@ -115,42 +130,51 @@ namespace SsmsSqlPlugin.Completion
                     Log.Warn("[补全] 连接服务未注册: " + (serviceType != null ? serviceType.FullName : "(unknown)"));
                 }
 
-                // SSMS 20 读不到编辑器连接；退化为窗口标题里的数据库名，至少给切库提示。
+                // SSMS 20：查询窗口不暴露连接，退而使用对象资源管理器当前选中的节点。
+                var objectExplorerDescriptor = TryGetObjectExplorerDescriptor();
+                if (objectExplorerDescriptor != null)
+                {
+                    Notify(objectExplorerDescriptor);
+                    return;
+                }
+
+                // 仍读不到：至少用窗口标题里的数据库名给切库提示。
                 TryNotifyTitleDatabase();
                 return;
             }
-
-            object connectionObject = null;
-            try
+            else
             {
-                if (_connectionStateType != null && _connectionStateType.IsInstanceOfType(service))
+                try
                 {
-                    object connectedValue = _connectionStateIsConnected != null
-                        ? _connectionStateIsConnected.GetValue(service, null)
-                        : null;
-                    if (connectedValue is bool connected && !connected)
+                    if (_connectionStateType != null && _connectionStateType.IsInstanceOfType(service))
+                    {
+                        object connectedValue = _connectionStateIsConnected != null
+                            ? _connectionStateIsConnected.GetValue(service, null)
+                            : null;
+                        if (connectedValue is bool connected && !connected)
+                        {
+                            Notify(null);
+                            return;
+                        }
+
+                        connectionObject = _connectionStateConnection.GetValue(service, null);
+                    }
+                    else if (_getCurrentConnection != null)
+                    {
+                        connectionObject = _getCurrentConnection.Invoke(service, null);
+                    }
+                    else
                     {
                         Notify(null);
                         return;
                     }
-
-                    connectionObject = _connectionStateConnection.GetValue(service, null);
                 }
-                else if (_getCurrentConnection != null)
+                catch (Exception ex)
                 {
-                    connectionObject = _getCurrentConnection.Invoke(service, null);
-                }
-                else
-                {
+                    Log.Warn("[补全] GetCurrentConnection 失败: " + Describe(ex));
                     Notify(null);
                     return;
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn("[补全] GetCurrentConnection 失败: " + Describe(ex));
-                Notify(null);
-                return;
             }
 
             var connection = connectionObject as IDbConnection;
@@ -283,6 +307,335 @@ namespace SsmsSqlPlugin.Completion
             catch (Exception ex) { Log.Warn("[补全] 通知标题数据库失败: " + ex.Message); }
         }
 
+        private ConnectionDescriptor TryGetObjectExplorerDescriptor()
+        {
+            if (_objectExplorerServiceType == null)
+                return null;
+
+            if (DateTime.UtcNow < _nextObjectExplorerProbeUtc) return null;
+            _nextObjectExplorerProbeUtc = DateTime.UtcNow.AddSeconds(5);
+
+            object service = ResolveServiceByType(_objectExplorerServiceType);
+            if (service == null)
+            {
+                if (!_objectExplorerMissingLogged)
+                {
+                    _objectExplorerMissingLogged = true;
+                    Log.Warn("[补全] Object Explorer 服务未注册: " + _objectExplorerServiceType.FullName);
+                }
+                return null;
+            }
+
+            try
+            {
+                var nodes = GetSelectedObjectExplorerNodes(service);
+                if (nodes == null || nodes.Length == 0)
+                {
+                    if (!_objectExplorerNoSelectionLogged)
+                    {
+                        _objectExplorerNoSelectionLogged = true;
+                        Log.Info("[补全] Object Explorer 未选中节点");
+                    }
+                    return null;
+                }
+
+                _objectExplorerNoSelectionLogged = false;
+
+                foreach (object node in nodes)
+                {
+                    if (node == null) continue;
+
+                    if (!_objectExplorerNodeTypeLogged)
+                    {
+                        _objectExplorerNodeTypeLogged = true;
+                        int itemIndexParams = _nodeInformationItem != null
+                            ? _nodeInformationItem.GetIndexParameters().Length
+                            : -1;
+                        Log.Info("[补全] OE 节点类型: " + node.GetType().FullName +
+                                 " 节点是INodeContext=" +
+                                 (_nodeContextType != null && _nodeContextType.IsInstanceOfType(node)) +
+                                 " Item索引参数=" + itemIndexParams);
+                    }
+
+                    object item = node;
+                    if (_nodeContextType == null || !_nodeContextType.IsInstanceOfType(item))
+                    {
+                        // INodeInformation.Item 可能是索引器；只有无参属性才直接取。
+                        if (_nodeInformationItem == null ||
+                            _nodeInformationItem.GetIndexParameters().Length != 0)
+                            continue;
+
+                        item = _nodeInformationItem.GetValue(node, null);
+                    }
+
+                    if (item == null) continue;
+
+                    if (_nodeContextType != null && !_nodeContextType.IsInstanceOfType(item))
+                        continue;
+
+                    object connectionObject = _nodeContextConnection.GetValue(item, null);
+                    if (connectionObject == null)
+                    {
+                        if (!_objectExplorerNullConnectionLogged)
+                        {
+                            _objectExplorerNullConnectionLogged = true;
+                            string nodeUrn = _nodeContextUrnPath != null
+                                ? _nodeContextUrnPath.GetValue(item, null) as string
+                                : null;
+                            Log.Info("[补全] OE 节点连接为空: urn=" + (nodeUrn ?? "(null)"));
+                        }
+                        continue;
+                    }
+
+                    string urn = _nodeContextUrnPath != null
+                        ? _nodeContextUrnPath.GetValue(item, null) as string
+                        : null;
+
+                    string nodeName = null;
+                    try { nodeName = _nodeInformationName?.GetValue(node, null) as string; } catch { }
+
+                    // 节点可能直接给 IDbConnection，也可能是 SqlConnectionInfoWithConnection 包装。
+                    var connection = connectionObject as IDbConnection;
+                    bool created = false;
+
+                    if (connection == null)
+                    {
+                        var factory = connectionObject.GetType().GetMethod(
+                            "CreateConnectionObject", Type.EmptyTypes);
+                        if (factory == null)
+                        {
+                            if (!_objectExplorerNullConnectionLogged)
+                            {
+                                _objectExplorerNullConnectionLogged = true;
+                                Log.Info("[补全] OE 节点无可用连接: urn=" + (urn ?? "(null)") +
+                                         " 对象=" + connectionObject.GetType().FullName);
+                            }
+                            continue;
+                        }
+
+                        try
+                        {
+                            connection = factory.Invoke(connectionObject, null) as IDbConnection;
+                            created = connection != null;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warn("[补全] 创建 OE 连接失败: " + Describe(ex));
+                            continue;
+                        }
+                    }
+
+                    if (connection == null) continue;
+
+                    string connectionString = null;
+                    try { connectionString = connection.ConnectionString; } catch { }
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        Log.Warn("[补全] OE 连接串为空: urn=" + (urn ?? "(null)"));
+                        if (created) { try { connection.Dispose(); } catch { } }
+                        continue;
+                    }
+
+                    // 连接信息对象通常还持有明文密码；连接串缺 Password 时补进去。
+                    string password = GetStringProperty(connectionObject, "Password");
+                    if (!string.IsNullOrEmpty(password) &&
+                        connectionString.IndexOf("Password=", StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        try
+                        {
+                            var builder = new System.Data.Common.DbConnectionStringBuilder();
+                            builder.ConnectionString = connectionString;
+                            builder["Password"] = password;
+                            connectionString = builder.ConnectionString;
+                            Log.Info("[补全] OE 连接串已补全密码字段");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warn("[补全] 补全 OE 密码失败: " + ex.Message);
+                        }
+                    }
+
+                    string server = null, database = null;
+                    try
+                    {
+                        var dbConnection = connection as System.Data.Common.DbConnection;
+                        if (dbConnection != null)
+                        {
+                            server = dbConnection.DataSource;
+                            database = dbConnection.Database;
+                        }
+                        else
+                        {
+                            database = connection.Database;
+                            server = GetStringProperty(connectionObject, "ServerName");
+                        }
+                    }
+                    catch { }
+
+                    if (string.IsNullOrEmpty(server))
+                        server = GetStringProperty(connectionObject, "ServerName");
+                    if (string.IsNullOrEmpty(database))
+                        database = GetStringProperty(connectionObject, "DatabaseName");
+
+                    // 数据库节点的 ConnectionInfo 可能仍指向 master，用节点名覆盖；
+                    // 同时把库写进连接串，否则元数据还是查 master。
+                    bool isDatabaseNode = urn != null &&
+                        urn.StartsWith("Server/Database", StringComparison.OrdinalIgnoreCase) &&
+                        urn.IndexOf("DatabasesFolder", StringComparison.OrdinalIgnoreCase) < 0;
+
+                    if (isDatabaseNode && !string.IsNullOrEmpty(nodeName))
+                    {
+                        database = nodeName;
+                    }
+
+                    if (!string.IsNullOrEmpty(database))
+                    {
+                        try
+                        {
+                            var builder = new System.Data.Common.DbConnectionStringBuilder();
+                            builder.ConnectionString = connectionString;
+                            builder["Initial Catalog"] = database;
+                            connectionString = builder.ConnectionString;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warn("[补全] 设置 OE 数据库失败: " + ex.Message);
+                        }
+                    }
+
+                    bool hasPassword = connectionString.IndexOf(
+                        "Password=", StringComparison.OrdinalIgnoreCase) >= 0;
+                    string signature = (urn ?? string.Empty) + "\u0001" +
+                                       (server ?? string.Empty) + "\u0001" +
+                                       (database ?? string.Empty) + "\u0001" + hasPassword;
+
+                    if (!string.Equals(signature, _lastObjectExplorerSignature, StringComparison.Ordinal))
+                    {
+                        _lastObjectExplorerSignature = signature;
+                        Log.Info("[补全] OE 选中节点: " + (urn ?? "(no urn)") +
+                                 " 名称=" + (nodeName ?? "?") +
+                                 " 服务器=" + (server ?? "?") +
+                                 " 库=" + (database ?? "?") +
+                                 " 有密码=" + hasPassword);
+                    }
+
+                    var descriptor = new ConnectionDescriptor
+                    {
+                        Server = server,
+                        Database = database,
+                        ConnectionString = connectionString,
+                        ConnectionType = connection.GetType(),
+                        EditorMoniker = null,
+                    };
+
+                    // CreateConnectionObject 创建的是临时对象，元数据加载器会用连接串另开连接。
+                    if (created)
+                    {
+                        try { connection.Dispose(); } catch { }
+                    }
+
+                    return descriptor;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[补全] 读取 Object Explorer 选中节点失败: " + Describe(ex));
+            }
+
+            return null;
+        }
+
+        private Array GetSelectedObjectExplorerNodes(object service)
+        {
+            var methods = service.GetType().GetMethods(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            foreach (var method in methods)
+            {
+                if (method.Name != "GetSelectedNodes" &&
+                    !method.Name.EndsWith(".GetSelectedNodes", StringComparison.Ordinal))
+                    continue;
+
+                var parameters = method.GetParameters();
+                if (!_objectExplorerMethodsLogged)
+                {
+                    _objectExplorerMethodsLogged = true;
+                    var signature = new StringBuilder();
+                    foreach (var parameter in parameters)
+                    {
+                        signature.Append(parameter.ParameterType.Name)
+                                 .Append(' ')
+                                 .Append(parameter.Name)
+                                 .Append("; ");
+                    }
+
+                    Log.Info("[补全] OE GetSelectedNodes 签名: " + method.DeclaringType?.FullName +
+                             "." + method.Name + " 参数=" + parameters.Length + " " + signature);
+                }
+
+                try
+                {
+                    if (parameters.Length == 2)
+                    {
+                        object[] args = { 0, null };
+                        method.Invoke(service, args);
+                        return args[1] as Array;
+                    }
+
+                    if (parameters.Length == 0)
+                    {
+                        return method.Invoke(service, null) as Array;
+                    }
+
+                    if (parameters.Length == 1)
+                    {
+                        object[] args = { null };
+                        method.Invoke(service, args);
+                        return args[0] as Array;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("[补全] GetSelectedNodes(" + parameters.Length + " 参数) 调用失败: " +
+                             Describe(ex));
+                }
+            }
+
+            return null;
+        }
+
+        private object ResolveServiceByType(Type type)
+        {
+            if (type == null) return null;
+
+            object service = null;
+            try { service = _provider.GetService(type); } catch { }
+            if (service != null) return service;
+
+            try { service = Package.GetGlobalService(type); } catch { }
+            if (service != null) return service;
+
+            try { service = ServiceProvider.GlobalProvider.GetService(type); } catch { }
+            return service;
+        }
+
+        private static string GetStringProperty(object instance, string propertyName)
+        {
+            if (instance == null) return null;
+
+            try
+            {
+                var property = instance.GetType().GetProperty(
+                    propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null || property.GetIndexParameters().Length != 0) return null;
+                return property.GetValue(instance, null) as string;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static string ParseDatabaseFromTitle(string title)
         {
             const string suffix = " - Microsoft SQL Server Management Studio";
@@ -397,6 +750,26 @@ namespace SsmsSqlPlugin.Completion
                 else if (type.Name == "ISqlScriptWindowWithConnection")
                 {
                     _editorWindowConnectionType = type;
+                }
+                else if (type.Name == "IObjectExplorerService" && _objectExplorerServiceType == null)
+                {
+                    _objectExplorerServiceType = type;
+                    Log.Info("[补全] 找到 Object Explorer 服务接口: " + type.FullName);
+                }
+                else if (type.Name == "INodeContext" && _nodeContextType == null)
+                {
+                    var connectionProperty = type.GetProperty("Connection");
+                    if (connectionProperty != null)
+                    {
+                        _nodeContextType = type;
+                        _nodeContextConnection = connectionProperty;
+                        _nodeContextUrnPath = type.GetProperty("UrnPath");
+                    }
+                }
+                else if (type.Name == "INodeInformation" && _nodeInformationItem == null)
+                {
+                    _nodeInformationItem = type.GetProperty("Item");
+                    _nodeInformationName = type.GetProperty("Name");
                 }
             }
 

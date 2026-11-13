@@ -37,6 +37,9 @@ namespace SsmsSqlPlugin.Menus
         private readonly Action _openHistory;
         private readonly Action _openSettings;
         private readonly Action _refreshCompletion;
+#if SSMS20
+        private readonly Action _completionTip;
+#endif
         private readonly Action _openLog;
         private readonly Action _checkUpdates;
         private readonly Action _about;
@@ -47,6 +50,9 @@ namespace SsmsSqlPlugin.Menus
             Action formatSelection,
             Action openHistory,
             Action openSettings,
+#if SSMS20
+            Action completionTip,
+#endif
             Action refreshCompletion,
             Action openLog,
             Action checkUpdates,
@@ -57,6 +63,9 @@ namespace SsmsSqlPlugin.Menus
             _formatSelection = formatSelection;
             _openHistory = openHistory;
             _openSettings = openSettings;
+#if SSMS20
+            _completionTip = completionTip;
+#endif
             _refreshCompletion = refreshCompletion;
             _openLog = openLog;
             _checkUpdates = checkUpdates;
@@ -116,7 +125,16 @@ namespace SsmsSqlPlugin.Menus
 
                 popup.Caption = MenuCaption;
                 popup.Tag = TagPrefix + "Top";
+#if SSMS20
+                try
+                {
+                    popup.TooltipText = Loc.T(
+                        "SSMS-SQLPlugin — formatting, history and completion; select a database in Object Explorer for table completion.");
+                }
+                catch { }
+#else
                 try { popup.TooltipText = Loc.T("SSMS-SQLPlugin — SQL formatting, history and completion"); } catch { }
+#endif
                 popup.Visible = true;
 
                 Log.Info("一级菜单已创建: " + popup.Caption);
@@ -206,9 +224,15 @@ namespace SsmsSqlPlugin.Menus
                 new MenuEntry(Loc.T("SQL History..."),
                               Loc.T("Search and filter execution history; double-click to reopen in a query window"),
                               _openHistory, TagPrefix + "History"),
+#if SSMS20
+                new MenuEntry(Loc.T("Settings..."),
+                              Loc.T("Formatting, completion, auto-save and history; switch built-in IntelliSense for SSMS 20"),
+                              _openSettings, TagPrefix + "Settings"),
+#else
                 new MenuEntry(Loc.T("Settings..."),
                               Loc.T("Formatting style, auto-save and history data"),
                               _openSettings, TagPrefix + "Settings"),
+#endif
                 new MenuEntry(Loc.T("Language"), Loc.T("Language"),
                               null, TagPrefix + "Language")
                     .WithChildren(
@@ -225,9 +249,21 @@ namespace SsmsSqlPlugin.Menus
                                       TagPrefix + "LanguageEn")
                             .WithCheck(() => IsLanguage("en"))),
                 MenuEntry.Separator(),
+#if SSMS20
+                new MenuEntry(Loc.T("Completion Tip (SSMS 20)..."),
+                              Loc.T("Select a database in Object Explorer for table and column completion; built-in IntelliSense can be switched in Settings"),
+                              _completionTip, TagPrefix + "CompletionTip"),
+                MenuEntry.Separator(),
+#endif
+#if SSMS20
+                new MenuEntry(Loc.T("Refresh Completion Cache"),
+                              Loc.T("SSMS 20: select a database in Object Explorer, then refresh tables and columns"),
+                              _refreshCompletion, TagPrefix + "RefreshCompletion"),
+#else
                 new MenuEntry(Loc.T("Refresh Completion Cache"),
                               Loc.T("Reload tables and columns for the current database"),
                               _refreshCompletion, TagPrefix + "RefreshCompletion"),
+#endif
                 new MenuEntry(Loc.T("Open Log"),
                               Loc.T("Open the plugin log file for troubleshooting"),
                               _openLog, TagPrefix + "Log"),

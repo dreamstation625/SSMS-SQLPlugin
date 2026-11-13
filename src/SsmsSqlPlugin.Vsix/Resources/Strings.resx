@@ -181,6 +181,9 @@
   <data name="No active database connection; completion cache was not refreshed." xml:space="preserve">
     <value>当前没有数据库连接，无法刷新补全缓存。</value>
   </data>
+  <data name="SSMS built-in IntelliSense is off; completion is provided by SSMS-SQLPlugin." xml:space="preserve">
+    <value>已关闭 SSMS 内建 IntelliSense，补全由 SSMS-SQLPlugin 提供。</value>
+  </data>
   <data name="Connected to {0}; metadata completion is unavailable in this host." xml:space="preserve">
     <value>已连接 {0}；当前宿主不支持元数据补全。</value>
   </data>
@@ -595,8 +598,44 @@
   <data name="Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved." xml:space="preserve">
     <value>Ctrl+K, Ctrl+D 全文；Ctrl+K, Ctrl+F 选区。保留注释和空行。</value>
   </data>
+  <data name="SSMS 20: table and column completion comes from the database selected in Object Explorer. Toggle built-in IntelliSense in Settings." xml:space="preserve">
+    <value>SSMS 20：表/列补全来自对象资源管理器选中的数据库；内建 IntelliSense 可在「设置」中关闭或恢复。</value>
+  </data>
+  <data name="SSMS-SQLPlugin — formatting, history and completion; select a database in Object Explorer for table completion." xml:space="preserve">
+    <value>SSMS-SQLPlugin — 格式化、历史与补全；SSMS 20 请先在对象资源管理器选中数据库。</value>
+  </data>
+  <data name="Formatting, completion, auto-save and history; switch built-in IntelliSense for SSMS 20" xml:space="preserve">
+    <value>格式化、补全、自动记录与历史；SSMS 20 可切换内建 IntelliSense</value>
+  </data>
+  <data name="SSMS 20: select a database in Object Explorer, then refresh tables and columns" xml:space="preserve">
+    <value>SSMS 20：先在对象资源管理器选中数据库，再刷新表和列</value>
+  </data>
   <data name="Completion" xml:space="preserve">
     <value>补全</value>
+  </data>
+  <data name="Completion Tip (SSMS 20)..." xml:space="preserve">
+    <value>补全提示（SSMS 20）...</value>
+  </data>
+  <data name="Completion Tip" xml:space="preserve">
+    <value>补全提示</value>
+  </data>
+  <data name="SSMS 20 completion:&#xD;&#xA;1. Select the target database in Object Explorer; tables and columns are loaded from it.&#xD;&#xA;2. Built-in IntelliSense can be switched in Settings &gt; Completion." xml:space="preserve">
+    <value>SSMS 20 补全：&#xD;&#xA;1. 在对象资源管理器选中目标数据库，表和列补全从该库加载。&#xD;&#xA;2. 内建 IntelliSense 可在「设置 → 补全」中关闭或恢复。</value>
+  </data>
+  <data name="Disable built-in IntelliSense (use plugin completion)" xml:space="preserve">
+    <value>关闭内建 IntelliSense（使用插件补全）</value>
+  </data>
+  <data name="SSMS 20 table metadata comes from the database selected in Object Explorer." xml:space="preserve">
+    <value>SSMS 20 的表补全元数据来自对象资源管理器选中的数据库。</value>
+  </data>
+  <data name="Completion setting saved. Restart SSMS for the change to take effect." xml:space="preserve">
+    <value>补全设置已保存，重启 SSMS 后生效。</value>
+  </data>
+  <data name="SSMS 20: select a database in Object Explorer to load table metadata." xml:space="preserve">
+    <value>SSMS 20：请先在对象资源管理器选中数据库，才能加载表和列补全。</value>
+  </data>
+  <data name="Completion ready from Object Explorer: {0} ({1} tables, {2} views)." xml:space="preserve">
+    <value>补全已就绪（来源：对象资源管理器 {0}）：{1} 张表 / {2} 个视图。</value>
   </data>
   <data name="Completes tables, columns and types for the current database; press Tab to commit." xml:space="preserve">
     <value>按当前库补全表、字段、类型；Tab 提交。</value>

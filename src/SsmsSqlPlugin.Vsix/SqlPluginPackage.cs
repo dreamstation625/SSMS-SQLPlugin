@@ -58,6 +58,7 @@ namespace SsmsSqlPlugin
         private volatile bool _manualRefreshPending;
         private volatile bool _databaseSwitchPending;
         private volatile string _pendingDatabase;
+        private volatile string _lastCompletionDatabase;
 
         /// <summary>已经装过过滤器的视图（用对象身份哈希去重）。</summary>
         private readonly System.Collections.Generic.HashSet<int> _filteredViews
@@ -279,6 +280,26 @@ namespace SsmsSqlPlugin
                 Log.Error("取 DTE 失败", ex);
             }
 
+#if SSMS20
+            // SSMS 20 的内建 IntelliSense 会覆盖插件补全，按设置关闭/恢复它。
+            try
+            {
+                if (dte != null)
+                {
+                    bool disable = FormatOptionsStore.Current.DisableBuiltInIntelliSense;
+                    if (BuiltInIntelliSense.Apply(dte, disable) && disable)
+                    {
+                        Toast.Show(Loc.T(
+                            "SSMS built-in IntelliSense is off; completion is provided by SSMS-SQLPlugin."));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[补全] 配置内建 IntelliSense 失败: " + ex.Message);
+            }
+#endif
+
             // ① 顶部菜单（一级 + 二级弹层）—— 用户明确要求的入口
             if (dte != null)
             {
@@ -289,6 +310,9 @@ namespace SsmsSqlPlugin
                         FormatSelectionActiveEditor,
                         OpenHistory,
                         OpenSettings,
+#if SSMS20
+                        ShowCompletionTip,
+#endif
                         RefreshCompletionCache,
                         OpenLogFile,
                         AboutWindow.OpenRepository,
@@ -726,6 +750,22 @@ namespace SsmsSqlPlugin
             }
         }
 
+        private void ShowCompletionTip()
+        {
+            try
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    Loc.T("SSMS 20 completion:\r\n1. Select the target database in Object Explorer; tables and columns are loaded from it.\r\n2. Built-in IntelliSense can be switched in Settings > Completion."),
+                    Loc.T("Completion Tip"),
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("显示补全提示失败: " + ex.Message);
+            }
+        }
+
         private void RefreshCompletionCache()
         {
             try
@@ -787,6 +827,11 @@ namespace SsmsSqlPlugin
             _manualRefreshPending = false;
             _databaseSwitchPending = false;
 
+            bool newDatabase = !string.IsNullOrEmpty(snapshot.Database) &&
+                               !string.Equals(snapshot.Database, _lastCompletionDatabase,
+                                   StringComparison.OrdinalIgnoreCase);
+            _lastCompletionDatabase = snapshot.Database;
+
             if (!string.IsNullOrEmpty(error))
             {
                 if (manual || switched)
@@ -800,8 +845,23 @@ namespace SsmsSqlPlugin
             }
             else if (switched)
             {
+#if SSMS20
+                Toast.Show(Loc.F("Completion ready from Object Explorer: {0} ({1} tables, {2} views).",
+                    _pendingDatabase ?? snapshot.Database, tables, views));
+#else
                 Toast.Show(Loc.F("Completion ready for {0}: {1} tables, {2} views.",
                     _pendingDatabase ?? snapshot.Database, tables, views));
+#endif
+            }
+            else if (newDatabase)
+            {
+#if SSMS20
+                Toast.Show(Loc.F("Completion ready from Object Explorer: {0} ({1} tables, {2} views).",
+                    snapshot.Database, tables, views));
+#else
+                Toast.Show(Loc.F("Completion ready for {0}: {1} tables, {2} views.",
+                    snapshot.Database, tables, views));
+#endif
             }
         }
 

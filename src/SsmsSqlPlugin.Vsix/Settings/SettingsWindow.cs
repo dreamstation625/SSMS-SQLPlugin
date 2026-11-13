@@ -27,12 +27,19 @@ namespace SsmsSqlPlugin.Settings
         private readonly ComboBox _autoInterval;
         private readonly ComboBox _language;
         private readonly Label _autoHint;
+#if SSMS20
+        private readonly ToggleSwitch _disableBuiltIn;
+#endif
 
         private SettingsWindow()
         {
             Text = Loc.T("SSMS-SQLPlugin Settings");
             StartPosition = FormStartPosition.CenterScreen;
+#if SSMS20
+            ClientSize = new Size(660, 832);
+#else
             ClientSize = new Size(660, 720);
+#endif
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -47,15 +54,29 @@ namespace SsmsSqlPlugin.Settings
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
+#if SSMS20
+                RowCount = 6,
+#else
                 RowCount = 5,
+#endif
                 BackColor = HistoryTheme.Background,
                 Padding = Padding.Empty,
             };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 266));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 202));
+#if SSMS20
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
+#endif
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 102));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            int historyRow = 3;
+            int footerRow = 4;
+#if SSMS20
+            historyRow = 4;
+            footerRow = 5;
+#endif
 
             // ── 标题 ──
             var header = new TableLayoutPanel
@@ -251,6 +272,51 @@ namespace SsmsSqlPlugin.Settings
             autoCard.Controls.Add(auto);
             root.Controls.Add(autoCard, 0, 2);
 
+#if SSMS20
+            // ── 补全（仅 SSMS 20）──
+            var completionCard = new RoundedPanel
+            {
+                Dock = DockStyle.Fill,
+                Radius = 10,
+                FillColor = HistoryTheme.Card,
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(18, 14, 18, 12),
+                Margin = new Padding(0, 0, 0, 12),
+            };
+
+            var completion = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
+            };
+            completion.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            completion.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            completion.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            completion.Controls.Add(CardTitle(Loc.T("Completion")), 0, 0);
+            _disableBuiltIn = MakeToggle(
+                Loc.T("Disable built-in IntelliSense (use plugin completion)"));
+            _disableBuiltIn.BackColor = HistoryTheme.Card;
+            completion.Controls.Add(_disableBuiltIn, 0, 1);
+
+            var completionHint = new Label
+            {
+                Text = Loc.T("SSMS 20 table metadata comes from the database selected in Object Explorer."),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextMuted,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
+            };
+            completion.Controls.Add(completionHint, 0, 2);
+            completionCard.Controls.Add(completion);
+            root.Controls.Add(completionCard, 0, 3);
+#endif
+
             // ── 历史数据 ──
             var historyCard = new RoundedPanel
             {
@@ -304,7 +370,7 @@ namespace SsmsSqlPlugin.Settings
             history.Controls.Add(openDir, 1, 1);
 
             historyCard.Controls.Add(history);
-            root.Controls.Add(historyCard, 0, 3);
+            root.Controls.Add(historyCard, 0, historyRow);
 
             // ── 底部按钮 ──
             var footer = new FlowLayoutPanel
@@ -339,7 +405,7 @@ namespace SsmsSqlPlugin.Settings
 
             footer.Controls.Add(save);
             footer.Controls.Add(cancel);
-            root.Controls.Add(footer, 0, 4);
+            root.Controls.Add(footer, 0, footerRow);
 
             Controls.Add(root);
             LoadSettings();
@@ -424,6 +490,9 @@ namespace SsmsSqlPlugin.Settings
             _subquery.Checked = options.ExpandSubqueries;
             _autoCase.Checked = options.AutoUppercaseKeywordOnSpace;
             _language.SelectedIndex = UiLanguageIndex(options.UiLanguage);
+#if SSMS20
+            _disableBuiltIn.Checked = options.DisableBuiltInIntelliSense;
+#endif
 
             var auto = HistoryAutoSaveStore.Current;
             _autoMode.SelectedIndex = !auto.Enabled
@@ -467,6 +536,11 @@ namespace SsmsSqlPlugin.Settings
             bool languageChanged = !string.Equals(
                 language, FormatOptionsStore.Current.UiLanguage, StringComparison.OrdinalIgnoreCase);
 
+#if SSMS20
+            bool intelliSenseChanged =
+                _disableBuiltIn.Checked != FormatOptionsStore.Current.DisableBuiltInIntelliSense;
+#endif
+
             FormatOptionsStore.Update(options =>
             {
                 options.IndentSize = _indent2.Checked ? 2 : 4;
@@ -475,6 +549,9 @@ namespace SsmsSqlPlugin.Settings
                 options.ExpandSubqueries = _subquery.Checked;
                 options.AutoUppercaseKeywordOnSpace = _autoCase.Checked;
                 options.UiLanguage = language;
+#if SSMS20
+                options.DisableBuiltInIntelliSense = _disableBuiltIn.Checked;
+#endif
             });
 
             int mode = Math.Max(0, _autoMode.SelectedIndex);
@@ -495,7 +572,11 @@ namespace SsmsSqlPlugin.Settings
                      " 展开子查询=" + _subquery.Checked +
                      " 空格自动大写=" + _autoCase.Checked +
                      " 语言=" + language +
-                     " 自动记录=" + HistoryAutoSaveStore.Describe(HistoryAutoSaveStore.Current));
+                     " 自动记录=" + HistoryAutoSaveStore.Describe(HistoryAutoSaveStore.Current)
+#if SSMS20
+                     + " 关闭内建IntelliSense=" + _disableBuiltIn.Checked
+#endif
+                     );
 
             if (languageChanged)
             {
@@ -504,6 +585,16 @@ namespace SsmsSqlPlugin.Settings
                     Loc.T("Settings"),
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+
+#if SSMS20
+            if (intelliSenseChanged)
+            {
+                MessageBox.Show(this,
+                    Loc.T("Completion setting saved. Restart SSMS for the change to take effect."),
+                    Loc.T("Settings"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+#endif
 
             DialogResult = DialogResult.OK;
             Close();

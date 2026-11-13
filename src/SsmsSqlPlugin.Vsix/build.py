@@ -59,6 +59,7 @@ else:
     MANIFEST_SRC = MANIFEST
     VSIX = "SSMS-SQLPlugin.vsix"
 VSIX_V21 = "SSMS-SQLPlugin.SSMS21.vsix"
+VSIX_V20 = "SSMS-SQLPlugin.SSMS20.vsix"
 
 # SSMS 22 用户级扩展目录（GUID 是这台机器实测的实例 ID）
 SSMS_EXT_DIR = os.path.join(
@@ -306,15 +307,29 @@ def build_installer():
     if not os.path.isfile(vsix_v21):
         return fail("V21 VSIX 不存在：" + vsix_v21)
 
+    vsix_v20 = os.path.join(DIST, VSIX_V20)
+    if not os.path.isfile(vsix_v20):
+        step("构建 SSMS 20 VSIX 供统一安装器打包")
+        rc = subprocess.call(
+            [sys.executable, os.path.abspath(__file__), "--ssms20", "--no-deploy"],
+            cwd=HERE)
+        if rc != 0:
+            return fail("SSMS 20 VSIX 构建失败（退出码 %d）" % rc)
+
+    if not os.path.isfile(vsix_v20):
+        return fail("V20 VSIX 不存在：" + vsix_v20)
+
     installer_dir = os.path.join(ROOT, "src", "SsmsSqlPlugin.Installer")
     payload_v22 = os.path.join(installer_dir, "Payload.V22.vsix")
     payload_v21 = os.path.join(installer_dir, "Payload.V21.vsix")
+    payload_v20 = os.path.join(installer_dir, "Payload.V20.vsix")
     shutil.copy2(vsix_v22, payload_v22)
     shutil.copy2(vsix_v21, payload_v21)
+    shutil.copy2(vsix_v20, payload_v20)
     old_payload = os.path.join(installer_dir, "Payload.zip")
     if os.path.isfile(old_payload):
         os.remove(old_payload)
-    step("已写入安装器 payload: V21 + V22")
+    step("已写入安装器 payload: V20 + V21 + V22")
 
     csproj = os.path.join(installer_dir, "SsmsSqlPlugin.Installer.csproj")
     if not os.path.isfile(csproj):

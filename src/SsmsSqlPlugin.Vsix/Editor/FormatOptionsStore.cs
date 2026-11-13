@@ -21,6 +21,8 @@ namespace SsmsSqlPlugin.Editor
         public string UiLanguage = "auto";
         /// <summary>首次安装后的欢迎窗口是否已关闭（勾选「不再显示」后置为 true）。</summary>
         public bool WelcomeShown = false;
+        /// <summary>SSMS 20：关闭内建 IntelliSense，避免覆盖插件补全。</summary>
+        public bool DisableBuiltInIntelliSense = true;
 
         public FormatOptionsSnapshot Clone()
         {
@@ -34,6 +36,7 @@ namespace SsmsSqlPlugin.Editor
                 MaxLineWidth = MaxLineWidth,
                 UiLanguage = UiLanguage,
                 WelcomeShown = WelcomeShown,
+                DisableBuiltInIntelliSense = DisableBuiltInIntelliSense,
             };
         }
 
@@ -127,7 +130,8 @@ namespace SsmsSqlPlugin.Editor
                 sb.AppendLine("  \"autoUppercaseKeywordOnSpace\": " + Bool(s.AutoUppercaseKeywordOnSpace) + ",");
                 sb.AppendLine("  \"maxLineWidth\": " + s.MaxLineWidth + ",");
                 sb.AppendLine("  \"uiLanguage\": " + Quote(s.UiLanguage) + ",");
-                sb.AppendLine("  \"welcomeShown\": " + Bool(s.WelcomeShown));
+                sb.AppendLine("  \"welcomeShown\": " + Bool(s.WelcomeShown) + ",");
+                sb.AppendLine("  \"disableBuiltInIntelliSense\": " + Bool(s.DisableBuiltInIntelliSense));
                 sb.AppendLine("}");
 
                 File.WriteAllText(FilePath, sb.ToString(), new UTF8Encoding(false));
@@ -156,6 +160,8 @@ namespace SsmsSqlPlugin.Editor
                 s.MaxLineWidth = ReadInt(json, "maxLineWidth", s.MaxLineWidth);
                 s.UiLanguage = ReadString(json, "uiLanguage", s.UiLanguage);
                 s.WelcomeShown = ReadBool(json, "welcomeShown", s.WelcomeShown);
+                s.DisableBuiltInIntelliSense = ReadBool(
+                    json, "disableBuiltInIntelliSense", s.DisableBuiltInIntelliSense);
             }
             catch (Exception ex)
             {

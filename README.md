@@ -2,9 +2,9 @@
 
 # SSMS-SQLPlugin
 
-在 SSMS 22 里格式化 SQL、补全表字段、回看执行历史。
+在 SSMS 20 / 21 / 22 里格式化 SQL、补全表字段、回看执行历史。
 
-[![SSMS](https://img.shields.io/badge/SSMS-21%20%7C%2022-2f6feb?style=flat-square)](#兼容性)
+[![SSMS](https://img.shields.io/badge/SSMS-20%20%7C%2021%20%7C%2022-2f6feb?style=flat-square)](#兼容性)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=flat-square)](#兼容性)
 [![.NET Framework](https://img.shields.io/badge/.NET_Framework-4.8-512bd4?style=flat-square)](#兼容性)
 [![Version](https://img.shields.io/badge/version-0.2.0-16a34a?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin)
@@ -22,7 +22,7 @@
 | 功能 | 说明 |
 |---|---|
 | SQL 格式化 | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Ctrl</kbd>+<kbd>D</kbd> 全文；<kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Ctrl</kbd>+<kbd>F</kbd> 选区。保留注释和空行。 |
-| 补全 | 读取当前数据库的表、字段和类型，<kbd>Tab</kbd> 提交。 |
+| 补全 | 读取当前数据库的表、字段和类型，<kbd>Tab</kbd> 提交。SSMS 20 从对象资源管理器选中的数据库加载。 |
 | SQL 历史 | 记录执行和编辑。支持搜索、筛选、预览、复制、重开、多选删除和 30 天回收站。 |
 | 文件快照 | 打开或保存 `.sql` 文件时记录版本和路径。 |
 | 设置 | 缩进、SELECT 列表、子查询展开、空格后关键字自动大写、自动记录。 |
@@ -37,7 +37,7 @@
 3. 运行安装器，点「安装 / 更新」。
 4. 启动 SSMS，顶部菜单会出现 `SSMS-SQLPlugin`。
 
-安装器会自动检测 SSMS 21 / 22，给每个已安装版本投放对应扩展，并调用该版本自带的 `VSIXInstaller.exe` 注册。调用期间会显示遮罩和进度条，请不要重复点击或关闭窗口。如果 360 等安全软件提示 VSIXInstaller 要修改 `SSMS.exe.config`，请按提示放行。
+安装器会自动检测 SSMS 20 / 21 / 22。SSMS 20 使用文件部署（需要管理员权限），SSMS 21/22 调用自带的 `VSIXInstaller.exe` 注册。调用期间会显示遮罩和进度条，请不要重复点击或关闭窗口。如果 360 等安全软件提示 VSIXInstaller 要修改 `SSMS.exe.config`，请按提示放行。
 
 <p align="center">
   <img src="docs/images/installer.png" width="640" alt="安装器">
@@ -68,11 +68,15 @@
 
 | 项 | 要求 |
 |---|---|
-| SSMS | 21.x / 22.x |
+| SSMS | 20.x（x86）/ 21.x / 22.x |
 | 系统 | Windows 10 / 11 x64 |
 | 运行时 | .NET Framework 4.8 |
 
-SSMS 20 尚未适配。
+SSMS 20 说明：
+
+- 补全元数据来自**对象资源管理器选中的数据库**，不是查询窗口的数据库下拉框；切换库时先在 OE 选中目标库。
+- 为避免覆盖插件候选，SSMS 20 默认关闭内建 IntelliSense；可在「设置 → 补全」中恢复。
+- 安装器写 `Program Files (x86)`，需要管理员权限。
 
 ## 数据位置
 
@@ -98,6 +102,8 @@ python src/SsmsSqlPlugin.Vsix/build.py --no-deploy --installer
 产物：
 
 - `src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.vsix`
+- `src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS21.vsix`
+- `src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS20.vsix`
 - `src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin-Setup.exe`
 
 开发部署到本机 SSMS（先关闭 SSMS）：
@@ -114,6 +120,8 @@ python src/SsmsSqlPlugin.Vsix/build.py
 ```bash
 dotnet run --project tools/FormatCli -- --quiet
 dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
+dotnet run --project tools/FormatCli -c Debug21 -- --quiet
+dotnet run --project tools/FormatCli -c Debug20 -- --quiet
 ```
 
 第一组是内置格式化用例，第二组覆盖 CTE、MERGE、控制流、DDL、注释、Unicode 等复杂 SQL。
@@ -124,7 +132,7 @@ dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
 
 - 函数名大小写、别名纵向对齐未做。
 - 游标 `DECLARE ... FOR SELECT` 的 body 未额外缩进。
-- SSMS 20 暂不支持。
+- SSMS 20 的补全元数据跟随 OE 选中库；大库首次加载可能需要几秒。
 - Release 产物未签名。
 
 ## 支持

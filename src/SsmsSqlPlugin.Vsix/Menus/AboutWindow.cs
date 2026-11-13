@@ -66,6 +66,9 @@ namespace SsmsSqlPlugin.Menus
             ShowInTaskbar = false;
             // 英文文案换行后比中文高，窗口留足高度，避免底部按钮被裁切
             ClientSize = new Size(760, welcome ? 490 : 520);
+#if SSMS20
+            ClientSize = new Size(760, (welcome ? 490 : 520) + 44);
+#endif
             BackColor = HistoryTheme.Background;
             ForeColor = HistoryTheme.TextPrimary;
             Font = HistoryTheme.UiFont;
@@ -288,7 +291,11 @@ namespace SsmsSqlPlugin.Menus
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 2,
+#if SSMS20
+                RowCount = 8,
+#else
                 RowCount = 7,
+#endif
                 BackColor = HistoryTheme.Card,
                 Margin = Padding.Empty,
             };
@@ -309,6 +316,21 @@ namespace SsmsSqlPlugin.Menus
                 Loc.T("The UI follows the system language and the SSMS light or dark theme."));
             AddFeature(grid, 6, Loc.T("Entry Points"),
                 Loc.T("Top menu, context menu, refresh completion cache and open log."));
+
+#if SSMS20
+            var ssms20Hint = new Label
+            {
+                Text = Loc.T("SSMS 20: table and column completion comes from the database selected in Object Explorer. Toggle built-in IntelliSense in Settings."),
+                AutoSize = true,
+                MaximumSize = new Size(660, 0),
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextMuted,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(0, 8, 0, 0),
+            };
+            grid.Controls.Add(ssms20Hint, 0, 7);
+            grid.SetColumnSpan(ssms20Hint, 2);
+#endif
 
             card.Controls.Add(grid);
             return card;
