@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TextManager.Interop;
 using SsmsSqlPlugin.Formatting;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Editor
 {
@@ -36,7 +37,7 @@ namespace SsmsSqlPlugin.Editor
 
             if (view == null)
             {
-                return Fail("没有活动的 SQL 编辑器窗口。");
+                return Fail(Loc.T("There is no active SQL editor window."));
             }
 
             // ── 1. 取 buffer ──
@@ -44,7 +45,7 @@ namespace SsmsSqlPlugin.Editor
             int hr = view.GetBuffer(out buffer);
             if (hr != 0 || buffer == null)
             {
-                return Fail("取不到编辑器缓冲区（hr=0x" + hr.ToString("X8") + "）。");
+                return Fail(Loc.F("Could not get the editor buffer (hr=0x{0}).", hr.ToString("X8")));
             }
 
             // ── 2. 确定范围：选区优先，否则全文 ──
@@ -53,7 +54,7 @@ namespace SsmsSqlPlugin.Editor
             bool hasSelection = TryGetSelection(view, out startLine, out startCol, out endLine, out endCol);
             if (requireSelection && !hasSelection)
             {
-                return Fail("请先选择要格式化的 SQL。");
+                return Fail(Loc.T("Select the SQL to format first."));
             }
 
             if (!hasSelection)
@@ -62,7 +63,7 @@ namespace SsmsSqlPlugin.Editor
                 hr = buffer.GetLastLineIndex(out lastLine, out lastIndex);
                 if (hr != 0)
                 {
-                    return Fail("读取文档末尾失败（hr=0x" + hr.ToString("X8") + "）。");
+                    return Fail(Loc.F("Failed to read the end of the document (hr=0x{0}).", hr.ToString("X8")));
                 }
 
                 startLine = 0;
@@ -76,12 +77,12 @@ namespace SsmsSqlPlugin.Editor
             hr = buffer.GetLineText(startLine, startCol, endLine, endCol, out original);
             if (hr != 0)
             {
-                return Fail("读取文本失败（hr=0x" + hr.ToString("X8") + "）。");
+                return Fail(Loc.F("Failed to read the text (hr=0x{0}).", hr.ToString("X8")));
             }
 
             if (string.IsNullOrWhiteSpace(original))
             {
-                return Fail("没有可格式化的 SQL（范围为空或全是空白）。");
+                return Fail(Loc.T("There is no SQL to format (the range is empty or whitespace only)."));
             }
 
             Log.Info("格式化范围 " + startLine + ":" + startCol + " → " + endLine + ":" + endCol +
@@ -96,12 +97,12 @@ namespace SsmsSqlPlugin.Editor
             catch (Exception ex)
             {
                 Log.Error("格式化抛异常", ex);
-                return Fail("格式化失败：" + ex.Message);
+                return Fail(Loc.F("Formatting failed: {0}", ex.Message));
             }
 
             if (result == null || result.Text == null)
             {
-                return Fail("格式化没有返回结果。");
+                return Fail(Loc.T("Formatting returned no result."));
             }
 
             foreach (var e in result.Errors)
@@ -111,7 +112,7 @@ namespace SsmsSqlPlugin.Editor
 
             if (string.Equals(result.Text, original, StringComparison.Ordinal))
             {
-                return new Outcome { Changed = false, Message = "已是格式化状态，无需改动。" };
+                return new Outcome { Changed = false, Message = Loc.T("Already formatted; no changes needed.") };
             }
 
             // ── 5. 写回 ──
@@ -123,7 +124,7 @@ namespace SsmsSqlPlugin.Editor
 
             if (hr != 0)
             {
-                return Fail("写回失败（hr=0x" + hr.ToString("X8") + "）。");
+                return Fail(Loc.F("Failed to write back (hr=0x{0}).", hr.ToString("X8")));
             }
 
             // ── 6. 恢复选区 ──
@@ -137,13 +138,13 @@ namespace SsmsSqlPlugin.Editor
             }
 
             string note = result.SkippedBatches > 0
-                ? "（" + result.SkippedBatches + " 个批次解析失败，已原样保留）"
+                ? Loc.F("({0} batches failed to parse and were left unchanged)", result.SkippedBatches)
                 : string.Empty;
 
             return new Outcome
             {
                 Changed = true,
-                Message = "已格式化" + note + "。",
+                Message = Loc.F("Formatted{0}.", note),
             };
         }
 

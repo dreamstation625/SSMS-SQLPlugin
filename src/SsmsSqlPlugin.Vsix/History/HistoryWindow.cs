@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using EnvDTE;
 using SsmsSqlPlugin.Completion;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 using SsmsSqlPlugin.Storage;
 
 namespace SsmsSqlPlugin.History
@@ -41,6 +42,7 @@ namespace SsmsSqlPlugin.History
         private readonly RichTextBox _previewText;
         private readonly ColumnHeader _summaryColumn;
         private readonly ColumnHeader _deletedColumn;
+        private readonly ColumnHeader _fillerColumn;
         private readonly ModernButton _deleteButton;
         private readonly Label _status;
         private readonly Label _selectionLabel;
@@ -57,7 +59,7 @@ namespace SsmsSqlPlugin.History
         {
             _dte = dte;
 
-            Text = "SQL 历史";
+            Text = Loc.T("SQL History");
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(1380, 740);
             MinimumSize = new Size(1080, 580);
@@ -128,7 +130,7 @@ namespace SsmsSqlPlugin.History
 
             var title = new Label
             {
-                Text = "SQL 历史",
+                Text = Loc.T("SQL History"),
                 AutoSize = true,
                 Font = HistoryTheme.TitleFont,
                 ForeColor = HistoryTheme.TextPrimary,
@@ -138,7 +140,7 @@ namespace SsmsSqlPlugin.History
 
             var subtitle = new Label
             {
-                Text = "搜索、预览、重开与自动记录",
+                Text = Loc.T("Search, preview, reopen and auto-save"),
                 AutoSize = true,
                 Font = HistoryTheme.SmallFont,
                 ForeColor = HistoryTheme.TextSecondary,
@@ -179,7 +181,7 @@ namespace SsmsSqlPlugin.History
                 Width = 300,
                 Height = 32,
                 Radius = 8,
-                FillColor = Color.FromArgb(248, 250, 252),
+                FillColor = HistoryTheme.CardSoft,
                 BorderColor = HistoryTheme.Border,
                 Padding = new Padding(10, 7, 10, 0),
                 Margin = new Padding(0, 0, 16, 0),
@@ -190,7 +192,7 @@ namespace SsmsSqlPlugin.History
                 BorderStyle = BorderStyle.None,
                 Dock = DockStyle.Fill,
                 Font = HistoryTheme.UiFont,
-                BackColor = Color.FromArgb(248, 250, 252),
+                BackColor = HistoryTheme.CardSoft,
                 ForeColor = HistoryTheme.TextPrimary,
             };
             _search.TextChanged += (s, e) => { _debounce.Stop(); _debounce.Start(); };
@@ -203,31 +205,43 @@ namespace SsmsSqlPlugin.History
             searchCard.Controls.Add(_search);
             top.Controls.Add(searchCard);
 
-            top.Controls.Add(MakeLabel("服务器"));
+            top.Controls.Add(MakeLabel(Loc.T("Server")));
             _server = MakeCombo(140);
             _server.SelectedIndexChanged += async (s, e) => await ReloadDatabasesAsync();
             top.Controls.Add(_server);
 
-            top.Controls.Add(MakeLabel("库"));
+            top.Controls.Add(MakeLabel(Loc.T("Database")));
             _database = MakeCombo(130);
             top.Controls.Add(_database);
 
-            top.Controls.Add(MakeLabel("时间"));
+            top.Controls.Add(MakeLabel(Loc.T("Time")));
             _range = MakeCombo(105);
-            _range.Items.AddRange(new object[] { "全部时间", "最近 1 天", "最近 7 天", "最近 30 天", "最近 90 天" });
+            _range.Items.AddRange(new object[]
+            {
+                Loc.T("All time"),
+                Loc.T("Last 1 day"),
+                Loc.T("Last 7 days"),
+                Loc.T("Last 30 days"),
+                Loc.T("Last 90 days"),
+            });
             _range.SelectedIndex = 0;
             top.Controls.Add(_range);
 
-            top.Controls.Add(MakeLabel("类型"));
+            top.Controls.Add(MakeLabel(Loc.T("Type")));
             _kind = MakeCombo(100);
-            _kind.Items.AddRange(new object[] { "全部类型", "执行", "自动记录" });
+            _kind.Items.AddRange(new object[]
+            {
+                Loc.T("All types"),
+                Loc.T("Execute"),
+                Loc.T("Auto-save"),
+            });
             _kind.SelectedIndex = 0;
             _kind.SelectedIndexChanged += (s, e) => ReloadAsync();
             top.Controls.Add(_kind);
 
             _queryButton = new ModernButton
             {
-                Text = "查询",
+                Text = Loc.T("Query"),
                 Style = ModernButtonStyle.Primary,
                 Width = 80,
                 Height = 32,
@@ -238,8 +252,8 @@ namespace SsmsSqlPlugin.History
 
             _recycleBin = new ModernCheckBox
             {
-                Text = "回收站",
-                Width = 102,
+                Text = Loc.T("Recycle Bin"),
+                Width = 120,
                 Height = 32,
                 Margin = Padding.Empty,
             };
@@ -265,15 +279,20 @@ namespace SsmsSqlPlugin.History
                 Dock = DockStyle.Fill,
                 VirtualMode = true,
             };
-            _list.Columns.Add("时间", 150, HorizontalAlignment.Left);
-            _list.Columns.Add("服务器", 118, HorizontalAlignment.Left);
-            _list.Columns.Add("库", 85, HorizontalAlignment.Left);
-            _list.Columns.Add("文件名", 128, HorizontalAlignment.Left);
-            _list.Columns.Add("耗时", 72, HorizontalAlignment.Right);
-            _list.Columns.Add("行数", 56, HorizontalAlignment.Right);
-            _list.Columns.Add("类型", 52, HorizontalAlignment.Left);
-            _summaryColumn = _list.Columns.Add("摘要", 183, HorizontalAlignment.Left);
-            _deletedColumn = _list.Columns.Add("删除时间", 0, HorizontalAlignment.Left);
+            _list.Columns.Add(Loc.T("Time"), 140, HorizontalAlignment.Left);
+            _list.Columns.Add(Loc.T("Server"), 110, HorizontalAlignment.Left);
+            _list.Columns.Add(Loc.T("Database"), 90, HorizontalAlignment.Left);
+            _list.Columns.Add(Loc.T("File Name"), 120, HorizontalAlignment.Left);
+            _list.Columns.Add(Loc.T("Duration"), 90, HorizontalAlignment.Right);
+            _list.Columns.Add(Loc.T("Rows"), 64, HorizontalAlignment.Right);
+            // 类型列用 Tag 标记，HistoryUi 按 Tag 决定是否画徽标（不比较本地化后的标题）
+            var kindColumn = _list.Columns.Add(Loc.T("Type"), 76, HorizontalAlignment.Left);
+            kindColumn.Tag = "kind";
+            _summaryColumn = _list.Columns.Add(Loc.T("Summary"), 171, HorizontalAlignment.Left);
+            _deletedColumn = _list.Columns.Add(Loc.T("Deleted"), 0, HorizontalAlignment.Left);
+            _fillerColumn = _list.Columns.Add("", 0, HorizontalAlignment.Left);
+            _list.SizeChanged += (s, e) => UpdateFillerColumn();
+            UpdateFillerColumn();
 
             _list.RetrieveVirtualItem += OnRetrieveVirtualItem;
             _list.ItemActivate += (s, e) => OpenSelected();
@@ -328,7 +347,7 @@ namespace SsmsSqlPlugin.History
             _previewInfo = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "SQL 预览",
+                Text = Loc.T("SQL Preview"),
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
                 Font = HistoryTheme.UiFontMedium,
@@ -340,7 +359,7 @@ namespace SsmsSqlPlugin.History
             _previewMeta = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "选中一条记录查看完整 SQL 与连接信息",
+                Text = Loc.T("Select a record to see the full SQL and connection details"),
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
                 Font = HistoryTheme.SmallFont,
@@ -415,7 +434,8 @@ namespace SsmsSqlPlugin.History
             _emptyPanel.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "没有匹配的记录\r\n调整搜索或筛选后再试",
+                Text = Loc.T("No matching records") + "\r\n" +
+                       Loc.T("Adjust the search or filters and try again"),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = HistoryTheme.UiFont,
                 ForeColor = HistoryTheme.TextMuted,
@@ -452,7 +472,7 @@ namespace SsmsSqlPlugin.History
 
             _status = new Label
             {
-                Text = "历史存储准备中…",
+                Text = Loc.T("Preparing history storage…"),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoEllipsis = true,
@@ -476,7 +496,7 @@ namespace SsmsSqlPlugin.History
 
             var close = new ModernButton
             {
-                Text = "关闭",
+                Text = Loc.T("Close"),
                 Style = ModernButtonStyle.Ghost,
                 Width = 68,
                 Height = 32,
@@ -486,7 +506,7 @@ namespace SsmsSqlPlugin.History
 
             var open = new ModernButton
             {
-                Text = "打开 SQL",
+                Text = Loc.T("Open SQL"),
                 Style = ModernButtonStyle.Primary,
                 Width = 96,
                 Height = 32,
@@ -496,7 +516,7 @@ namespace SsmsSqlPlugin.History
 
             var copy = new ModernButton
             {
-                Text = "复制 SQL",
+                Text = Loc.T("Copy SQL"),
                 Style = ModernButtonStyle.Secondary,
                 Width = 94,
                 Height = 32,
@@ -506,7 +526,7 @@ namespace SsmsSqlPlugin.History
 
             _deleteButton = new ModernButton
             {
-                Text = "删除",
+                Text = Loc.T("Delete"),
                 Style = ModernButtonStyle.Danger,
                 Width = 76,
                 Height = 32,
@@ -516,7 +536,7 @@ namespace SsmsSqlPlugin.History
 
             var refresh = new ModernButton
             {
-                Text = "刷新",
+                Text = Loc.T("Refresh"),
                 Style = ModernButtonStyle.Ghost,
                 Width = 68,
                 Height = 32,
@@ -531,7 +551,7 @@ namespace SsmsSqlPlugin.History
 
             var openDir = new ModernButton
             {
-                Text = "打开目录",
+                Text = Loc.T("Open Folder"),
                 Style = ModernButtonStyle.Ghost,
                 Width = 96,
                 Height = 32,
@@ -541,7 +561,7 @@ namespace SsmsSqlPlugin.History
 
             var selectAll = new ModernButton
             {
-                Text = "全选",
+                Text = Loc.T("Select All"),
                 Style = ModernButtonStyle.Ghost,
                 Width = 68,
                 Height = 32,
@@ -559,11 +579,11 @@ namespace SsmsSqlPlugin.History
                 Text = "",
             };
 
-            _previewToolTip.SetToolTip(open, "在新查询窗口打开选中 SQL（双击或回车）");
-            _previewToolTip.SetToolTip(copy, "复制选中 SQL（Ctrl+C）");
+            _previewToolTip.SetToolTip(open, Loc.T("Open the selected SQL in a new query window (double-click or Enter)"));
+            _previewToolTip.SetToolTip(copy, Loc.T("Copy the selected SQL (Ctrl+C)"));
             _previewToolTip.SetToolTip(_deleteButton,
-                "删除选中记录（Ctrl/Shift 多选，Ctrl+A 全选，Delete 键删除）");
-            _previewToolTip.SetToolTip(selectAll, "选中当前列表全部记录（Ctrl+A）");
+                Loc.T("Delete selected records (Ctrl/Shift to multi-select, Ctrl+A to select all, Delete key to delete)"));
+            _previewToolTip.SetToolTip(selectAll, Loc.T("Select all records in the list (Ctrl+A)"));
 
             // RightToLeft 流：先加的在最右
             buttons.Controls.Add(close);
@@ -612,14 +632,10 @@ namespace SsmsSqlPlugin.History
             };
 
         private static ComboBox MakeCombo(int width)
-            => new ComboBox
+            => new ThemedComboBox
             {
                 Width = width,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat,
-                Font = HistoryTheme.UiFont,
-                BackColor = HistoryTheme.Card,
-                ForeColor = HistoryTheme.TextPrimary,
                 Margin = new Padding(0, 4, 14, 0),
             };
 
@@ -657,7 +673,7 @@ namespace SsmsSqlPlugin.History
             }
             catch { }
 
-            CueBanner.Set(_search, "搜索 SQL 文本…");
+            CueBanner.Set(_search, Loc.T("Search SQL text..."));
 
             await ReloadFiltersAsync();
             ReloadAsync();
@@ -682,7 +698,8 @@ namespace SsmsSqlPlugin.History
             var db = HistoryRuntime.Database;
             if (db == null || !db.IsAvailable)
             {
-                _status.Text = "历史存储尚未就绪：" + (db?.Error ?? "正在打开数据库");
+                _status.Text = Loc.F("History storage is not ready: {0}",
+                    db?.Error ?? Loc.T("Opening database"));
                 return;
             }
 
@@ -693,7 +710,7 @@ namespace SsmsSqlPlugin.History
                 string selectedServer = SelectedText(_server);
                 _server.BeginUpdate();
                 _server.Items.Clear();
-                _server.Items.Add("(全部)");
+                _server.Items.Add(Loc.T("(All)"));
                 foreach (string value in servers) _server.Items.Add(value);
                 _server.SelectedIndex = FindItem(_server, selectedServer);
                 _server.EndUpdate();
@@ -704,7 +721,7 @@ namespace SsmsSqlPlugin.History
             catch (Exception ex)
             {
                 Log.Warn("[历史] 读取筛选项失败: " + ex.Message);
-                _status.Text = "读取筛选项失败: " + ex.Message;
+                _status.Text = Loc.F("Failed to load filters: {0}", ex.Message);
             }
         }
 
@@ -721,7 +738,7 @@ namespace SsmsSqlPlugin.History
                 string selected = SelectedText(_database);
                 _database.BeginUpdate();
                 _database.Items.Clear();
-                _database.Items.Add("(全部)");
+                _database.Items.Add(Loc.T("(All)"));
                 foreach (string value in databases) _database.Items.Add(value);
                 _database.SelectedIndex = FindItem(_database, selected);
                 _database.EndUpdate();
@@ -743,7 +760,8 @@ namespace SsmsSqlPlugin.History
             var db = HistoryRuntime.Database;
             if (db == null || !db.IsAvailable)
             {
-                _status.Text = "历史存储不可用：" + (db?.Error ?? "正在打开数据库");
+                _status.Text = Loc.F("History storage is unavailable: {0}",
+                    db?.Error ?? Loc.T("Opening database"));
                 return;
             }
 
@@ -752,7 +770,7 @@ namespace SsmsSqlPlugin.History
 
             _loading = true;
             _queryButton.Enabled = false;
-            _status.Text = "查询中…";
+            _status.Text = Loc.T("Querying…");
 
             db.SearchExecutionsAsync(query).ContinueWith(t =>
             {
@@ -770,7 +788,7 @@ namespace SsmsSqlPlugin.History
                         {
                             var error = t.Exception?.GetBaseException();
                             Log.Warn("[历史] 查询失败: " + error?.Message);
-                            _status.Text = "查询失败：" + error?.Message;
+                            _status.Text = Loc.F("Query failed: {0}", error?.Message);
                         }
                         else
                         {
@@ -795,9 +813,9 @@ namespace SsmsSqlPlugin.History
                             UpdatePreview();
                             UpdateSelectionStatus();
 
-                            _status.Text = (_recycleBin.Checked ? "回收站 · " : "") +
-                                           "共 " + _rows.Count + " 条" +
-                                           (_rows.Count >= query.Limit ? "（上限 " + query.Limit + "）" : "") +
+                            _status.Text = (_recycleBin.Checked ? Loc.T("Recycle Bin ·") + " " : "") +
+                                           Loc.F("Total: {0}", _rows.Count) +
+                                           (_rows.Count >= query.Limit ? Loc.F("(limit {0})", query.Limit) : "") +
                                            " · " + sw.ElapsedMilliseconds + "ms";
                         }
 
@@ -872,7 +890,7 @@ namespace SsmsSqlPlugin.History
             var row = _rows[e.ItemIndex];
             bool isExecute = string.IsNullOrEmpty(row.Kind) || row.Kind == "execute";
 
-            e.Item = new ListViewItem(new[]
+            var item = new ListViewItem(new[]
             {
                 FormatListTime(row.StartedUtc),
                 row.ServerName ?? "",
@@ -884,6 +902,10 @@ namespace SsmsSqlPlugin.History
                 Summarize(row.SqlText),
                 FormatListTime(row.DeletedUtc),
             });
+
+            // 徽标样式按数据值（execute/edit/timer）决定，不能按本地化后的文案判断
+            item.Tag = row.Kind == "timer" ? "timer" : row.Kind == "edit" ? "edit" : "execute";
+            e.Item = item;
         }
 
         private void UpdatePreview()
@@ -893,8 +915,8 @@ namespace SsmsSqlPlugin.History
             var row = GetSelected();
             if (row == null)
             {
-                _previewInfo.Text = "SQL 预览";
-                _previewMeta.Text = "选中一条记录查看完整 SQL 与连接信息";
+                _previewInfo.Text = Loc.T("SQL Preview");
+                _previewMeta.Text = Loc.T("Select a record to see the full SQL and connection details");
                 _previewPath.Text = "";
                 _previewToolTip.SetToolTip(_previewPath, "");
                 _previewText.Text = "";
@@ -902,9 +924,9 @@ namespace SsmsSqlPlugin.History
             }
 
             string pathText = !string.IsNullOrEmpty(row.SourcePath)
-                ? "文件：" + row.SourcePath
+                ? Loc.F("File: {0}", row.SourcePath)
                 : !string.IsNullOrEmpty(row.EditorMoniker)
-                    ? "临时查询：" + row.EditorMoniker
+                    ? Loc.F("Ad-hoc query: {0}", row.EditorMoniker)
                     : "";
 
             _previewPath.Text = pathText;
@@ -912,12 +934,12 @@ namespace SsmsSqlPlugin.History
 
             bool isExecute = string.IsNullOrEmpty(row.Kind) || row.Kind == "execute";
             string duration = isExecute
-                ? (row.DurationMs > 0 ? row.DurationMs + " ms" : "耗时未知")
+                ? (row.DurationMs > 0 ? row.DurationMs + " ms" : Loc.T("Duration unknown"))
                 : "—";
             string result = isExecute ? FormatResult(row.Succeeded) : "—";
             string deletedInfo = string.IsNullOrEmpty(row.DeletedUtc)
                 ? ""
-                : " · 删除于 " + FormatTime(row.DeletedUtc);
+                : " · " + Loc.F("Deleted at {0}", FormatTime(row.DeletedUtc));
 
             _previewInfo.Text = "#" + row.Id +
                                 "  ·  " + FormatKind(row.Kind) +
@@ -931,7 +953,7 @@ namespace SsmsSqlPlugin.History
             string sql = row.SqlText;
             if (string.IsNullOrEmpty(sql))
             {
-                _previewText.Text = "（这条记录没有保存 SQL 文本）";
+                _previewText.Text = Loc.T("(No SQL text was saved for this record)");
                 return;
             }
 
@@ -939,7 +961,7 @@ namespace SsmsSqlPlugin.History
             if (sql.Length > maxPreview)
             {
                 sql = sql.Substring(0, maxPreview) +
-                      "\r\n-- …（超过 10 万字符，预览已截断；完整内容请用「复制 SQL」或双击打开）";
+                      "\r\n-- " + Loc.T("…(Preview truncated at 100,000 characters; use Copy SQL or double-click to open the full text)");
             }
 
             _previewText.Text = sql;
@@ -985,16 +1007,16 @@ namespace SsmsSqlPlugin.History
 
         private static string FormatResult(int succeeded)
         {
-            if (succeeded == 1) return "成功";
-            if (succeeded == 0) return "失败";
-            return "未知";
+            if (succeeded == 1) return Loc.T("Succeeded");
+            if (succeeded == 0) return Loc.T("Failed");
+            return Loc.T("Unknown");
         }
 
         private static string FormatKind(string kind)
         {
-            if (kind == "timer") return "定时";
-            if (kind == "edit") return "修改";
-            return "执行";
+            if (kind == "timer") return Loc.T("Timer");
+            if (kind == "edit") return Loc.T("Edit");
+            return Loc.T("Execute");
         }
 
         private static string FileName(ExecutionRecord row)
@@ -1073,7 +1095,7 @@ namespace SsmsSqlPlugin.History
         private void UpdateSelectionStatus()
         {
             int count = _list.SelectedIndices.Count;
-            _selectionLabel.Text = count > 1 ? "已选 " + count + " 条" : "";
+            _selectionLabel.Text = count > 1 ? Loc.F("{0} selected", count) : "";
         }
 
         private void ShowToast(string message, bool error = false)
@@ -1098,15 +1120,15 @@ namespace SsmsSqlPlugin.History
             var row = GetSelected();
             if (row == null)
             {
-                _status.Text = "先选中一条记录";
-                ShowToast("请先选中一条 SQL 记录", true);
+                _status.Text = Loc.T("Select a record first");
+                ShowToast(Loc.T("Select a SQL record first"), true);
                 return;
             }
 
             if (string.IsNullOrEmpty(row.SqlText))
             {
-                _status.Text = "这条记录没有 SQL 文本";
-                ShowToast("这条记录没有 SQL 文本", true);
+                _status.Text = Loc.T("This record has no SQL text");
+                ShowToast(Loc.T("This record has no SQL text"), true);
                 return;
             }
 
@@ -1114,30 +1136,47 @@ namespace SsmsSqlPlugin.History
             {
                 Clipboard.SetDataObject(row.SqlText, true);
                 int selected = _list.SelectedIndices.Count;
-                string suffix = selected > 1 ? "（选中 " + selected + " 条，已复制第一条）" : "";
-                _status.Text = "已复制 SQL #" + row.Id +
-                               "（" + row.SqlText.Length + " 字符）" + suffix;
-                ShowToast("已复制 SQL（" + row.SqlText.Length + " 字符）" + suffix);
+                string suffix = selected > 1
+                    ? Loc.F("({0} selected; the first was copied)", selected)
+                    : "";
+                _status.Text = Loc.F("Copied SQL #{0} ({1} characters){2}",
+                    row.Id, row.SqlText.Length, suffix);
+                ShowToast(Loc.F("Copied SQL ({0} characters){1}", row.SqlText.Length, suffix));
                 Log.Info("[历史] 已复制 SQL #" + row.Id + "，长度=" + row.SqlText.Length +
                          (selected > 1 ? "，选中=" + selected : ""));
             }
             catch (Exception ex)
             {
                 Log.Warn("[历史] 复制失败: " + ex.Message);
-                _status.Text = "复制失败：" + ex.Message;
-                ShowToast("复制失败：" + ex.Message, true);
+                string message = Loc.F("Copy failed: {0}", ex.Message);
+                _status.Text = message;
+                ShowToast(message, true);
             }
         }
 
         // ── 回收站 / 删除 ──
+
+        private void UpdateFillerColumn()
+        {
+            if (_fillerColumn == null || _list == null) return;
+
+            int used = 0;
+            foreach (ColumnHeader column in _list.Columns)
+            {
+                if (!ReferenceEquals(column, _fillerColumn)) used += column.Width;
+            }
+
+            _fillerColumn.Width = Math.Max(0, _list.ClientSize.Width - used);
+        }
 
         private void ApplyRecycleMode()
         {
             bool recycle = _recycleBin.Checked;
 
             _deletedColumn.Width = recycle ? 130 : 0;
-            _summaryColumn.Width = recycle ? 0 : 183;
-            _deleteButton.Text = recycle ? "恢复" : "删除";
+            _summaryColumn.Width = recycle ? 0 : 171;
+            UpdateFillerColumn();
+            _deleteButton.Text = recycle ? Loc.T("Restore") : Loc.T("Delete");
             _deleteButton.Style = recycle
                 ? ModernButtonStyle.Success
                 : ModernButtonStyle.Danger;
@@ -1149,21 +1188,25 @@ namespace SsmsSqlPlugin.History
         {
             var ids = GetSelectedIds();
             bool recycle = _recycleBin.Checked;
-            string action = recycle ? "恢复" : "删除";
+            string logAction = recycle ? "恢复" : "删除";
 
             if (ids.Count == 0)
             {
-                _status.Text = "先选中要" + action + "的记录";
-                ShowToast("请先选中要" + action + "的记录", true);
+                string hint = recycle
+                    ? Loc.T("Select the records to restore first")
+                    : Loc.T("Select the records to delete first");
+                _status.Text = hint;
+                ShowToast(hint, true);
                 return;
             }
 
             string message = recycle
-                ? "恢复选中的 " + ids.Count + " 条记录？"
-                : "删除选中的 " + ids.Count + " 条记录？\r\n\r\n" +
-                  "删除后可在「回收站」恢复，保留 30 天。";
+                ? Loc.F("Restore the selected {0} record(s)?", ids.Count)
+                : Loc.F("Delete the selected {0} record(s)?", ids.Count) + "\r\n\r\n" +
+                  Loc.T("Deleted records can be restored from the Recycle Bin and are kept for 30 days.");
 
-            if (MessageBox.Show(this, message, action + "记录",
+            if (MessageBox.Show(this, message,
+                    recycle ? Loc.T("Restore Records") : Loc.T("Delete Records"),
                     MessageBoxButtons.YesNo, MessageBoxIcon.Question,
                     MessageBoxDefaultButton.Button2) != DialogResult.Yes)
             {
@@ -1173,7 +1216,7 @@ namespace SsmsSqlPlugin.History
             var db = HistoryRuntime.Database;
             if (db == null || !db.IsAvailable)
             {
-                _status.Text = "历史存储不可用";
+                _status.Text = Loc.T("History storage is unavailable");
                 return;
             }
 
@@ -1192,13 +1235,18 @@ namespace SsmsSqlPlugin.History
                         if (t.IsFaulted)
                         {
                             var error = t.Exception?.GetBaseException();
-                            Log.Warn("[历史] " + action + "失败: " + error?.Message);
-                            _status.Text = action + "失败：" + error?.Message;
+                            Log.Warn("[历史] " + logAction + "失败: " + error?.Message);
+                            _status.Text = recycle
+                                ? Loc.F("Restore failed: {0}", error?.Message)
+                                : Loc.F("Delete failed: {0}", error?.Message);
                             return;
                         }
 
-                        _status.Text = "已" + action + " " + t.Result + " 条";
-                        ShowToast("已" + action + " " + t.Result + " 条");
+                        string done = recycle
+                            ? Loc.F("Restored {0} record(s)", t.Result)
+                            : Loc.F("Deleted {0} record(s)", t.Result);
+                        _status.Text = done;
+                        ShowToast(done);
                         ReloadAsync();
                     }));
                 }
@@ -1227,12 +1275,12 @@ namespace SsmsSqlPlugin.History
 
                 Directory.CreateDirectory(dir);
                 System.Diagnostics.Process.Start("explorer.exe", "\"" + dir + "\"");
-                _status.Text = "历史目录：" + dir;
+                _status.Text = Loc.F("History folder: {0}", dir);
             }
             catch (Exception ex)
             {
                 Log.Warn("[历史] 打开目录失败: " + ex.Message);
-                _status.Text = "打开目录失败：" + ex.Message;
+                _status.Text = Loc.F("Failed to open the folder: {0}", ex.Message);
             }
         }
 
@@ -1243,15 +1291,15 @@ namespace SsmsSqlPlugin.History
             var row = GetSelected();
             if (row == null)
             {
-                _status.Text = "先选中一条记录";
-                ShowToast("请先选中一条 SQL 记录", true);
+                _status.Text = Loc.T("Select a record first");
+                ShowToast(Loc.T("Select a SQL record first"), true);
                 return;
             }
 
             if (string.IsNullOrEmpty(row.SqlText))
             {
-                _status.Text = "这条记录没有 SQL 文本";
-                ShowToast("这条记录没有 SQL 文本", true);
+                _status.Text = Loc.T("This record has no SQL text");
+                ShowToast(Loc.T("This record has no SQL text"), true);
                 return;
             }
 
@@ -1263,10 +1311,12 @@ namespace SsmsSqlPlugin.History
             {
                 var answer = MessageBox.Show(
                     this,
-                    "当前连接是：\r\n" + current.Server + " / " + (current.Database ?? "?") + "\r\n\r\n" +
-                    "这条历史来自：\r\n" + row.ServerName + " / " + (row.DatabaseName ?? "?") + "\r\n\r\n" +
-                    "仍要在当前连接下打开吗？",
-                    "连接不一致",
+                    Loc.T("The current connection is:") + "\r\n" +
+                    current.Server + " / " + (current.Database ?? "?") + "\r\n\r\n" +
+                    Loc.T("This history item is from:") + "\r\n" +
+                    row.ServerName + " / " + (row.DatabaseName ?? "?") + "\r\n\r\n" +
+                    Loc.T("Open it on the current connection anyway?"),
+                    Loc.T("Connection Mismatch"),
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning,
                     MessageBoxDefaultButton.Button2);
@@ -1283,7 +1333,7 @@ namespace SsmsSqlPlugin.History
 
             if (_dte == null)
             {
-                CopyToClipboard(text, "DTE 不可用，SQL 已复制到剪贴板");
+                CopyToClipboard(text, Loc.T("DTE is unavailable; the SQL was copied to the clipboard"));
                 return;
             }
 
@@ -1291,7 +1341,7 @@ namespace SsmsSqlPlugin.History
             {
                 if (!TryNewQuery(_dte))
                 {
-                    CopyToClipboard(text, "无法新建查询窗口，SQL 已复制到剪贴板");
+                    CopyToClipboard(text, Loc.T("Could not create a new query window; the SQL was copied to the clipboard"));
                     return;
                 }
 
@@ -1299,18 +1349,21 @@ namespace SsmsSqlPlugin.History
                 var textDocument = document?.Object("TextDocument") as TextDocument;
                 if (textDocument == null)
                 {
-                    CopyToClipboard(text, "无法写入查询窗口，SQL 已复制到剪贴板");
+                    CopyToClipboard(text, Loc.T("Could not write to the query window; the SQL was copied to the clipboard"));
                     return;
                 }
 
                 textDocument.StartPoint.CreateEditPoint().Insert(text);
-                _status.Text = "已在新的查询窗口打开（历史 #" + row.Id + "）";
-                ShowToast("已在新的查询窗口打开（历史 #" + row.Id + "）");
+                string opened = Loc.F("Opened in a new query window (history #{0})", row.Id);
+                _status.Text = opened;
+                ShowToast(opened);
             }
             catch (Exception ex)
             {
                 Log.Error("[历史] 打开 SQL 失败", ex);
-                CopyToClipboard(text, "打开失败：" + ex.Message + "\r\nSQL 已复制到剪贴板");
+                CopyToClipboard(text,
+                    Loc.F("Open failed: {0}", ex.Message) + "\r\n" +
+                    Loc.T("SQL was copied to the clipboard"));
             }
         }
 
@@ -1340,7 +1393,7 @@ namespace SsmsSqlPlugin.History
             catch { }
 
             _status.Text = message;
-            MessageBox.Show(this, message, "SQL 历史",
+            MessageBox.Show(this, message, Loc.T("SQL History"),
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 

@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Menus
 {
@@ -18,13 +19,14 @@ namespace SsmsSqlPlugin.Menus
 
         private AboutWindow()
         {
-            Text = "关于 SSMS-SQLPlugin";
+            Text = Loc.T("About SSMS-SQLPlugin");
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(760, 460);
+            // 英文文案换行后比中文高，窗口留足高度，避免底部按钮被裁切
+            ClientSize = new Size(760, 500);
             BackColor = HistoryTheme.Background;
             ForeColor = HistoryTheme.TextPrimary;
             Font = HistoryTheme.UiFont;
@@ -58,7 +60,7 @@ namespace SsmsSqlPlugin.Menus
 
             var close = new ModernButton
             {
-                Text = "关闭",
+                Text = Loc.T("Close"),
                 Style = ModernButtonStyle.Primary,
                 Width = 88,
                 Height = 32,
@@ -130,7 +132,7 @@ namespace SsmsSqlPlugin.Menus
             header.Controls.Add(titleRow, 0, 0);
             header.Controls.Add(new Label
             {
-                Text = "SSMS 的 SQL 格式化、补全和历史工具",
+                Text = Loc.T("SQL formatting, completion and history for SSMS"),
                 AutoSize = true,
                 Font = HistoryTheme.UiFont,
                 ForeColor = HistoryTheme.TextSecondary,
@@ -168,18 +170,18 @@ namespace SsmsSqlPlugin.Menus
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            AddFeature(grid, 0, "SQL 格式化",
-                "Ctrl+K, Ctrl+D 全文；Ctrl+K, Ctrl+F 选区。保留注释和空行。");
-            AddFeature(grid, 1, "补全",
-                "按当前库补全表、字段、类型；Tab 提交。");
-            AddFeature(grid, 2, "SQL 历史",
-                "记录执行和编辑。可搜索、预览、复制、打开；支持多选删除和回收站（30 天）。");
-            AddFeature(grid, 3, "文件快照",
-                "打开或保存 SQL 文件时记录版本和路径。");
-            AddFeature(grid, 4, "设置",
-                "缩进、SELECT 列表、子查询展开、自动大写、自动记录。");
-            AddFeature(grid, 5, "入口",
-                "顶部菜单、右键菜单、刷新补全缓存、打开日志。");
+            AddFeature(grid, 0, Loc.T("SQL Formatting"),
+                Loc.T("Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved."));
+            AddFeature(grid, 1, Loc.T("Completion"),
+                Loc.T("Completes tables, columns and types for the current database; press Tab to commit."));
+            AddFeature(grid, 2, Loc.T("SQL History"),
+                Loc.T("Records executions and edits. Search, preview, copy and open; multi-select delete and a 30-day recycle bin."));
+            AddFeature(grid, 3, Loc.T("File Snapshots"),
+                Loc.T("Records the version and path when SQL files are opened or saved."));
+            AddFeature(grid, 4, Loc.T("Settings"),
+                Loc.T("Indent, SELECT list, subquery expansion, auto-uppercase and auto-save."));
+            AddFeature(grid, 5, Loc.T("Entry Points"),
+                Loc.T("Top menu, context menu, refresh completion cache and open log."));
 
             card.Controls.Add(grid);
             return card;
@@ -238,7 +240,7 @@ namespace SsmsSqlPlugin.Menus
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
             grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            AddPathRow(grid, 0, "仓库");
+            AddPathRow(grid, 0, Loc.T("Repository"));
             var repo = new LinkLabel
             {
                 Text = RepoUrl,
@@ -254,8 +256,8 @@ namespace SsmsSqlPlugin.Menus
             repo.LinkClicked += (s, e) => OpenRepository();
             grid.Controls.Add(repo, 1, 0);
 
-            AddPathRow(grid, 1, "配置文件", FormatOptionsStore.ConfigPath);
-            AddPathRow(grid, 2, "日志文件", Log.LogFilePath);
+            AddPathRow(grid, 1, Loc.T("Config file"), FormatOptionsStore.ConfigPath);
+            AddPathRow(grid, 2, Loc.T("Log file"), Log.LogFilePath);
 
             card.Controls.Add(grid);
             return card;

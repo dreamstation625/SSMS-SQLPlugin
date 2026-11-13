@@ -1,6 +1,7 @@
 using System;
 using Microsoft.VisualStudio.CommandBars;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Menus
 {
@@ -22,8 +23,9 @@ namespace SsmsSqlPlugin.Menus
     ///            ├─ 检查更新
     ///            └─ 关于
     ///
-    /// 设置项集中在独立 SettingsWindow，菜单不再放带勾选项；
-    /// 菜单项左侧用 MenuIcons 的 16x16 图标填充 CommandBars 图标位。
+    /// 设置项集中在独立 SettingsWindow；菜单项左侧用 MenuIcons 的 16x16 图标填充
+    /// CommandBars 图标位。需要勾选态的项（语言）在标题末尾追加 ✓：
+    /// SSMS 22 的 Automation 包装不渲染 msoButtonDown，且会裁掉前导空格。
     /// </summary>
     internal sealed class TopLevelMenu
     {
@@ -38,6 +40,7 @@ namespace SsmsSqlPlugin.Menus
         private readonly Action _openLog;
         private readonly Action _checkUpdates;
         private readonly Action _about;
+        private readonly Action<string> _changeLanguage;
 
         public TopLevelMenu(
             Action format,
@@ -47,7 +50,8 @@ namespace SsmsSqlPlugin.Menus
             Action refreshCompletion,
             Action openLog,
             Action checkUpdates,
-            Action about)
+            Action about,
+            Action<string> changeLanguage)
         {
             _format = format;
             _formatSelection = formatSelection;
@@ -57,6 +61,7 @@ namespace SsmsSqlPlugin.Menus
             _openLog = openLog;
             _checkUpdates = checkUpdates;
             _about = about;
+            _changeLanguage = changeLanguage;
         }
 
         /// <summary>
@@ -111,7 +116,7 @@ namespace SsmsSqlPlugin.Menus
 
                 popup.Caption = MenuCaption;
                 popup.Tag = TagPrefix + "Top";
-                try { popup.TooltipText = "SSMS-SQLPlugin — SQL 格式化 / 历史 / 补全"; } catch { }
+                try { popup.TooltipText = Loc.T("SSMS-SQLPlugin — SQL formatting, history and completion"); } catch { }
                 popup.Visible = true;
 
                 Log.Info("一级菜单已创建: " + popup.Caption);
@@ -180,32 +185,57 @@ namespace SsmsSqlPlugin.Menus
             }
         }
 
-        /// <summary>构建菜单项清单。</summary>
-        private System.Collections.Generic.List<MenuEntry> BuildEntries()
+        private static bool IsLanguage(string value)
         {
+            return string.Equals(Loc.Preference, value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>构建菜单项清单。</summary>
+        private System.Collections.Generic.List<MenuEntry> BuildEntries()        {
             var list = new System.Collections.Generic.List<MenuEntry>
             {
-                new MenuEntry("格式化 SQL\tCtrl+K, Ctrl+D",
-                              "格式化当前选区；没有选区则格式化全文",
+                new MenuEntry(Loc.T("Format SQL") + "\tCtrl+K, Ctrl+D",
+                              Loc.T("Format the current selection, or the whole document when nothing is selected"),
                               _format,
                               TagPrefix + "Format"),
-                new MenuEntry("格式化选定内容\tCtrl+K, Ctrl+F",
-                              "只格式化选中的 SQL；没有选区会提示",
+                new MenuEntry(Loc.T("Format Selection") + "\tCtrl+K, Ctrl+F",
+                              Loc.T("Format only the selected SQL; prompts when nothing is selected"),
                               _formatSelection,
                               TagPrefix + "FormatSelection"),
                 MenuEntry.Separator(),
-                new MenuEntry("SQL 历史...", "搜索、筛选执行历史，双击在查询窗口重开",
+                new MenuEntry(Loc.T("SQL History..."),
+                              Loc.T("Search and filter execution history; double-click to reopen in a query window"),
                               _openHistory, TagPrefix + "History"),
-                new MenuEntry("设置...", "格式化风格、自动记录与历史数据",
+                new MenuEntry(Loc.T("Settings..."),
+                              Loc.T("Formatting style, auto-save and history data"),
                               _openSettings, TagPrefix + "Settings"),
+                new MenuEntry(Loc.T("Language"), Loc.T("Language"),
+                              null, TagPrefix + "Language")
+                    .WithChildren(
+                        new MenuEntry(Loc.T("Follow system"), Loc.T("Language"),
+                                      () => _changeLanguage?.Invoke("auto"),
+                                      TagPrefix + "LanguageAuto")
+                            .WithCheck(() => IsLanguage("auto")),
+                        new MenuEntry(Loc.T("Chinese"), Loc.T("Language"),
+                                      () => _changeLanguage?.Invoke("zh-CN"),
+                                      TagPrefix + "LanguageZh")
+                            .WithCheck(() => IsLanguage("zh-CN")),
+                        new MenuEntry(Loc.T("English"), Loc.T("Language"),
+                                      () => _changeLanguage?.Invoke("en"),
+                                      TagPrefix + "LanguageEn")
+                            .WithCheck(() => IsLanguage("en"))),
                 MenuEntry.Separator(),
-                new MenuEntry("刷新补全缓存", "重新读取当前数据库的表和字段",
+                new MenuEntry(Loc.T("Refresh Completion Cache"),
+                              Loc.T("Reload tables and columns for the current database"),
                               _refreshCompletion, TagPrefix + "RefreshCompletion"),
-                new MenuEntry("打开日志", "打开插件日志文件（排查问题用）",
+                new MenuEntry(Loc.T("Open Log"),
+                              Loc.T("Open the plugin log file for troubleshooting"),
                               _openLog, TagPrefix + "Log"),
-                new MenuEntry("检查更新", "打开 GitHub 仓库，查看最新版本",
+                new MenuEntry(Loc.T("Check for Updates"),
+                              Loc.T("Open the GitHub repository to see the latest version"),
                               _checkUpdates, TagPrefix + "CheckUpdates"),
-                new MenuEntry("关于 SSMS-SQLPlugin", "版本与项目信息",
+                new MenuEntry(Loc.T("About SSMS-SQLPlugin"),
+                              Loc.T("Version and project information"),
                               _about, TagPrefix + "About"),
             };
 

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.VisualStudio.CommandBars;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Menus
 {
@@ -95,9 +96,11 @@ namespace SsmsSqlPlugin.Menus
 
                     var entries = new System.Collections.Generic.List<MenuEntry>
                     {
-                        new MenuEntry("格式化 SQL", "格式化当前选区或全文",
+                        new MenuEntry(Loc.T("Format SQL"),
+                                      Loc.T("Format the current selection or the whole document"),
                                       _format, TagPrefix + "CtxFormat"),
-                        new MenuEntry("格式化选定内容", "只格式化选中的 SQL",
+                        new MenuEntry(Loc.T("Format Selection"),
+                                      Loc.T("Format only the selected SQL"),
                                       _formatSelection, TagPrefix + "CtxFormatSelection"),
                     };
 
@@ -110,13 +113,13 @@ namespace SsmsSqlPlugin.Menus
 
                         var btn = (CommandBarButton)added;
                         var entry = entries[i];
-                        btn.Caption = i == 0 ? "格式化 SQL" : "格式化选定内容";
+                        btn.Caption = entry.Caption;
                         btn.Tag = entry.Tag;
                         try
                         {
                             btn.TooltipText = i == 0
-                                ? "格式化当前选区或全文 (Ctrl+K, Ctrl+D)"
-                                : "只格式化选中的 SQL (Ctrl+K, Ctrl+F)";
+                                ? Loc.T("Format the current selection or whole document (Ctrl+K, Ctrl+D)")
+                                : Loc.T("Format only the selected SQL (Ctrl+K, Ctrl+F)");
                         }
                         catch { }
                         btn.BeginGroup = i == 0;   // 前面画一条分隔线

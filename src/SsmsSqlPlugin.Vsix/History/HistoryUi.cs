@@ -8,34 +8,98 @@ namespace SsmsSqlPlugin.History
 {
     internal static class HistoryTheme
     {
-        public static readonly Color Background = Color.FromArgb(244, 245, 247);
-        public static readonly Color Card = Color.White;
-        public static readonly Color CardSoft = Color.FromArgb(251, 252, 254);
-        public static readonly Color Border = Color.FromArgb(226, 229, 234);
-        public static readonly Color BorderStrong = Color.FromArgb(212, 217, 225);
-        public static readonly Color TextPrimary = Color.FromArgb(31, 36, 48);
-        public static readonly Color TextSecondary = Color.FromArgb(107, 114, 128);
-        public static readonly Color TextMuted = Color.FromArgb(156, 163, 175);
+        public static Color Background { get; private set; } = Color.FromArgb(244, 245, 247);
+        public static Color Card { get; private set; } = Color.White;
+        public static Color CardSoft { get; private set; } = Color.FromArgb(251, 252, 254);
+        public static Color Border { get; private set; } = Color.FromArgb(226, 229, 234);
+        public static Color BorderStrong { get; private set; } = Color.FromArgb(212, 217, 225);
+        public static Color TextPrimary { get; private set; } = Color.FromArgb(31, 36, 48);
+        public static Color TextSecondary { get; private set; } = Color.FromArgb(107, 114, 128);
+        public static Color TextMuted { get; private set; } = Color.FromArgb(156, 163, 175);
 
-        public static readonly Color Accent = Color.FromArgb(37, 99, 235);
-        public static readonly Color AccentHover = Color.FromArgb(29, 78, 216);
-        public static readonly Color AccentPressed = Color.FromArgb(30, 64, 175);
-        public static readonly Color AccentSoft = Color.FromArgb(232, 240, 254);
+        public static Color Accent { get; private set; } = Color.FromArgb(37, 99, 235);
+        public static Color AccentHover { get; private set; } = Color.FromArgb(29, 78, 216);
+        public static Color AccentPressed { get; private set; } = Color.FromArgb(30, 64, 175);
+        public static Color AccentSoft { get; private set; } = Color.FromArgb(232, 240, 254);
 
-        public static readonly Color Hover = Color.FromArgb(247, 249, 252);
-        public static readonly Color Alternate = Color.FromArgb(251, 252, 253);
-        public static readonly Color Selection = Color.FromArgb(234, 241, 255);
-        public static readonly Color HeaderBackground = Color.FromArgb(248, 249, 251);
+        public static Color Hover { get; private set; } = Color.FromArgb(247, 249, 252);
+        public static Color Alternate { get; private set; } = Color.FromArgb(251, 252, 253);
+        public static Color Selection { get; private set; } = Color.FromArgb(234, 241, 255);
+        public static Color HeaderBackground { get; private set; } = Color.FromArgb(248, 249, 251);
 
-        public static readonly Color Green = Color.FromArgb(22, 163, 74);
-        public static readonly Color GreenSoft = Color.FromArgb(220, 252, 231);
-        public static readonly Color Amber = Color.FromArgb(180, 83, 9);
-        public static readonly Color AmberSoft = Color.FromArgb(254, 243, 199);
-        public static readonly Color Purple = Color.FromArgb(109, 40, 217);
-        public static readonly Color PurpleSoft = Color.FromArgb(237, 233, 254);
-        public static readonly Color Red = Color.FromArgb(220, 38, 38);
-        public static readonly Color RedSoft = Color.FromArgb(254, 226, 226);
-        public static readonly Color GraySoft = Color.FromArgb(243, 244, 246);
+        public static Color Green { get; private set; } = Color.FromArgb(22, 163, 74);
+        public static Color GreenSoft { get; private set; } = Color.FromArgb(220, 252, 231);
+        public static Color Amber { get; private set; } = Color.FromArgb(180, 83, 9);
+        public static Color AmberSoft { get; private set; } = Color.FromArgb(254, 243, 199);
+        public static Color Purple { get; private set; } = Color.FromArgb(109, 40, 217);
+        public static Color PurpleSoft { get; private set; } = Color.FromArgb(237, 233, 254);
+        public static Color Red { get; private set; } = Color.FromArgb(220, 38, 38);
+        public static Color RedSoft { get; private set; } = Color.FromArgb(254, 226, 226);
+        public static Color GraySoft { get; private set; } = Color.FromArgb(243, 244, 246);
+
+        public static bool IsDark { get; private set; }
+
+        public static void Apply(bool dark)
+        {
+            IsDark = dark;
+
+            if (!dark)
+            {
+                Background = Color.FromArgb(244, 245, 247);
+                Card = Color.White;
+                CardSoft = Color.FromArgb(251, 252, 254);
+                Border = Color.FromArgb(226, 229, 234);
+                BorderStrong = Color.FromArgb(212, 217, 225);
+                TextPrimary = Color.FromArgb(31, 36, 48);
+                TextSecondary = Color.FromArgb(107, 114, 128);
+                TextMuted = Color.FromArgb(156, 163, 175);
+                Accent = Color.FromArgb(37, 99, 235);
+                AccentHover = Color.FromArgb(29, 78, 216);
+                AccentPressed = Color.FromArgb(30, 64, 175);
+                AccentSoft = Color.FromArgb(232, 240, 254);
+                Hover = Color.FromArgb(247, 249, 252);
+                Alternate = Color.FromArgb(251, 252, 253);
+                Selection = Color.FromArgb(234, 241, 255);
+                HeaderBackground = Color.FromArgb(248, 249, 251);
+                Green = Color.FromArgb(22, 163, 74);
+                GreenSoft = Color.FromArgb(220, 252, 231);
+                Amber = Color.FromArgb(180, 83, 9);
+                AmberSoft = Color.FromArgb(254, 243, 199);
+                Purple = Color.FromArgb(109, 40, 217);
+                PurpleSoft = Color.FromArgb(237, 233, 254);
+                Red = Color.FromArgb(220, 38, 38);
+                RedSoft = Color.FromArgb(254, 226, 226);
+                GraySoft = Color.FromArgb(243, 244, 246);
+            }
+            else
+            {
+                Background = Color.FromArgb(30, 31, 34);
+                Card = Color.FromArgb(37, 38, 43);
+                CardSoft = Color.FromArgb(43, 45, 49);
+                Border = Color.FromArgb(58, 61, 68);
+                BorderStrong = Color.FromArgb(74, 78, 87);
+                TextPrimary = Color.FromArgb(230, 232, 235);
+                TextSecondary = Color.FromArgb(160, 164, 171);
+                TextMuted = Color.FromArgb(122, 127, 135);
+                Accent = Color.FromArgb(76, 141, 255);
+                AccentHover = Color.FromArgb(106, 161, 255);
+                AccentPressed = Color.FromArgb(58, 115, 220);
+                AccentSoft = Color.FromArgb(31, 58, 95);
+                Hover = Color.FromArgb(46, 49, 56);
+                Alternate = Color.FromArgb(42, 44, 49);
+                Selection = Color.FromArgb(34, 58, 94);
+                HeaderBackground = Color.FromArgb(42, 44, 49);
+                Green = Color.FromArgb(74, 222, 128);
+                GreenSoft = Color.FromArgb(20, 53, 31);
+                Amber = Color.FromArgb(251, 191, 36);
+                AmberSoft = Color.FromArgb(58, 45, 11);
+                Purple = Color.FromArgb(167, 139, 250);
+                PurpleSoft = Color.FromArgb(46, 37, 69);
+                Red = Color.FromArgb(248, 113, 113);
+                RedSoft = Color.FromArgb(59, 29, 29);
+                GraySoft = Color.FromArgb(51, 53, 59);
+            }
+        }
 
         public static readonly Font UiFont = MakeFont("Microsoft YaHei UI", 9f, FontStyle.Regular);
         public static readonly Font UiFontMedium = MakeFont("Microsoft YaHei UI", 9f, FontStyle.Bold);
@@ -288,17 +352,17 @@ namespace SsmsSqlPlugin.History
 
                 case ModernButtonStyle.Danger:
                     fill = _pressed ? HistoryTheme.RedSoft
-                         : _hover ? Color.FromArgb(255, 245, 245)
+                         : _hover ? HistoryTheme.RedSoft
                          : HistoryTheme.Card;
-                    border = Color.FromArgb(241, 181, 181);
+                    border = HistoryTheme.Red;
                     text = HistoryTheme.Red;
                     break;
 
                 case ModernButtonStyle.Success:
                     fill = _pressed ? HistoryTheme.GreenSoft
-                         : _hover ? Color.FromArgb(244, 252, 246)
+                         : _hover ? HistoryTheme.GreenSoft
                          : HistoryTheme.Card;
-                    border = Color.FromArgb(167, 215, 181);
+                    border = HistoryTheme.Green;
                     text = HistoryTheme.Green;
                     break;
 
@@ -497,12 +561,55 @@ namespace SsmsSqlPlugin.History
     }
 
     /// <summary>
+    /// 深色主题下 ComboBox 的默认绘制会保留白底；这里改成 OwnerDraw。
+    /// </summary>
+    internal sealed class ThemedComboBox : ComboBox
+    {
+        public ThemedComboBox()
+        {
+            DrawMode = DrawMode.OwnerDrawFixed;
+            FlatStyle = FlatStyle.Flat;
+            Font = HistoryTheme.UiFont;
+            BackColor = HistoryTheme.Card;
+            ForeColor = HistoryTheme.TextPrimary;
+            ItemHeight = 22;
+        }
+
+        protected override void OnDrawItem(DrawItemEventArgs e)
+        {
+            if (e.Index < 0 || e.Index >= Items.Count)
+            {
+                base.OnDrawItem(e);
+                return;
+            }
+
+            bool selected = (e.State & DrawItemState.Selected) != 0;
+            using (var brush = new SolidBrush(selected ? HistoryTheme.Selection : HistoryTheme.Card))
+            {
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            }
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                GetItemText(Items[e.Index]),
+                Font,
+                e.Bounds,
+                HistoryTheme.TextPrimary,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+        }
+    }
+
+    /// <summary>
     /// 现代列表：自绘表头/行，斑马纹、hover、选中态、类型和结果徽标。
     /// 仍使用 VirtualMode，只绘制可视行。
     /// </summary>
     internal sealed class HistoryListView : ListView
     {
         private int _hoverIndex = -1;
+
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
 
         public HistoryListView()
         {
@@ -527,6 +634,16 @@ namespace SsmsSqlPlugin.History
             DrawSubItem += OnDrawSubItem;
             MouseMove += OnMouseMove;
             MouseLeave += OnMouseLeave;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            try
+            {
+                SetWindowTheme(Handle, HistoryTheme.IsDark ? "DarkMode_Explorer" : "Explorer", null);
+            }
+            catch { }
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
@@ -609,7 +726,7 @@ namespace SsmsSqlPlugin.History
                 }
             }
 
-            using (var pen = new Pen(Color.FromArgb(241, 243, 246)))
+            using (var pen = new Pen(HistoryTheme.Border))
             {
                 e.Graphics.DrawLine(pen,
                     e.Bounds.Left, e.Bounds.Bottom - 1,
@@ -631,9 +748,9 @@ namespace SsmsSqlPlugin.History
 
             bool selected = e.Item.Selected || SelectedIndices.Contains(e.ItemIndex);
 
-            if (column.Text == "类型")
+            if ((column.Tag as string) == "kind")
             {
-                DrawBadge(e.Graphics, e.Bounds, text);
+                DrawBadge(e.Graphics, e.Bounds, text, e.Item?.Tag as string);
                 return;
             }
 
@@ -666,18 +783,19 @@ namespace SsmsSqlPlugin.History
             TextRenderer.DrawText(e.Graphics, text, font, rect, color, flags);
         }
 
-        private static void DrawBadge(Graphics g, Rectangle bounds, string text)
+        private static void DrawBadge(Graphics g, Rectangle bounds, string text, string kind)
         {
             Color fill, border, textColor;
 
-            switch (text)
+            // 按数据值（execute/edit/timer）选色，不看本地化后的文案
+            switch (kind)
             {
-                case "执行":
+                case "execute":
                     fill = HistoryTheme.AccentSoft;
                     border = Color.FromArgb(191, 219, 254);
                     textColor = HistoryTheme.Accent;
                     break;
-                case "修改":
+                case "edit":
                     fill = HistoryTheme.AmberSoft;
                     border = Color.FromArgb(253, 230, 138);
                     textColor = HistoryTheme.Amber;

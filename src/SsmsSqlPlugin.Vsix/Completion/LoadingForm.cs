@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using SsmsSqlPlugin.History;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Completion
 {
@@ -53,7 +54,7 @@ namespace SsmsSqlPlugin.Completion
                 Font = HistoryTheme.SmallFont,
                 ForeColor = HistoryTheme.TextMuted,
                 BackColor = HistoryTheme.Card,
-                Text = "SQL 补全",
+                Text = Loc.T("SQL Completion"),
             };
 
             _title = new Label
@@ -66,7 +67,7 @@ namespace SsmsSqlPlugin.Completion
                 Font = new Font(HistoryTheme.UiFont.FontFamily, 12f, FontStyle.Bold),
                 ForeColor = HistoryTheme.TextPrimary,
                 BackColor = HistoryTheme.Card,
-                Text = "正在加载元数据",
+                Text = Loc.T("Loading metadata"),
             };
 
             _database = new Label
@@ -88,17 +89,17 @@ namespace SsmsSqlPlugin.Completion
                 Left = 22,
                 Top = 96,
                 Width = 396,
-                Height = 18,
+                Height = 30,
                 Font = HistoryTheme.SmallFont,
                 ForeColor = HistoryTheme.TextSecondary,
                 BackColor = HistoryTheme.Card,
-                Text = "表较多时首次加载需要几秒，完成后自动关闭",
+                Text = Loc.T("The first load can take a few seconds for large databases; the window closes automatically"),
             };
 
             _bar = new LoadingBar
             {
                 Left = 22,
-                Top = 124,
+                Top = 130,
                 Width = 396,
                 Height = 8,
             };
@@ -211,7 +212,7 @@ namespace SsmsSqlPlugin.Completion
         {
             _database.Text = string.IsNullOrEmpty(database)
                 ? ""
-                : "数据库：" + database;
+                : Loc.F("Database: {0}", database);
             PositionNearSsms();
         }
 

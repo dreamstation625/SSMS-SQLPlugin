@@ -41,6 +41,9 @@ DLL = "SsmsSqlPlugin.dll"
 DLL_FORMATTING = "SsmsSqlPlugin.Formatting.dll"
 DLL_CORE = "SsmsSqlPlugin.Core.dll"
 DLL_STORAGE = "SsmsSqlPlugin.Storage.dll"
+# 英文卫星程序集（Strings.en.resx 编译产物），必须跟着主程序集一起走
+DLL_RESOURCES = "SsmsSqlPlugin.resources.dll"
+SATELLITE_EN = "en/" + DLL_RESOURCES
 PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
 VSIX = "SSMS-SQLPlugin.vsix"
@@ -137,7 +140,8 @@ def package():
     for name, path in ((DLL, os.path.join(BIN, DLL)),
                        (DLL_FORMATTING, os.path.join(BIN, DLL_FORMATTING)),
                        (DLL_CORE, os.path.join(BIN, DLL_CORE)),
-                       (DLL_STORAGE, os.path.join(BIN, DLL_STORAGE))):
+                       (DLL_STORAGE, os.path.join(BIN, DLL_STORAGE)),
+                       (SATELLITE_EN, os.path.join(BIN, "en", DLL_RESOURCES))):
         if not os.path.isfile(path):
             return fail("找不到 %s" % path)
 
@@ -152,6 +156,7 @@ def package():
         (os.path.join(BIN, DLL_FORMATTING), DLL_FORMATTING),
         (os.path.join(BIN, DLL_CORE), DLL_CORE),
         (os.path.join(BIN, DLL_STORAGE), DLL_STORAGE),
+        (os.path.join(BIN, "en", DLL_RESOURCES), SATELLITE_EN),
     ]
 
     vsix_path = os.path.join(DIST, VSIX)
@@ -196,6 +201,15 @@ def deploy():
         shutil.copy2(os.path.join(BIN if fname != PKGDEF else HERE, fname),
                      os.path.join(target, fname))
         print("       copied %s" % fname)
+
+    # 英文卫星程序集必须放在扩展目录的 en\ 下，ResourceManager 才能找到
+    satellite_src = os.path.join(BIN, "en", DLL_RESOURCES)
+    if not os.path.isfile(satellite_src):
+        return fail("找不到英文卫星程序集: " + satellite_src)
+    satellite_dir = os.path.join(target, "en")
+    os.makedirs(satellite_dir, exist_ok=True)
+    shutil.copy2(satellite_src, os.path.join(satellite_dir, DLL_RESOURCES))
+    print("       copied en\\%s" % DLL_RESOURCES)
 
     shutil.copy2(os.path.join(HERE, MANIFEST), os.path.join(target, MANIFEST))
     print("       copied %s" % MANIFEST)

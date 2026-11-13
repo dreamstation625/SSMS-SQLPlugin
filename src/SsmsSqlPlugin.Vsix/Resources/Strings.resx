@@ -1,0 +1,1062 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- 菜单 -->
+  <data name="Format SQL" xml:space="preserve">
+    <value>格式化 SQL</value>
+  </data>
+  <data name="Format Selection" xml:space="preserve">
+    <value>格式化选定内容</value>
+  </data>
+  <data name="SQL History..." xml:space="preserve">
+    <value>SQL 历史...</value>
+  </data>
+  <data name="Settings..." xml:space="preserve">
+    <value>设置...</value>
+  </data>
+  <data name="Refresh Completion Cache" xml:space="preserve">
+    <value>刷新补全缓存</value>
+  </data>
+  <data name="Open Log" xml:space="preserve">
+    <value>打开日志</value>
+  </data>
+  <data name="Check for Updates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="About SSMS-SQLPlugin" xml:space="preserve">
+    <value>关于 SSMS-SQLPlugin</value>
+  </data>
+  <data name="SSMS-SQLPlugin — SQL formatting, history and completion" xml:space="preserve">
+    <value>SSMS-SQLPlugin — SQL 格式化 / 历史 / 补全</value>
+  </data>
+  <data name="Format the current selection, or the whole document when nothing is selected" xml:space="preserve">
+    <value>格式化当前选区；没有选区则格式化全文</value>
+  </data>
+  <data name="Format only the selected SQL; prompts when nothing is selected" xml:space="preserve">
+    <value>只格式化选中的 SQL；没有选区会提示</value>
+  </data>
+  <data name="Search and filter execution history; double-click to reopen in a query window" xml:space="preserve">
+    <value>搜索、筛选执行历史，双击在查询窗口重开</value>
+  </data>
+  <data name="Formatting style, auto-save and history data" xml:space="preserve">
+    <value>格式化风格、自动记录与历史数据</value>
+  </data>
+  <data name="Reload tables and columns for the current database" xml:space="preserve">
+    <value>重新读取当前数据库的表和字段</value>
+  </data>
+  <data name="Open the plugin log file for troubleshooting" xml:space="preserve">
+    <value>打开插件日志文件（排查问题用）</value>
+  </data>
+  <data name="Open the GitHub repository to see the latest version" xml:space="preserve">
+    <value>打开 GitHub 仓库，查看最新版本</value>
+  </data>
+  <data name="Version and project information" xml:space="preserve">
+    <value>版本与项目信息</value>
+  </data>
+  <data name="Format the current selection or the whole document" xml:space="preserve">
+    <value>格式化当前选区或全文</value>
+  </data>
+  <data name="Format only the selected SQL" xml:space="preserve">
+    <value>只格式化选中的 SQL</value>
+  </data>
+  <data name="Format the current selection or whole document (Ctrl+K, Ctrl+D)" xml:space="preserve">
+    <value>格式化当前选区或全文 (Ctrl+K, Ctrl+D)</value>
+  </data>
+  <data name="Format only the selected SQL (Ctrl+K, Ctrl+F)" xml:space="preserve">
+    <value>只格式化选中的 SQL (Ctrl+K, Ctrl+F)</value>
+  </data>
+
+  <!-- 错误提示 -->
+  <data name="SSMS-SQLPlugin Error" xml:space="preserve">
+    <value>SSMS-SQLPlugin 出错</value>
+  </data>
+  <data name="There is no active SQL query window." xml:space="preserve">
+    <value>当前没有活动的 SQL 查询窗口。</value>
+  </data>
+  <data name="Open or switch to a .sql file and try again." xml:space="preserve">
+    <value>请先打开或切换到 .sql 文件再试。</value>
+  </data>
+  <data name="Formatting Failed" xml:space="preserve">
+    <value>格式化失败</value>
+  </data>
+  <data name="SQL History" xml:space="preserve">
+    <value>SQL 历史</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Log" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="No log file yet:" xml:space="preserve">
+    <value>还没有日志文件：</value>
+  </data>
+  <data name="Failed to Open Log" xml:space="preserve">
+    <value>打开日志失败</value>
+  </data>
+  <data name="Repository: {0}" xml:space="preserve">
+    <value>仓库：{0}</value>
+  </data>
+
+  <!-- 格式化执行 -->
+  <data name="There is no active SQL editor window." xml:space="preserve">
+    <value>没有活动的 SQL 编辑器窗口。</value>
+  </data>
+  <data name="Could not get the editor buffer (hr=0x{0})." xml:space="preserve">
+    <value>取不到编辑器缓冲区（hr=0x{0}）。</value>
+  </data>
+  <data name="Select the SQL to format first." xml:space="preserve">
+    <value>请先选择要格式化的 SQL。</value>
+  </data>
+  <data name="Failed to read the end of the document (hr=0x{0})." xml:space="preserve">
+    <value>读取文档末尾失败（hr=0x{0}）。</value>
+  </data>
+  <data name="Failed to read the text (hr=0x{0})." xml:space="preserve">
+    <value>读取文本失败（hr=0x{0}）。</value>
+  </data>
+  <data name="There is no SQL to format (the range is empty or whitespace only)." xml:space="preserve">
+    <value>没有可格式化的 SQL（范围为空或全是空白）。</value>
+  </data>
+  <data name="Formatting failed: {0}" xml:space="preserve">
+    <value>格式化失败：{0}</value>
+  </data>
+  <data name="Formatting returned no result." xml:space="preserve">
+    <value>格式化没有返回结果。</value>
+  </data>
+  <data name="Already formatted; no changes needed." xml:space="preserve">
+    <value>已是格式化状态，无需改动。</value>
+  </data>
+  <data name="Failed to write back (hr=0x{0})." xml:space="preserve">
+    <value>写回失败（hr=0x{0}）。</value>
+  </data>
+  <data name="({0} batches failed to parse and were left unchanged)" xml:space="preserve">
+    <value>（{0} 个批次解析失败，已原样保留）</value>
+  </data>
+  <data name="Formatted{0}." xml:space="preserve">
+    <value>已格式化{0}。</value>
+  </data>
+
+  <!-- 设置 -->
+  <data name="SSMS-SQLPlugin Settings" xml:space="preserve">
+    <value>SSMS-SQLPlugin 设置</value>
+  </data>
+  <data name="Formatting" xml:space="preserve">
+    <value>格式化</value>
+  </data>
+  <data name="Indent" xml:space="preserve">
+    <value>缩进</value>
+  </data>
+  <data name="2 spaces" xml:space="preserve">
+    <value>2 空格</value>
+  </data>
+  <data name="4 spaces" xml:space="preserve">
+    <value>4 空格</value>
+  </data>
+  <data name="Uppercase keywords" xml:space="preserve">
+    <value>关键字大写</value>
+  </data>
+  <data name="One column per line in SELECT" xml:space="preserve">
+    <value>SELECT 每列一行</value>
+  </data>
+  <data name="Expand subqueries" xml:space="preserve">
+    <value>展开子查询</value>
+  </data>
+  <data name="Auto-uppercase keyword after space" xml:space="preserve">
+    <value>空格后自动大写关键字</value>
+  </data>
+  <data name="Auto-save" xml:space="preserve">
+    <value>自动记录</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>模式</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="On edit" xml:space="preserve">
+    <value>修改后记录</value>
+  </data>
+  <data name="Timer" xml:space="preserve">
+    <value>定时</value>
+  </data>
+  <data name="Interval" xml:space="preserve">
+    <value>间隔</value>
+  </data>
+  <data name="Every {0} min" xml:space="preserve">
+    <value>每 {0} 分钟</value>
+  </data>
+  <data name="Records without executing; saves only when content changes." xml:space="preserve">
+    <value>不执行也会记录；内容有变化才落库。</value>
+  </data>
+  <data name="Saves only when content changes, at the interval selected above." xml:space="preserve">
+    <value>内容有变化才落库，间隔按上面的选择。</value>
+  </data>
+  <data name="Records automatically when content changes, at most once per minute." xml:space="preserve">
+    <value>内容有变化时自动记录，最多每分钟一条。</value>
+  </data>
+  <data name="Auto-save is off." xml:space="preserve">
+    <value>自动记录已关闭。</value>
+  </data>
+  <data name="History Data" xml:space="preserve">
+    <value>历史数据</value>
+  </data>
+  <data name="Open Folder" xml:space="preserve">
+    <value>打开目录</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Failed to open the folder: {0}" xml:space="preserve">
+    <value>打开目录失败：{0}</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="Follow system" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Language saved. Restart SSMS for the change to take effect." xml:space="preserve">
+    <value>语言设置已保存，重启 SSMS 后生效。</value>
+  </data>
+
+  <!-- SQL 历史 -->
+  <data name="Search, preview, reopen and auto-save" xml:space="preserve">
+    <value>搜索、预览、重开与自动记录</value>
+  </data>
+  <data name="Server" xml:space="preserve">
+    <value>服务器</value>
+  </data>
+  <data name="Database" xml:space="preserve">
+    <value>库</value>
+  </data>
+  <data name="Time" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="All time" xml:space="preserve">
+    <value>全部时间</value>
+  </data>
+  <data name="Last 1 day" xml:space="preserve">
+    <value>最近 1 天</value>
+  </data>
+  <data name="Last 7 days" xml:space="preserve">
+    <value>最近 7 天</value>
+  </data>
+  <data name="Last 30 days" xml:space="preserve">
+    <value>最近 30 天</value>
+  </data>
+  <data name="Last 90 days" xml:space="preserve">
+    <value>最近 90 天</value>
+  </data>
+  <data name="All types" xml:space="preserve">
+    <value>全部类型</value>
+  </data>
+  <data name="Execute" xml:space="preserve">
+    <value>执行</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>修改</value>
+  </data>
+  <data name="Search SQL text..." xml:space="preserve">
+    <value>搜索 SQL 文本…</value>
+  </data>
+  <data name="Query" xml:space="preserve">
+    <value>查询</value>
+  </data>
+  <data name="Recycle Bin" xml:space="preserve">
+    <value>回收站</value>
+  </data>
+  <data name="(All)" xml:space="preserve">
+    <value>(全部)</value>
+  </data>
+  <data name="File Name" xml:space="preserve">
+    <value>文件名</value>
+  </data>
+  <data name="Duration" xml:space="preserve">
+    <value>耗时</value>
+  </data>
+  <data name="Rows" xml:space="preserve">
+    <value>行数</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>摘要</value>
+  </data>
+  <data name="Deleted" xml:space="preserve">
+    <value>删除时间</value>
+  </data>
+  <data name="SQL Preview" xml:space="preserve">
+    <value>SQL 预览</value>
+  </data>
+  <data name="Select a record to see the full SQL and connection details" xml:space="preserve">
+    <value>选中一条记录查看完整 SQL 与连接信息</value>
+  </data>
+  <data name="File: {0}" xml:space="preserve">
+    <value>文件：{0}</value>
+  </data>
+  <data name="Ad-hoc query: {0}" xml:space="preserve">
+    <value>临时查询：{0}</value>
+  </data>
+  <data name="Duration unknown" xml:space="preserve">
+    <value>耗时未知</value>
+  </data>
+  <data name="Deleted at {0}" xml:space="preserve">
+    <value>删除于 {0}</value>
+  </data>
+  <data name="(No SQL text was saved for this record)" xml:space="preserve">
+    <value>（这条记录没有保存 SQL 文本）</value>
+  </data>
+  <data name="…(Preview truncated at 100,000 characters; use Copy SQL or double-click to open the full text)" xml:space="preserve">
+    <value>…（超过 10 万字符，预览已截断；完整内容请用「复制 SQL」或双击打开）</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="No matching records" xml:space="preserve">
+    <value>没有匹配的记录</value>
+  </data>
+  <data name="Adjust the search or filters and try again" xml:space="preserve">
+    <value>调整搜索或筛选后再试</value>
+  </data>
+  <data name="Preparing history storage…" xml:space="preserve">
+    <value>历史存储准备中…</value>
+  </data>
+  <data name="History storage is not ready: {0}" xml:space="preserve">
+    <value>历史存储尚未就绪：{0}</value>
+  </data>
+  <data name="Opening database" xml:space="preserve">
+    <value>正在打开数据库</value>
+  </data>
+  <data name="History storage is unavailable: {0}" xml:space="preserve">
+    <value>历史存储不可用：{0}</value>
+  </data>
+  <data name="Querying…" xml:space="preserve">
+    <value>查询中…</value>
+  </data>
+  <data name="Query failed: {0}" xml:space="preserve">
+    <value>查询失败：{0}</value>
+  </data>
+  <data name="Failed to load filters: {0}" xml:space="preserve">
+    <value>读取筛选项失败：{0}</value>
+  </data>
+  <data name="Recycle Bin ·" xml:space="preserve">
+    <value>回收站 ·</value>
+  </data>
+  <data name="Total: {0}" xml:space="preserve">
+    <value>共 {0} 条</value>
+  </data>
+  <data name="(limit {0})" xml:space="preserve">
+    <value>（上限 {0}）</value>
+  </data>
+  <data name="{0} selected" xml:space="preserve">
+    <value>已选 {0} 条</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Open SQL" xml:space="preserve">
+    <value>打开 SQL</value>
+  </data>
+  <data name="Copy SQL" xml:space="preserve">
+    <value>复制 SQL</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>恢复</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Select All" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Open the selected SQL in a new query window (double-click or Enter)" xml:space="preserve">
+    <value>在新查询窗口打开选中 SQL（双击或回车）</value>
+  </data>
+  <data name="Copy the selected SQL (Ctrl+C)" xml:space="preserve">
+    <value>复制选中 SQL（Ctrl+C）</value>
+  </data>
+  <data name="Delete selected records (Ctrl/Shift to multi-select, Ctrl+A to select all, Delete key to delete)" xml:space="preserve">
+    <value>删除选中记录（Ctrl/Shift 多选，Ctrl+A 全选，Delete 键删除）</value>
+  </data>
+  <data name="Select all records in the list (Ctrl+A)" xml:space="preserve">
+    <value>选中当前列表全部记录（Ctrl+A）</value>
+  </data>
+  <data name="Select a record first" xml:space="preserve">
+    <value>先选中一条记录</value>
+  </data>
+  <data name="Select a SQL record first" xml:space="preserve">
+    <value>请先选中一条 SQL 记录</value>
+  </data>
+  <data name="This record has no SQL text" xml:space="preserve">
+    <value>这条记录没有 SQL 文本</value>
+  </data>
+  <data name="({0} selected; the first was copied)" xml:space="preserve">
+    <value>（选中 {0} 条，已复制第一条）</value>
+  </data>
+  <data name="Copied SQL #{0} ({1} characters){2}" xml:space="preserve">
+    <value>已复制 SQL #{0}（{1} 字符）{2}</value>
+  </data>
+  <data name="Copied SQL ({0} characters){1}" xml:space="preserve">
+    <value>已复制 SQL（{0} 字符）{1}</value>
+  </data>
+  <data name="Copy failed: {0}" xml:space="preserve">
+    <value>复制失败：{0}</value>
+  </data>
+  <data name="Select the records to delete first" xml:space="preserve">
+    <value>请先选中要删除的记录</value>
+  </data>
+  <data name="Select the records to restore first" xml:space="preserve">
+    <value>请先选中要恢复的记录</value>
+  </data>
+  <data name="Restore the selected {0} record(s)?" xml:space="preserve">
+    <value>恢复选中的 {0} 条记录？</value>
+  </data>
+  <data name="Delete the selected {0} record(s)?" xml:space="preserve">
+    <value>删除选中的 {0} 条记录？</value>
+  </data>
+  <data name="Deleted records can be restored from the Recycle Bin and are kept for 30 days." xml:space="preserve">
+    <value>删除后可在「回收站」恢复，保留 30 天。</value>
+  </data>
+  <data name="Delete Records" xml:space="preserve">
+    <value>删除记录</value>
+  </data>
+  <data name="Restore Records" xml:space="preserve">
+    <value>恢复记录</value>
+  </data>
+  <data name="Delete failed: {0}" xml:space="preserve">
+    <value>删除失败：{0}</value>
+  </data>
+  <data name="Restore failed: {0}" xml:space="preserve">
+    <value>恢复失败：{0}</value>
+  </data>
+  <data name="Deleted {0} record(s)" xml:space="preserve">
+    <value>已删除 {0} 条</value>
+  </data>
+  <data name="Restored {0} record(s)" xml:space="preserve">
+    <value>已恢复 {0} 条</value>
+  </data>
+  <data name="The current connection is:" xml:space="preserve">
+    <value>当前连接是：</value>
+  </data>
+  <data name="This history item is from:" xml:space="preserve">
+    <value>这条历史来自：</value>
+  </data>
+  <data name="Open it on the current connection anyway?" xml:space="preserve">
+    <value>仍要在当前连接下打开吗？</value>
+  </data>
+  <data name="Connection Mismatch" xml:space="preserve">
+    <value>连接不一致</value>
+  </data>
+  <data name="DTE is unavailable; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>DTE 不可用，SQL 已复制到剪贴板</value>
+  </data>
+  <data name="Could not create a new query window; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>无法新建查询窗口，SQL 已复制到剪贴板</value>
+  </data>
+  <data name="Could not write to the query window; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>无法写入查询窗口，SQL 已复制到剪贴板</value>
+  </data>
+  <data name="Opened in a new query window (history #{0})" xml:space="preserve">
+    <value>已在新的查询窗口打开（历史 #{0}）</value>
+  </data>
+  <data name="Open failed: {0}" xml:space="preserve">
+    <value>打开失败：{0}</value>
+  </data>
+  <data name="SQL was copied to the clipboard" xml:space="preserve">
+    <value>SQL 已复制到剪贴板</value>
+  </data>
+  <data name="History folder: {0}" xml:space="preserve">
+    <value>历史目录：{0}</value>
+  </data>
+  <data name="History storage is unavailable" xml:space="preserve">
+    <value>历史存储不可用</value>
+  </data>
+
+  <!-- 关于 -->
+  <data name="SQL formatting, completion and history for SSMS" xml:space="preserve">
+    <value>SSMS 的 SQL 格式化、补全和历史工具</value>
+  </data>
+  <data name="SQL Formatting" xml:space="preserve">
+    <value>SQL 格式化</value>
+  </data>
+  <data name="Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved." xml:space="preserve">
+    <value>Ctrl+K, Ctrl+D 全文；Ctrl+K, Ctrl+F 选区。保留注释和空行。</value>
+  </data>
+  <data name="Completion" xml:space="preserve">
+    <value>补全</value>
+  </data>
+  <data name="Completes tables, columns and types for the current database; press Tab to commit." xml:space="preserve">
+    <value>按当前库补全表、字段、类型；Tab 提交。</value>
+  </data>
+  <data name="Records executions and edits. Search, preview, copy and open; multi-select delete and a 30-day recycle bin." xml:space="preserve">
+    <value>记录执行和编辑。可搜索、预览、复制、打开；支持多选删除和回收站（30 天）。</value>
+  </data>
+  <data name="File Snapshots" xml:space="preserve">
+    <value>文件快照</value>
+  </data>
+  <data name="Records the version and path when SQL files are opened or saved." xml:space="preserve">
+    <value>打开或保存 SQL 文件时记录版本和路径。</value>
+  </data>
+  <data name="Indent, SELECT list, subquery expansion, auto-uppercase and auto-save." xml:space="preserve">
+    <value>缩进、SELECT 列表、子查询展开、自动大写、自动记录。</value>
+  </data>
+  <data name="Entry Points" xml:space="preserve">
+    <value>入口</value>
+  </data>
+  <data name="Top menu, context menu, refresh completion cache and open log." xml:space="preserve">
+    <value>顶部菜单、右键菜单、刷新补全缓存、打开日志。</value>
+  </data>
+  <data name="Repository" xml:space="preserve">
+    <value>仓库</value>
+  </data>
+  <data name="Config file" xml:space="preserve">
+    <value>配置文件</value>
+  </data>
+  <data name="Log file" xml:space="preserve">
+    <value>日志文件</value>
+  </data>
+
+  <!-- 补全加载窗 -->
+  <data name="SQL Completion" xml:space="preserve">
+    <value>SQL 补全</value>
+  </data>
+  <data name="Loading metadata" xml:space="preserve">
+    <value>正在加载元数据</value>
+  </data>
+  <data name="The first load can take a few seconds for large databases; the window closes automatically" xml:space="preserve">
+    <value>表较多时首次加载需要几秒，完成后自动关闭</value>
+  </data>
+  <data name="Database: {0}" xml:space="preserve">
+    <value>数据库：{0}</value>
+  </data>
+
+
+  <!-- 补全描述 -->
+  <data name="Completion: SELECT" xml:space="preserve">
+    <value>查询数据</value>
+  </data>
+  <data name="Completion: FROM" xml:space="preserve">
+    <value>指定来源表</value>
+  </data>
+  <data name="Completion: WHERE" xml:space="preserve">
+    <value>筛选条件</value>
+  </data>
+  <data name="Completion: GROUP BY" xml:space="preserve">
+    <value>分组</value>
+  </data>
+  <data name="Completion: HAVING" xml:space="preserve">
+    <value>分组后筛选</value>
+  </data>
+  <data name="Completion: ORDER BY" xml:space="preserve">
+    <value>排序</value>
+  </data>
+  <data name="Completion: DISTINCT" xml:space="preserve">
+    <value>去重</value>
+  </data>
+  <data name="Completion: TOP" xml:space="preserve">
+    <value>限制行数</value>
+  </data>
+  <data name="Completion: INNER JOIN" xml:space="preserve">
+    <value>内连接</value>
+  </data>
+  <data name="Completion: LEFT JOIN" xml:space="preserve">
+    <value>左连接</value>
+  </data>
+  <data name="Completion: RIGHT JOIN" xml:space="preserve">
+    <value>右连接</value>
+  </data>
+  <data name="Completion: FULL JOIN" xml:space="preserve">
+    <value>全连接</value>
+  </data>
+  <data name="Completion: CROSS JOIN" xml:space="preserve">
+    <value>交叉连接</value>
+  </data>
+  <data name="Completion: CROSS APPLY" xml:space="preserve">
+    <value>相关表值函数</value>
+  </data>
+  <data name="Completion: OUTER APPLY" xml:space="preserve">
+    <value>相关表值函数</value>
+  </data>
+  <data name="Completion: ON" xml:space="preserve">
+    <value>连接条件</value>
+  </data>
+  <data name="Completion: AS" xml:space="preserve">
+    <value>别名</value>
+  </data>
+  <data name="Completion: AND" xml:space="preserve">
+    <value>并且</value>
+  </data>
+  <data name="Completion: OR" xml:space="preserve">
+    <value>或者</value>
+  </data>
+  <data name="Completion: NOT" xml:space="preserve">
+    <value>取反</value>
+  </data>
+  <data name="Completion: IN" xml:space="preserve">
+    <value>集合内</value>
+  </data>
+  <data name="Completion: EXISTS" xml:space="preserve">
+    <value>存在</value>
+  </data>
+  <data name="Completion: BETWEEN" xml:space="preserve">
+    <value>区间</value>
+  </data>
+  <data name="Completion: LIKE" xml:space="preserve">
+    <value>模式匹配</value>
+  </data>
+  <data name="Completion: IS NULL" xml:space="preserve">
+    <value>为空</value>
+  </data>
+  <data name="Completion: IS NOT NULL" xml:space="preserve">
+    <value>不为空</value>
+  </data>
+  <data name="Completion: CASE" xml:space="preserve">
+    <value>条件表达式</value>
+  </data>
+  <data name="Completion: WHEN" xml:space="preserve">
+    <value>条件</value>
+  </data>
+  <data name="Completion: THEN" xml:space="preserve">
+    <value>结果</value>
+  </data>
+  <data name="Completion: ELSE" xml:space="preserve">
+    <value>否则</value>
+  </data>
+  <data name="Completion: END" xml:space="preserve">
+    <value>结束</value>
+  </data>
+  <data name="Completion: INSERT" xml:space="preserve">
+    <value>插入</value>
+  </data>
+  <data name="Completion: INTO" xml:space="preserve">
+    <value>目标</value>
+  </data>
+  <data name="Completion: VALUES" xml:space="preserve">
+    <value>值列表</value>
+  </data>
+  <data name="Completion: UPDATE" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="Completion: SET" xml:space="preserve">
+    <value>赋值</value>
+  </data>
+  <data name="Completion: DELETE" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Completion: MERGE" xml:space="preserve">
+    <value>合并</value>
+  </data>
+  <data name="Completion: OUTPUT" xml:space="preserve">
+    <value>输出</value>
+  </data>
+  <data name="Completion: DEFAULT" xml:space="preserve">
+    <value>默认值</value>
+  </data>
+  <data name="Completion: CREATE" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="Completion: ALTER" xml:space="preserve">
+    <value>修改</value>
+  </data>
+  <data name="Completion: DROP" xml:space="preserve">
+    <value>删除对象</value>
+  </data>
+  <data name="Completion: TABLE" xml:space="preserve">
+    <value>表</value>
+  </data>
+  <data name="Completion: VIEW" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Completion: PROCEDURE" xml:space="preserve">
+    <value>存储过程</value>
+  </data>
+  <data name="Completion: FUNCTION" xml:space="preserve">
+    <value>函数</value>
+  </data>
+  <data name="Completion: INDEX" xml:space="preserve">
+    <value>索引</value>
+  </data>
+  <data name="Completion: WITH" xml:space="preserve">
+    <value>CTE / 提示</value>
+  </data>
+  <data name="Completion: UNION" xml:space="preserve">
+    <value>并集</value>
+  </data>
+  <data name="Completion: UNION ALL" xml:space="preserve">
+    <value>并集保留重复</value>
+  </data>
+  <data name="Completion: INTERSECT" xml:space="preserve">
+    <value>交集</value>
+  </data>
+  <data name="Completion: EXCEPT" xml:space="preserve">
+    <value>差集</value>
+  </data>
+  <data name="Completion: EXEC" xml:space="preserve">
+    <value>执行</value>
+  </data>
+  <data name="Completion: EXECUTE" xml:space="preserve">
+    <value>执行</value>
+  </data>
+  <data name="Completion: DECLARE" xml:space="preserve">
+    <value>声明变量</value>
+  </data>
+  <data name="Completion: BEGIN" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="Completion: COMMIT" xml:space="preserve">
+    <value>提交事务</value>
+  </data>
+  <data name="Completion: ROLLBACK" xml:space="preserve">
+    <value>回滚事务</value>
+  </data>
+  <data name="Completion: TRAN" xml:space="preserve">
+    <value>事务</value>
+  </data>
+  <data name="Completion: IF" xml:space="preserve">
+    <value>条件</value>
+  </data>
+  <data name="Completion: WHILE" xml:space="preserve">
+    <value>循环</value>
+  </data>
+  <data name="Completion: RETURN" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="Completion: PRINT" xml:space="preserve">
+    <value>打印</value>
+  </data>
+  <data name="Completion: TRY" xml:space="preserve">
+    <value>捕获开始</value>
+  </data>
+  <data name="Completion: CATCH" xml:space="preserve">
+    <value>捕获</value>
+  </data>
+  <data name="Completion: THROW" xml:space="preserve">
+    <value>抛错</value>
+  </data>
+  <data name="Completion: USE" xml:space="preserve">
+    <value>切换数据库</value>
+  </data>
+  <data name="Completion: GO" xml:space="preserve">
+    <value>批分隔符</value>
+  </data>
+  <data name="Completion: NULL" xml:space="preserve">
+    <value>空值</value>
+  </data>
+  <data name="Completion: TRUE" xml:space="preserve">
+    <value>真</value>
+  </data>
+  <data name="Completion: FALSE" xml:space="preserve">
+    <value>假</value>
+  </data>
+  <data name="Completion: COUNT" xml:space="preserve">
+    <value>行数</value>
+  </data>
+  <data name="Completion: SUM" xml:space="preserve">
+    <value>求和</value>
+  </data>
+  <data name="Completion: AVG" xml:space="preserve">
+    <value>平均值</value>
+  </data>
+  <data name="Completion: MIN" xml:space="preserve">
+    <value>最小值</value>
+  </data>
+  <data name="Completion: MAX" xml:space="preserve">
+    <value>最大值</value>
+  </data>
+  <data name="Completion: ISNULL" xml:space="preserve">
+    <value>空值替换</value>
+  </data>
+  <data name="Completion: COALESCE" xml:space="preserve">
+    <value>首个非空值</value>
+  </data>
+  <data name="Completion: NULLIF" xml:space="preserve">
+    <value>相等则空</value>
+  </data>
+  <data name="Completion: CAST" xml:space="preserve">
+    <value>类型转换</value>
+  </data>
+  <data name="Completion: TRY_CAST" xml:space="preserve">
+    <value>安全类型转换</value>
+  </data>
+  <data name="Completion: CONVERT" xml:space="preserve">
+    <value>类型转换</value>
+  </data>
+  <data name="Completion: TRY_CONVERT" xml:space="preserve">
+    <value>安全类型转换</value>
+  </data>
+  <data name="Completion: GETDATE" xml:space="preserve">
+    <value>当前时间</value>
+  </data>
+  <data name="Completion: SYSDATETIME" xml:space="preserve">
+    <value>当前时间</value>
+  </data>
+  <data name="Completion: DATEADD" xml:space="preserve">
+    <value>日期加减</value>
+  </data>
+  <data name="Completion: DATEDIFF" xml:space="preserve">
+    <value>日期差</value>
+  </data>
+  <data name="Completion: DATEPART" xml:space="preserve">
+    <value>日期部分</value>
+  </data>
+  <data name="Completion: FORMAT" xml:space="preserve">
+    <value>格式化</value>
+  </data>
+  <data name="Completion: CONCAT" xml:space="preserve">
+    <value>拼接</value>
+  </data>
+  <data name="Completion: CONCAT_WS" xml:space="preserve">
+    <value>带分隔符拼接</value>
+  </data>
+  <data name="Completion: LEN" xml:space="preserve">
+    <value>长度</value>
+  </data>
+  <data name="Completion: DATALENGTH" xml:space="preserve">
+    <value>字节长度</value>
+  </data>
+  <data name="Completion: SUBSTRING" xml:space="preserve">
+    <value>截取</value>
+  </data>
+  <data name="Completion: LEFT" xml:space="preserve">
+    <value>左侧截取</value>
+  </data>
+  <data name="Completion: RIGHT" xml:space="preserve">
+    <value>右侧截取</value>
+  </data>
+  <data name="Completion: CHARINDEX" xml:space="preserve">
+    <value>查找位置</value>
+  </data>
+  <data name="Completion: REPLACE" xml:space="preserve">
+    <value>替换</value>
+  </data>
+  <data name="Completion: STUFF" xml:space="preserve">
+    <value>替换插入</value>
+  </data>
+  <data name="Completion: UPPER" xml:space="preserve">
+    <value>转大写</value>
+  </data>
+  <data name="Completion: LOWER" xml:space="preserve">
+    <value>转小写</value>
+  </data>
+  <data name="Completion: LTRIM" xml:space="preserve">
+    <value>去左空格</value>
+  </data>
+  <data name="Completion: RTRIM" xml:space="preserve">
+    <value>去右空格</value>
+  </data>
+  <data name="Completion: TRIM" xml:space="preserve">
+    <value>去空格</value>
+  </data>
+  <data name="Completion: ROUND" xml:space="preserve">
+    <value>四舍五入</value>
+  </data>
+  <data name="Completion: ABS" xml:space="preserve">
+    <value>绝对值</value>
+  </data>
+  <data name="Completion: FLOOR" xml:space="preserve">
+    <value>向下取整</value>
+  </data>
+  <data name="Completion: CEILING" xml:space="preserve">
+    <value>向上取整</value>
+  </data>
+  <data name="Completion: ROW_NUMBER" xml:space="preserve">
+    <value>行号</value>
+  </data>
+  <data name="Completion: RANK" xml:space="preserve">
+    <value>排名</value>
+  </data>
+  <data name="Completion: DENSE_RANK" xml:space="preserve">
+    <value>密集排名</value>
+  </data>
+  <data name="Completion: NTILE" xml:space="preserve">
+    <value>分桶</value>
+  </data>
+  <data name="Completion: LAG" xml:space="preserve">
+    <value>前一行</value>
+  </data>
+  <data name="Completion: LEAD" xml:space="preserve">
+    <value>后一行</value>
+  </data>
+  <data name="Completion: STRING_AGG" xml:space="preserve">
+    <value>字符串聚合</value>
+  </data>
+  <data name="Completion: IIF" xml:space="preserve">
+    <value>条件函数</value>
+  </data>
+  <data name="Completion: CHOOSE" xml:space="preserve">
+    <value>按序号选择</value>
+  </data>
+  <data name="Completion: OBJECT_ID" xml:space="preserve">
+    <value>对象 ID</value>
+  </data>
+  <data name="Completion: SCOPE_IDENTITY" xml:space="preserve">
+    <value>当前作用域自增 ID</value>
+  </data>
+  <data name="Completion: INT" xml:space="preserve">
+    <value>整数</value>
+  </data>
+  <data name="Completion: BIGINT" xml:space="preserve">
+    <value>大整数</value>
+  </data>
+  <data name="Completion: SMALLINT" xml:space="preserve">
+    <value>小整数</value>
+  </data>
+  <data name="Completion: TINYINT" xml:space="preserve">
+    <value>微整数</value>
+  </data>
+  <data name="Completion: BIT" xml:space="preserve">
+    <value>布尔</value>
+  </data>
+  <data name="Completion: DECIMAL" xml:space="preserve">
+    <value>定点数</value>
+  </data>
+  <data name="Completion: NUMERIC" xml:space="preserve">
+    <value>定点数</value>
+  </data>
+  <data name="Completion: FLOAT" xml:space="preserve">
+    <value>浮点数</value>
+  </data>
+  <data name="Completion: REAL" xml:space="preserve">
+    <value>浮点数</value>
+  </data>
+  <data name="Completion: MONEY" xml:space="preserve">
+    <value>货币</value>
+  </data>
+  <data name="Completion: DATETIME" xml:space="preserve">
+    <value>日期时间</value>
+  </data>
+  <data name="Completion: DATETIME2" xml:space="preserve">
+    <value>日期时间</value>
+  </data>
+  <data name="Completion: DATE" xml:space="preserve">
+    <value>日期</value>
+  </data>
+  <data name="Completion: TIME" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="Completion: CHAR" xml:space="preserve">
+    <value>定长字符</value>
+  </data>
+  <data name="Completion: VARCHAR" xml:space="preserve">
+    <value>变长字符</value>
+  </data>
+  <data name="Completion: NCHAR" xml:space="preserve">
+    <value>定长 Unicode</value>
+  </data>
+  <data name="Completion: NVARCHAR" xml:space="preserve">
+    <value>变长 Unicode</value>
+  </data>
+  <data name="Completion: TEXT" xml:space="preserve">
+    <value>长文本</value>
+  </data>
+  <data name="Completion: NTEXT" xml:space="preserve">
+    <value>长 Unicode 文本</value>
+  </data>
+  <data name="Completion: BINARY" xml:space="preserve">
+    <value>二进制</value>
+  </data>
+  <data name="Completion: VARBINARY" xml:space="preserve">
+    <value>变长二进制</value>
+  </data>
+  <data name="Completion: UNIQUEIDENTIFIER" xml:space="preserve">
+    <value>GUID</value>
+  </data>
+  <data name="Completion: XML" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="Completion: SQL_VARIANT" xml:space="preserve">
+    <value>任意类型</value>
+  </data>
+  <data name="Table" xml:space="preserve">
+    <value>表</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Table-valued function" xml:space="preserve">
+    <value>表值函数</value>
+  </data>
+  <data name="Stored procedure" xml:space="preserve">
+    <value>存储过程</value>
+  </data>
+  <data name="Temp table" xml:space="preserve">
+    <value>临时表</value>
+  </data>
+</root>

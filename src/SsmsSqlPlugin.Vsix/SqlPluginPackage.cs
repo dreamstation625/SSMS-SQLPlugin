@@ -12,6 +12,7 @@ using SsmsSqlPlugin.Completion;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 using SsmsSqlPlugin.Menus;
 using SsmsSqlPlugin.Settings;
 
@@ -56,6 +57,9 @@ namespace SsmsSqlPlugin
             CancellationToken cancellationToken,
             IProgress<ServiceProgressData> progress)
         {
+            // 语言必须在创建任何窗口/菜单之前定下来；改语言后重启 SSMS 生效。
+            Loc.Configure(FormatOptionsStore.Current.UiLanguage);
+
             Log.Info("================ 包初始化开始 ================");
             Log.Info("程序集: " + typeof(SqlPluginPackage).Assembly.Location);
             Log.Info("版本  : " + typeof(SqlPluginPackage).Assembly.GetName().Version);
@@ -97,6 +101,7 @@ namespace SsmsSqlPlugin
             try
             {
                 await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+                ThemeManager.Initialize(GetService);
                 ExecutionCapture.Start(GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
             }
             catch (Exception ex)
@@ -252,7 +257,8 @@ namespace SsmsSqlPlugin
                         RefreshCompletionCache,
                         OpenLogFile,
                         AboutWindow.OpenRepository,
-                        ShowAbout);
+                        ShowAbout,
+                        ChangeLanguage);
 
                     _topMenu.Install(dte);
                 }
@@ -513,7 +519,8 @@ namespace SsmsSqlPlugin
             {
                 CommandBarInjector.ShowError(
                     "SSMS-SQLPlugin",
-                    "当前没有活动的 SQL 查询窗口。\r\n请先打开或切换到 .sql 文件再试。");
+                    Loc.T("There is no active SQL query window.") + "\r\n" +
+                    Loc.T("Open or switch to a .sql file and try again."));
                 return;
             }
 
@@ -528,7 +535,8 @@ namespace SsmsSqlPlugin
             {
                 CommandBarInjector.ShowError(
                     "SSMS-SQLPlugin",
-                    "当前没有活动的 SQL 查询窗口。\r\n请先打开或切换到 .sql 文件再试。");
+                    Loc.T("There is no active SQL query window.") + "\r\n" +
+                    Loc.T("Open or switch to a .sql file and try again."));
                 return;
             }
 
@@ -548,7 +556,7 @@ namespace SsmsSqlPlugin
 
                 if (outcome.IsError)
                 {
-                    CommandBarInjector.ShowError("格式化失败", outcome.Message);
+                    CommandBarInjector.ShowError(Loc.T("Formatting Failed"), outcome.Message);
                     return false;
                 }
 
@@ -557,7 +565,7 @@ namespace SsmsSqlPlugin
             catch (Exception ex)
             {
                 Log.Error("格式化执行异常", ex);
-                CommandBarInjector.ShowError("格式化失败", ex.Message);
+                CommandBarInjector.ShowError(Loc.T("Formatting Failed"), ex.Message);
                 return false;
             }
         }
@@ -572,7 +580,29 @@ namespace SsmsSqlPlugin
             catch (Exception ex)
             {
                 Log.Error("打开 SQL 历史失败", ex);
-                CommandBarInjector.ShowError("SQL 历史", ex.Message);
+                CommandBarInjector.ShowError(Loc.T("SQL History"), ex.Message);
+            }
+        }
+
+        private void ChangeLanguage(string language)
+        {
+            try
+            {
+                if (string.Equals(FormatOptionsStore.Current.UiLanguage, language,
+                        StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                FormatOptionsStore.Update(options => options.UiLanguage = language);
+                System.Windows.Forms.MessageBox.Show(
+                    Loc.T("Language saved. Restart SSMS for the change to take effect."),
+                    "SSMS-SQLPlugin",
+                    System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("切换语言失败", ex);
+                CommandBarInjector.ShowError("SSMS-SQLPlugin", ex.Message);
             }
         }
 
@@ -586,7 +616,7 @@ namespace SsmsSqlPlugin
             catch (Exception ex)
             {
                 Log.Error("打开设置失败", ex);
-                CommandBarInjector.ShowError("设置", ex.Message);
+                CommandBarInjector.ShowError(Loc.T("Settings"), ex.Message);
             }
         }
 
@@ -609,14 +639,15 @@ namespace SsmsSqlPlugin
                 string path = Infrastructure.Log.LogFilePath;
                 if (!System.IO.File.Exists(path))
                 {
-                    CommandBarInjector.ShowError("日志", "还没有日志文件：\r\n" + path);
+                    CommandBarInjector.ShowError(Loc.T("Log"),
+                        Loc.T("No log file yet:") + "\r\n" + path);
                     return;
                 }
                 Process.Start("notepad.exe", "\"" + path + "\"");
             }
             catch (Exception ex)
             {
-                CommandBarInjector.ShowError("打开日志失败", ex.Message);
+                CommandBarInjector.ShowError(Loc.T("Failed to Open Log"), ex.Message);
             }
         }
 
@@ -644,8 +675,8 @@ namespace SsmsSqlPlugin
                 Log.Error("打开关于窗口失败", ex);
                 System.Windows.Forms.MessageBox.Show(
                     "SSMS-SQLPlugin\r\n\r\n" +
-                    "仓库：https://github.com/dreamstation625/SSMS-SQLPlugin",
-                    "关于 SSMS-SQLPlugin",
+                    Loc.F("Repository: {0}", "https://github.com/dreamstation625/SSMS-SQLPlugin"),
+                    Loc.T("About SSMS-SQLPlugin"),
                     System.Windows.Forms.MessageBoxButtons.OK,
                     System.Windows.Forms.MessageBoxIcon.Information);
             }

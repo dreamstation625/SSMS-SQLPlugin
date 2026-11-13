@@ -17,6 +17,8 @@ namespace SsmsSqlPlugin.Editor
         public bool ExpandSubqueries = true;
         public bool AutoUppercaseKeywordOnSpace = true;
         public int MaxLineWidth = 100;
+        /// <summary>界面语言：auto / zh-CN / en，重启 SSMS 后生效。</summary>
+        public string UiLanguage = "auto";
 
         public FormatOptionsSnapshot Clone()
         {
@@ -28,6 +30,7 @@ namespace SsmsSqlPlugin.Editor
                 ExpandSubqueries = ExpandSubqueries,
                 AutoUppercaseKeywordOnSpace = AutoUppercaseKeywordOnSpace,
                 MaxLineWidth = MaxLineWidth,
+                UiLanguage = UiLanguage,
             };
         }
 
@@ -119,7 +122,8 @@ namespace SsmsSqlPlugin.Editor
                 sb.AppendLine("  \"verticalSelectList\": " + Bool(s.VerticalSelectList) + ",");
                 sb.AppendLine("  \"expandSubqueries\": " + Bool(s.ExpandSubqueries) + ",");
                 sb.AppendLine("  \"autoUppercaseKeywordOnSpace\": " + Bool(s.AutoUppercaseKeywordOnSpace) + ",");
-                sb.AppendLine("  \"maxLineWidth\": " + s.MaxLineWidth);
+                sb.AppendLine("  \"maxLineWidth\": " + s.MaxLineWidth + ",");
+                sb.AppendLine("  \"uiLanguage\": " + Quote(s.UiLanguage));
                 sb.AppendLine("}");
 
                 File.WriteAllText(FilePath, sb.ToString(), new UTF8Encoding(false));
@@ -146,6 +150,7 @@ namespace SsmsSqlPlugin.Editor
                 s.ExpandSubqueries = ReadBool(json, "expandSubqueries", s.ExpandSubqueries);
                 s.AutoUppercaseKeywordOnSpace = ReadBool(json, "autoUppercaseKeywordOnSpace", s.AutoUppercaseKeywordOnSpace);
                 s.MaxLineWidth = ReadInt(json, "maxLineWidth", s.MaxLineWidth);
+                s.UiLanguage = ReadString(json, "uiLanguage", s.UiLanguage);
             }
             catch (Exception ex)
             {
@@ -156,6 +161,15 @@ namespace SsmsSqlPlugin.Editor
         }
 
         private static string Bool(bool b) => b ? "true" : "false";
+
+        /// <summary>语言值是固定枚举，写盘前把可能手改出来的引号/反斜杠清掉。</summary>
+        private static string Quote(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "\"auto\"";
+
+            string cleaned = value.Replace("\\", string.Empty).Replace("\"", string.Empty).Trim();
+            return "\"" + (cleaned.Length == 0 ? "auto" : cleaned) + "\"";
+        }
 
         private static int ReadInt(string json, string key, int fallback)
         {
@@ -169,6 +183,18 @@ namespace SsmsSqlPlugin.Editor
             string raw = ReadRaw(json, key);
             if (raw == null) return fallback;
             return string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ReadString(string json, string key, string fallback)
+        {
+            string raw = ReadRaw(json, key);
+            if (string.IsNullOrEmpty(raw)) return fallback;
+
+            raw = raw.Trim();
+            if (raw.Length >= 2 && raw[0] == '"' && raw[raw.Length - 1] == '"')
+                raw = raw.Substring(1, raw.Length - 2);
+
+            return raw.Length == 0 ? fallback : raw;
         }
 
         /// <summary>从极简 JSON 里抠出 "key": value 的 value。</summary>

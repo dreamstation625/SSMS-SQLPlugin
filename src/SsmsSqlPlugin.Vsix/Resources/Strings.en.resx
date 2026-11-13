@@ -1,0 +1,1049 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Format SQL" xml:space="preserve">
+    <value>Format SQL</value>
+  </data>
+  <data name="Format Selection" xml:space="preserve">
+    <value>Format Selection</value>
+  </data>
+  <data name="SQL History..." xml:space="preserve">
+    <value>SQL History...</value>
+  </data>
+  <data name="Settings..." xml:space="preserve">
+    <value>Settings...</value>
+  </data>
+  <data name="Refresh Completion Cache" xml:space="preserve">
+    <value>Refresh Completion Cache</value>
+  </data>
+  <data name="Open Log" xml:space="preserve">
+    <value>Open Log</value>
+  </data>
+  <data name="Check for Updates" xml:space="preserve">
+    <value>Check for Updates</value>
+  </data>
+  <data name="About SSMS-SQLPlugin" xml:space="preserve">
+    <value>About SSMS-SQLPlugin</value>
+  </data>
+  <data name="SSMS-SQLPlugin — SQL formatting, history and completion" xml:space="preserve">
+    <value>SSMS-SQLPlugin — SQL formatting, history and completion</value>
+  </data>
+  <data name="Format the current selection, or the whole document when nothing is selected" xml:space="preserve">
+    <value>Format the current selection, or the whole document when nothing is selected</value>
+  </data>
+  <data name="Format only the selected SQL; prompts when nothing is selected" xml:space="preserve">
+    <value>Format only the selected SQL; prompts when nothing is selected</value>
+  </data>
+  <data name="Search and filter execution history; double-click to reopen in a query window" xml:space="preserve">
+    <value>Search and filter execution history; double-click to reopen in a query window</value>
+  </data>
+  <data name="Formatting style, auto-save and history data" xml:space="preserve">
+    <value>Formatting style, auto-save and history data</value>
+  </data>
+  <data name="Reload tables and columns for the current database" xml:space="preserve">
+    <value>Reload tables and columns for the current database</value>
+  </data>
+  <data name="Open the plugin log file for troubleshooting" xml:space="preserve">
+    <value>Open the plugin log file for troubleshooting</value>
+  </data>
+  <data name="Open the GitHub repository to see the latest version" xml:space="preserve">
+    <value>Open the GitHub repository to see the latest version</value>
+  </data>
+  <data name="Version and project information" xml:space="preserve">
+    <value>Version and project information</value>
+  </data>
+  <data name="Format the current selection or the whole document" xml:space="preserve">
+    <value>Format the current selection or the whole document</value>
+  </data>
+  <data name="Format only the selected SQL" xml:space="preserve">
+    <value>Format only the selected SQL</value>
+  </data>
+  <data name="Format the current selection or whole document (Ctrl+K, Ctrl+D)" xml:space="preserve">
+    <value>Format the current selection or whole document (Ctrl+K, Ctrl+D)</value>
+  </data>
+  <data name="Format only the selected SQL (Ctrl+K, Ctrl+F)" xml:space="preserve">
+    <value>Format only the selected SQL (Ctrl+K, Ctrl+F)</value>
+  </data>
+  <data name="SSMS-SQLPlugin Error" xml:space="preserve">
+    <value>SSMS-SQLPlugin Error</value>
+  </data>
+  <data name="There is no active SQL query window." xml:space="preserve">
+    <value>There is no active SQL query window.</value>
+  </data>
+  <data name="Open or switch to a .sql file and try again." xml:space="preserve">
+    <value>Open or switch to a .sql file and try again.</value>
+  </data>
+  <data name="Formatting Failed" xml:space="preserve">
+    <value>Formatting Failed</value>
+  </data>
+  <data name="SQL History" xml:space="preserve">
+    <value>SQL History</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Log" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="No log file yet:" xml:space="preserve">
+    <value>No log file yet:</value>
+  </data>
+  <data name="Failed to Open Log" xml:space="preserve">
+    <value>Failed to Open Log</value>
+  </data>
+  <data name="Repository: {0}" xml:space="preserve">
+    <value>Repository: {0}</value>
+  </data>
+  <data name="There is no active SQL editor window." xml:space="preserve">
+    <value>There is no active SQL editor window.</value>
+  </data>
+  <data name="Could not get the editor buffer (hr=0x{0})." xml:space="preserve">
+    <value>Could not get the editor buffer (hr=0x{0}).</value>
+  </data>
+  <data name="Select the SQL to format first." xml:space="preserve">
+    <value>Select the SQL to format first.</value>
+  </data>
+  <data name="Failed to read the end of the document (hr=0x{0})." xml:space="preserve">
+    <value>Failed to read the end of the document (hr=0x{0}).</value>
+  </data>
+  <data name="Failed to read the text (hr=0x{0})." xml:space="preserve">
+    <value>Failed to read the text (hr=0x{0}).</value>
+  </data>
+  <data name="There is no SQL to format (the range is empty or whitespace only)." xml:space="preserve">
+    <value>There is no SQL to format (the range is empty or whitespace only).</value>
+  </data>
+  <data name="Formatting failed: {0}" xml:space="preserve">
+    <value>Formatting failed: {0}</value>
+  </data>
+  <data name="Formatting returned no result." xml:space="preserve">
+    <value>Formatting returned no result.</value>
+  </data>
+  <data name="Already formatted; no changes needed." xml:space="preserve">
+    <value>Already formatted; no changes needed.</value>
+  </data>
+  <data name="Failed to write back (hr=0x{0})." xml:space="preserve">
+    <value>Failed to write back (hr=0x{0}).</value>
+  </data>
+  <data name="({0} batches failed to parse and were left unchanged)" xml:space="preserve">
+    <value> ({0} batches failed to parse and were left unchanged)</value>
+  </data>
+  <data name="Formatted{0}." xml:space="preserve">
+    <value>Formatted{0}.</value>
+  </data>
+  <data name="SSMS-SQLPlugin Settings" xml:space="preserve">
+    <value>SSMS-SQLPlugin Settings</value>
+  </data>
+  <data name="Formatting" xml:space="preserve">
+    <value>Formatting</value>
+  </data>
+  <data name="Indent" xml:space="preserve">
+    <value>Indent</value>
+  </data>
+  <data name="2 spaces" xml:space="preserve">
+    <value>2 spaces</value>
+  </data>
+  <data name="4 spaces" xml:space="preserve">
+    <value>4 spaces</value>
+  </data>
+  <data name="Uppercase keywords" xml:space="preserve">
+    <value>Uppercase keywords</value>
+  </data>
+  <data name="One column per line in SELECT" xml:space="preserve">
+    <value>One column per line in SELECT</value>
+  </data>
+  <data name="Expand subqueries" xml:space="preserve">
+    <value>Expand subqueries</value>
+  </data>
+  <data name="Auto-uppercase keyword after space" xml:space="preserve">
+    <value>Auto-uppercase keyword after space</value>
+  </data>
+  <data name="Auto-save" xml:space="preserve">
+    <value>Auto-save</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="On edit" xml:space="preserve">
+    <value>On edit</value>
+  </data>
+  <data name="Timer" xml:space="preserve">
+    <value>Timer</value>
+  </data>
+  <data name="Interval" xml:space="preserve">
+    <value>Interval</value>
+  </data>
+  <data name="Every {0} min" xml:space="preserve">
+    <value>Every {0} min</value>
+  </data>
+  <data name="Records without executing; saves only when content changes." xml:space="preserve">
+    <value>Records without executing; saves only when content changes.</value>
+  </data>
+  <data name="Saves only when content changes, at the interval selected above." xml:space="preserve">
+    <value>Saves only when content changes, at the interval selected above.</value>
+  </data>
+  <data name="Records automatically when content changes, at most once per minute." xml:space="preserve">
+    <value>Records automatically when content changes, at most once per minute.</value>
+  </data>
+  <data name="Auto-save is off." xml:space="preserve">
+    <value>Auto-save is off.</value>
+  </data>
+  <data name="History Data" xml:space="preserve">
+    <value>History Data</value>
+  </data>
+  <data name="Open Folder" xml:space="preserve">
+    <value>Open Folder</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Failed to open the folder: {0}" xml:space="preserve">
+    <value>Failed to open the folder: {0}</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Follow system" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>Chinese</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Language saved. Restart SSMS for the change to take effect." xml:space="preserve">
+    <value>Language saved. Restart SSMS for the change to take effect.</value>
+  </data>
+  <data name="Search, preview, reopen and auto-save" xml:space="preserve">
+    <value>Search, preview, reopen and auto-save</value>
+  </data>
+  <data name="Server" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="Database" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="All time" xml:space="preserve">
+    <value>All time</value>
+  </data>
+  <data name="Last 1 day" xml:space="preserve">
+    <value>Last 1 day</value>
+  </data>
+  <data name="Last 7 days" xml:space="preserve">
+    <value>Last 7 days</value>
+  </data>
+  <data name="Last 30 days" xml:space="preserve">
+    <value>Last 30 days</value>
+  </data>
+  <data name="Last 90 days" xml:space="preserve">
+    <value>Last 90 days</value>
+  </data>
+  <data name="All types" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Execute" xml:space="preserve">
+    <value>Execute</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Search SQL text..." xml:space="preserve">
+    <value>Search SQL text...</value>
+  </data>
+  <data name="Query" xml:space="preserve">
+    <value>Query</value>
+  </data>
+  <data name="Recycle Bin" xml:space="preserve">
+    <value>Recycle Bin</value>
+  </data>
+  <data name="(All)" xml:space="preserve">
+    <value>(All)</value>
+  </data>
+  <data name="File Name" xml:space="preserve">
+    <value>File Name</value>
+  </data>
+  <data name="Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Rows" xml:space="preserve">
+    <value>Rows</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Deleted" xml:space="preserve">
+    <value>Deleted</value>
+  </data>
+  <data name="SQL Preview" xml:space="preserve">
+    <value>SQL Preview</value>
+  </data>
+  <data name="Select a record to see the full SQL and connection details" xml:space="preserve">
+    <value>Select a record to see the full SQL and connection details</value>
+  </data>
+  <data name="File: {0}" xml:space="preserve">
+    <value>File: {0}</value>
+  </data>
+  <data name="Ad-hoc query: {0}" xml:space="preserve">
+    <value>Ad-hoc query: {0}</value>
+  </data>
+  <data name="Duration unknown" xml:space="preserve">
+    <value>Duration unknown</value>
+  </data>
+  <data name="Deleted at {0}" xml:space="preserve">
+    <value>Deleted at {0}</value>
+  </data>
+  <data name="(No SQL text was saved for this record)" xml:space="preserve">
+    <value>(No SQL text was saved for this record)</value>
+  </data>
+  <data name="…(Preview truncated at 100,000 characters; use Copy SQL or double-click to open the full text)" xml:space="preserve">
+    <value>…(Preview truncated at 100,000 characters; use Copy SQL or double-click to open the full text)</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>Succeeded</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="No matching records" xml:space="preserve">
+    <value>No matching records</value>
+  </data>
+  <data name="Adjust the search or filters and try again" xml:space="preserve">
+    <value>Adjust the search or filters and try again</value>
+  </data>
+  <data name="Preparing history storage…" xml:space="preserve">
+    <value>Preparing history storage…</value>
+  </data>
+  <data name="History storage is not ready: {0}" xml:space="preserve">
+    <value>History storage is not ready: {0}</value>
+  </data>
+  <data name="Opening database" xml:space="preserve">
+    <value>Opening database</value>
+  </data>
+  <data name="History storage is unavailable: {0}" xml:space="preserve">
+    <value>History storage is unavailable: {0}</value>
+  </data>
+  <data name="Querying…" xml:space="preserve">
+    <value>Querying…</value>
+  </data>
+  <data name="Query failed: {0}" xml:space="preserve">
+    <value>Query failed: {0}</value>
+  </data>
+  <data name="Failed to load filters: {0}" xml:space="preserve">
+    <value>Failed to load filters: {0}</value>
+  </data>
+  <data name="Recycle Bin ·" xml:space="preserve">
+    <value>Recycle Bin ·</value>
+  </data>
+  <data name="Total: {0}" xml:space="preserve">
+    <value>Total: {0}</value>
+  </data>
+  <data name="(limit {0})" xml:space="preserve">
+    <value> (limit {0})</value>
+  </data>
+  <data name="{0} selected" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Open SQL" xml:space="preserve">
+    <value>Open SQL</value>
+  </data>
+  <data name="Copy SQL" xml:space="preserve">
+    <value>Copy SQL</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Select All" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="Open the selected SQL in a new query window (double-click or Enter)" xml:space="preserve">
+    <value>Open the selected SQL in a new query window (double-click or Enter)</value>
+  </data>
+  <data name="Copy the selected SQL (Ctrl+C)" xml:space="preserve">
+    <value>Copy the selected SQL (Ctrl+C)</value>
+  </data>
+  <data name="Delete selected records (Ctrl/Shift to multi-select, Ctrl+A to select all, Delete key to delete)" xml:space="preserve">
+    <value>Delete selected records (Ctrl/Shift to multi-select, Ctrl+A to select all, Delete key to delete)</value>
+  </data>
+  <data name="Select all records in the list (Ctrl+A)" xml:space="preserve">
+    <value>Select all records in the list (Ctrl+A)</value>
+  </data>
+  <data name="Select a record first" xml:space="preserve">
+    <value>Select a record first</value>
+  </data>
+  <data name="Select a SQL record first" xml:space="preserve">
+    <value>Select a SQL record first</value>
+  </data>
+  <data name="This record has no SQL text" xml:space="preserve">
+    <value>This record has no SQL text</value>
+  </data>
+  <data name="({0} selected; the first was copied)" xml:space="preserve">
+    <value> ({0} selected; the first was copied)</value>
+  </data>
+  <data name="Copied SQL #{0} ({1} characters){2}" xml:space="preserve">
+    <value>Copied SQL #{0} ({1} characters){2}</value>
+  </data>
+  <data name="Copied SQL ({0} characters){1}" xml:space="preserve">
+    <value>Copied SQL ({0} characters){1}</value>
+  </data>
+  <data name="Copy failed: {0}" xml:space="preserve">
+    <value>Copy failed: {0}</value>
+  </data>
+  <data name="Select the records to delete first" xml:space="preserve">
+    <value>Select the records to delete first</value>
+  </data>
+  <data name="Select the records to restore first" xml:space="preserve">
+    <value>Select the records to restore first</value>
+  </data>
+  <data name="Restore the selected {0} record(s)?" xml:space="preserve">
+    <value>Restore the selected {0} record(s)?</value>
+  </data>
+  <data name="Delete the selected {0} record(s)?" xml:space="preserve">
+    <value>Delete the selected {0} record(s)?</value>
+  </data>
+  <data name="Deleted records can be restored from the Recycle Bin and are kept for 30 days." xml:space="preserve">
+    <value>Deleted records can be restored from the Recycle Bin and are kept for 30 days.</value>
+  </data>
+  <data name="Delete Records" xml:space="preserve">
+    <value>Delete Records</value>
+  </data>
+  <data name="Restore Records" xml:space="preserve">
+    <value>Restore Records</value>
+  </data>
+  <data name="Delete failed: {0}" xml:space="preserve">
+    <value>Delete failed: {0}</value>
+  </data>
+  <data name="Restore failed: {0}" xml:space="preserve">
+    <value>Restore failed: {0}</value>
+  </data>
+  <data name="Deleted {0} record(s)" xml:space="preserve">
+    <value>Deleted {0} record(s)</value>
+  </data>
+  <data name="Restored {0} record(s)" xml:space="preserve">
+    <value>Restored {0} record(s)</value>
+  </data>
+  <data name="The current connection is:" xml:space="preserve">
+    <value>The current connection is:</value>
+  </data>
+  <data name="This history item is from:" xml:space="preserve">
+    <value>This history item is from:</value>
+  </data>
+  <data name="Open it on the current connection anyway?" xml:space="preserve">
+    <value>Open it on the current connection anyway?</value>
+  </data>
+  <data name="Connection Mismatch" xml:space="preserve">
+    <value>Connection Mismatch</value>
+  </data>
+  <data name="DTE is unavailable; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>DTE is unavailable; the SQL was copied to the clipboard</value>
+  </data>
+  <data name="Could not create a new query window; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>Could not create a new query window; the SQL was copied to the clipboard</value>
+  </data>
+  <data name="Could not write to the query window; the SQL was copied to the clipboard" xml:space="preserve">
+    <value>Could not write to the query window; the SQL was copied to the clipboard</value>
+  </data>
+  <data name="Opened in a new query window (history #{0})" xml:space="preserve">
+    <value>Opened in a new query window (history #{0})</value>
+  </data>
+  <data name="Open failed: {0}" xml:space="preserve">
+    <value>Open failed: {0}</value>
+  </data>
+  <data name="SQL was copied to the clipboard" xml:space="preserve">
+    <value>SQL was copied to the clipboard</value>
+  </data>
+  <data name="History folder: {0}" xml:space="preserve">
+    <value>History folder: {0}</value>
+  </data>
+  <data name="History storage is unavailable" xml:space="preserve">
+    <value>History storage is unavailable</value>
+  </data>
+  <data name="SQL formatting, completion and history for SSMS" xml:space="preserve">
+    <value>SQL formatting, completion and history for SSMS</value>
+  </data>
+  <data name="SQL Formatting" xml:space="preserve">
+    <value>SQL Formatting</value>
+  </data>
+  <data name="Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved." xml:space="preserve">
+    <value>Ctrl+K, Ctrl+D for the whole document; Ctrl+K, Ctrl+F for the selection. Comments and blank lines are preserved.</value>
+  </data>
+  <data name="Completion" xml:space="preserve">
+    <value>Completion</value>
+  </data>
+  <data name="Completes tables, columns and types for the current database; press Tab to commit." xml:space="preserve">
+    <value>Completes tables, columns and types for the current database; press Tab to commit.</value>
+  </data>
+  <data name="Records executions and edits. Search, preview, copy and open; multi-select delete and a 30-day recycle bin." xml:space="preserve">
+    <value>Records executions and edits. Search, preview, copy and open; multi-select delete and a 30-day recycle bin.</value>
+  </data>
+  <data name="File Snapshots" xml:space="preserve">
+    <value>File Snapshots</value>
+  </data>
+  <data name="Records the version and path when SQL files are opened or saved." xml:space="preserve">
+    <value>Records the version and path when SQL files are opened or saved.</value>
+  </data>
+  <data name="Indent, SELECT list, subquery expansion, auto-uppercase and auto-save." xml:space="preserve">
+    <value>Indent, SELECT list, subquery expansion, auto-uppercase and auto-save.</value>
+  </data>
+  <data name="Entry Points" xml:space="preserve">
+    <value>Entry Points</value>
+  </data>
+  <data name="Top menu, context menu, refresh completion cache and open log." xml:space="preserve">
+    <value>Top menu, context menu, refresh completion cache and open log.</value>
+  </data>
+  <data name="Repository" xml:space="preserve">
+    <value>Repository</value>
+  </data>
+  <data name="Config file" xml:space="preserve">
+    <value>Config file</value>
+  </data>
+  <data name="Log file" xml:space="preserve">
+    <value>Log file</value>
+  </data>
+  <data name="SQL Completion" xml:space="preserve">
+    <value>SQL Completion</value>
+  </data>
+  <data name="Loading metadata" xml:space="preserve">
+    <value>Loading metadata</value>
+  </data>
+  <data name="The first load can take a few seconds for large databases; the window closes automatically" xml:space="preserve">
+    <value>The first load can take a few seconds for large databases; the window closes automatically</value>
+  </data>
+  <data name="Database: {0}" xml:space="preserve">
+    <value>Database: {0}</value>
+  </data>
+
+
+  <!-- Completion descriptions -->
+  <data name="Completion: SELECT" xml:space="preserve">
+    <value>Queries data</value>
+  </data>
+  <data name="Completion: FROM" xml:space="preserve">
+    <value>Source table</value>
+  </data>
+  <data name="Completion: WHERE" xml:space="preserve">
+    <value>Filter condition</value>
+  </data>
+  <data name="Completion: GROUP BY" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="Completion: HAVING" xml:space="preserve">
+    <value>Filter after grouping</value>
+  </data>
+  <data name="Completion: ORDER BY" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="Completion: DISTINCT" xml:space="preserve">
+    <value>Distinct</value>
+  </data>
+  <data name="Completion: TOP" xml:space="preserve">
+    <value>Limit rows</value>
+  </data>
+  <data name="Completion: INNER JOIN" xml:space="preserve">
+    <value>Inner join</value>
+  </data>
+  <data name="Completion: LEFT JOIN" xml:space="preserve">
+    <value>Left join</value>
+  </data>
+  <data name="Completion: RIGHT JOIN" xml:space="preserve">
+    <value>Right join</value>
+  </data>
+  <data name="Completion: FULL JOIN" xml:space="preserve">
+    <value>Full join</value>
+  </data>
+  <data name="Completion: CROSS JOIN" xml:space="preserve">
+    <value>Cross join</value>
+  </data>
+  <data name="Completion: CROSS APPLY" xml:space="preserve">
+    <value>Correlated table-valued function</value>
+  </data>
+  <data name="Completion: OUTER APPLY" xml:space="preserve">
+    <value>Correlated table-valued function</value>
+  </data>
+  <data name="Completion: ON" xml:space="preserve">
+    <value>Join condition</value>
+  </data>
+  <data name="Completion: AS" xml:space="preserve">
+    <value>Alias</value>
+  </data>
+  <data name="Completion: AND" xml:space="preserve">
+    <value>And</value>
+  </data>
+  <data name="Completion: OR" xml:space="preserve">
+    <value>Or</value>
+  </data>
+  <data name="Completion: NOT" xml:space="preserve">
+    <value>Negate</value>
+  </data>
+  <data name="Completion: IN" xml:space="preserve">
+    <value>In set</value>
+  </data>
+  <data name="Completion: EXISTS" xml:space="preserve">
+    <value>Exists</value>
+  </data>
+  <data name="Completion: BETWEEN" xml:space="preserve">
+    <value>Range</value>
+  </data>
+  <data name="Completion: LIKE" xml:space="preserve">
+    <value>Pattern match</value>
+  </data>
+  <data name="Completion: IS NULL" xml:space="preserve">
+    <value>Is null</value>
+  </data>
+  <data name="Completion: IS NOT NULL" xml:space="preserve">
+    <value>Is not null</value>
+  </data>
+  <data name="Completion: CASE" xml:space="preserve">
+    <value>Conditional expression</value>
+  </data>
+  <data name="Completion: WHEN" xml:space="preserve">
+    <value>Condition</value>
+  </data>
+  <data name="Completion: THEN" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="Completion: ELSE" xml:space="preserve">
+    <value>Else</value>
+  </data>
+  <data name="Completion: END" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="Completion: INSERT" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="Completion: INTO" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="Completion: VALUES" xml:space="preserve">
+    <value>Value list</value>
+  </data>
+  <data name="Completion: UPDATE" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="Completion: SET" xml:space="preserve">
+    <value>Assign</value>
+  </data>
+  <data name="Completion: DELETE" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Completion: MERGE" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Completion: OUTPUT" xml:space="preserve">
+    <value>Output</value>
+  </data>
+  <data name="Completion: DEFAULT" xml:space="preserve">
+    <value>Default value</value>
+  </data>
+  <data name="Completion: CREATE" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Completion: ALTER" xml:space="preserve">
+    <value>Alter</value>
+  </data>
+  <data name="Completion: DROP" xml:space="preserve">
+    <value>Drop object</value>
+  </data>
+  <data name="Completion: TABLE" xml:space="preserve">
+    <value>Table</value>
+  </data>
+  <data name="Completion: VIEW" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Completion: PROCEDURE" xml:space="preserve">
+    <value>Stored procedure</value>
+  </data>
+  <data name="Completion: FUNCTION" xml:space="preserve">
+    <value>Function</value>
+  </data>
+  <data name="Completion: INDEX" xml:space="preserve">
+    <value>Index</value>
+  </data>
+  <data name="Completion: WITH" xml:space="preserve">
+    <value>CTE / hint</value>
+  </data>
+  <data name="Completion: UNION" xml:space="preserve">
+    <value>Union</value>
+  </data>
+  <data name="Completion: UNION ALL" xml:space="preserve">
+    <value>Union all</value>
+  </data>
+  <data name="Completion: INTERSECT" xml:space="preserve">
+    <value>Intersect</value>
+  </data>
+  <data name="Completion: EXCEPT" xml:space="preserve">
+    <value>Except</value>
+  </data>
+  <data name="Completion: EXEC" xml:space="preserve">
+    <value>Execute</value>
+  </data>
+  <data name="Completion: EXECUTE" xml:space="preserve">
+    <value>Execute</value>
+  </data>
+  <data name="Completion: DECLARE" xml:space="preserve">
+    <value>Declare variable</value>
+  </data>
+  <data name="Completion: BEGIN" xml:space="preserve">
+    <value>Begin</value>
+  </data>
+  <data name="Completion: COMMIT" xml:space="preserve">
+    <value>Commit transaction</value>
+  </data>
+  <data name="Completion: ROLLBACK" xml:space="preserve">
+    <value>Roll back transaction</value>
+  </data>
+  <data name="Completion: TRAN" xml:space="preserve">
+    <value>Transaction</value>
+  </data>
+  <data name="Completion: IF" xml:space="preserve">
+    <value>Condition</value>
+  </data>
+  <data name="Completion: WHILE" xml:space="preserve">
+    <value>Loop</value>
+  </data>
+  <data name="Completion: RETURN" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Completion: PRINT" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="Completion: TRY" xml:space="preserve">
+    <value>Try block</value>
+  </data>
+  <data name="Completion: CATCH" xml:space="preserve">
+    <value>Catch</value>
+  </data>
+  <data name="Completion: THROW" xml:space="preserve">
+    <value>Throw</value>
+  </data>
+  <data name="Completion: USE" xml:space="preserve">
+    <value>Switch database</value>
+  </data>
+  <data name="Completion: GO" xml:space="preserve">
+    <value>Batch separator</value>
+  </data>
+  <data name="Completion: NULL" xml:space="preserve">
+    <value>NULL</value>
+  </data>
+  <data name="Completion: TRUE" xml:space="preserve">
+    <value>True</value>
+  </data>
+  <data name="Completion: FALSE" xml:space="preserve">
+    <value>False</value>
+  </data>
+  <data name="Completion: COUNT" xml:space="preserve">
+    <value>Row count</value>
+  </data>
+  <data name="Completion: SUM" xml:space="preserve">
+    <value>Sum</value>
+  </data>
+  <data name="Completion: AVG" xml:space="preserve">
+    <value>Average</value>
+  </data>
+  <data name="Completion: MIN" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="Completion: MAX" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="Completion: ISNULL" xml:space="preserve">
+    <value>Replace null</value>
+  </data>
+  <data name="Completion: COALESCE" xml:space="preserve">
+    <value>First non-null value</value>
+  </data>
+  <data name="Completion: NULLIF" xml:space="preserve">
+    <value>Null if equal</value>
+  </data>
+  <data name="Completion: CAST" xml:space="preserve">
+    <value>Convert type</value>
+  </data>
+  <data name="Completion: TRY_CAST" xml:space="preserve">
+    <value>Safe type conversion</value>
+  </data>
+  <data name="Completion: CONVERT" xml:space="preserve">
+    <value>Convert type</value>
+  </data>
+  <data name="Completion: TRY_CONVERT" xml:space="preserve">
+    <value>Safe type conversion</value>
+  </data>
+  <data name="Completion: GETDATE" xml:space="preserve">
+    <value>Current time</value>
+  </data>
+  <data name="Completion: SYSDATETIME" xml:space="preserve">
+    <value>Current time</value>
+  </data>
+  <data name="Completion: DATEADD" xml:space="preserve">
+    <value>Add or subtract dates</value>
+  </data>
+  <data name="Completion: DATEDIFF" xml:space="preserve">
+    <value>Date difference</value>
+  </data>
+  <data name="Completion: DATEPART" xml:space="preserve">
+    <value>Date part</value>
+  </data>
+  <data name="Completion: FORMAT" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Completion: CONCAT" xml:space="preserve">
+    <value>Concatenate</value>
+  </data>
+  <data name="Completion: CONCAT_WS" xml:space="preserve">
+    <value>Concatenate with separator</value>
+  </data>
+  <data name="Completion: LEN" xml:space="preserve">
+    <value>Length</value>
+  </data>
+  <data name="Completion: DATALENGTH" xml:space="preserve">
+    <value>Byte length</value>
+  </data>
+  <data name="Completion: SUBSTRING" xml:space="preserve">
+    <value>Substring</value>
+  </data>
+  <data name="Completion: LEFT" xml:space="preserve">
+    <value>Left substring</value>
+  </data>
+  <data name="Completion: RIGHT" xml:space="preserve">
+    <value>Right substring</value>
+  </data>
+  <data name="Completion: CHARINDEX" xml:space="preserve">
+    <value>Find position</value>
+  </data>
+  <data name="Completion: REPLACE" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Completion: STUFF" xml:space="preserve">
+    <value>Stuff</value>
+  </data>
+  <data name="Completion: UPPER" xml:space="preserve">
+    <value>Uppercase</value>
+  </data>
+  <data name="Completion: LOWER" xml:space="preserve">
+    <value>Lowercase</value>
+  </data>
+  <data name="Completion: LTRIM" xml:space="preserve">
+    <value>Trim left</value>
+  </data>
+  <data name="Completion: RTRIM" xml:space="preserve">
+    <value>Trim right</value>
+  </data>
+  <data name="Completion: TRIM" xml:space="preserve">
+    <value>Trim</value>
+  </data>
+  <data name="Completion: ROUND" xml:space="preserve">
+    <value>Round</value>
+  </data>
+  <data name="Completion: ABS" xml:space="preserve">
+    <value>Absolute value</value>
+  </data>
+  <data name="Completion: FLOOR" xml:space="preserve">
+    <value>Floor</value>
+  </data>
+  <data name="Completion: CEILING" xml:space="preserve">
+    <value>Ceiling</value>
+  </data>
+  <data name="Completion: ROW_NUMBER" xml:space="preserve">
+    <value>Row number</value>
+  </data>
+  <data name="Completion: RANK" xml:space="preserve">
+    <value>Rank</value>
+  </data>
+  <data name="Completion: DENSE_RANK" xml:space="preserve">
+    <value>Dense rank</value>
+  </data>
+  <data name="Completion: NTILE" xml:space="preserve">
+    <value>Bucket</value>
+  </data>
+  <data name="Completion: LAG" xml:space="preserve">
+    <value>Previous row</value>
+  </data>
+  <data name="Completion: LEAD" xml:space="preserve">
+    <value>Next row</value>
+  </data>
+  <data name="Completion: STRING_AGG" xml:space="preserve">
+    <value>Aggregate strings</value>
+  </data>
+  <data name="Completion: IIF" xml:space="preserve">
+    <value>Conditional function</value>
+  </data>
+  <data name="Completion: CHOOSE" xml:space="preserve">
+    <value>Choose by index</value>
+  </data>
+  <data name="Completion: OBJECT_ID" xml:space="preserve">
+    <value>Object ID</value>
+  </data>
+  <data name="Completion: SCOPE_IDENTITY" xml:space="preserve">
+    <value>Current scope identity</value>
+  </data>
+  <data name="Completion: INT" xml:space="preserve">
+    <value>Integer</value>
+  </data>
+  <data name="Completion: BIGINT" xml:space="preserve">
+    <value>Big integer</value>
+  </data>
+  <data name="Completion: SMALLINT" xml:space="preserve">
+    <value>Small integer</value>
+  </data>
+  <data name="Completion: TINYINT" xml:space="preserve">
+    <value>Tiny integer</value>
+  </data>
+  <data name="Completion: BIT" xml:space="preserve">
+    <value>Boolean</value>
+  </data>
+  <data name="Completion: DECIMAL" xml:space="preserve">
+    <value>Decimal</value>
+  </data>
+  <data name="Completion: NUMERIC" xml:space="preserve">
+    <value>Decimal</value>
+  </data>
+  <data name="Completion: FLOAT" xml:space="preserve">
+    <value>Floating point</value>
+  </data>
+  <data name="Completion: REAL" xml:space="preserve">
+    <value>Floating point</value>
+  </data>
+  <data name="Completion: MONEY" xml:space="preserve">
+    <value>Money</value>
+  </data>
+  <data name="Completion: DATETIME" xml:space="preserve">
+    <value>Date and time</value>
+  </data>
+  <data name="Completion: DATETIME2" xml:space="preserve">
+    <value>Date and time</value>
+  </data>
+  <data name="Completion: DATE" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Completion: TIME" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Completion: CHAR" xml:space="preserve">
+    <value>Fixed-length text</value>
+  </data>
+  <data name="Completion: VARCHAR" xml:space="preserve">
+    <value>Variable-length text</value>
+  </data>
+  <data name="Completion: NCHAR" xml:space="preserve">
+    <value>Fixed-length Unicode</value>
+  </data>
+  <data name="Completion: NVARCHAR" xml:space="preserve">
+    <value>Variable-length Unicode</value>
+  </data>
+  <data name="Completion: TEXT" xml:space="preserve">
+    <value>Long text</value>
+  </data>
+  <data name="Completion: NTEXT" xml:space="preserve">
+    <value>Long Unicode text</value>
+  </data>
+  <data name="Completion: BINARY" xml:space="preserve">
+    <value>Binary</value>
+  </data>
+  <data name="Completion: VARBINARY" xml:space="preserve">
+    <value>Variable-length binary</value>
+  </data>
+  <data name="Completion: UNIQUEIDENTIFIER" xml:space="preserve">
+    <value>GUID</value>
+  </data>
+  <data name="Completion: XML" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="Completion: SQL_VARIANT" xml:space="preserve">
+    <value>Any type</value>
+  </data>
+  <data name="Table" xml:space="preserve">
+    <value>Table</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Table-valued function" xml:space="preserve">
+    <value>Table-valued function</value>
+  </data>
+  <data name="Stored procedure" xml:space="preserve">
+    <value>Stored procedure</value>
+  </data>
+  <data name="Temp table" xml:space="preserve">
+    <value>Temp table</value>
+  </data>
+</root>

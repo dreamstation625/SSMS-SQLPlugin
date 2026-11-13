@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.CommandBars;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Menus
 {
@@ -216,7 +217,16 @@ namespace SsmsSqlPlugin.Menus
                         Type.Missing, Type.Missing,
                         controls.Count + 1, true);
 
-                    btn.Caption = e.Caption;
+                    // SSMS 22 的 Automation 包装不渲染 msoButtonDown，勾选态改用标题后缀。
+                    // 不能放前缀：CommandBars 会把前导 ASCII/全角空格裁掉，文字会错位。
+                    bool isChecked = false;
+                    if (e.CheckedProvider != null)
+                    {
+                        try { isChecked = e.CheckedProvider(); }
+                        catch (Exception ex) { Log.Warn("读取菜单勾选状态失败(" + e.Caption + "): " + ex.Message); }
+                    }
+
+                    btn.Caption = isChecked ? e.Caption + "  ✓" : e.Caption;
                     btn.Tag = e.Tag;
                     try { btn.TooltipText = e.Tooltip ?? e.Caption; } catch { }
                     btn.Visible = true;
@@ -283,7 +293,7 @@ namespace SsmsSqlPlugin.Menus
             catch (Exception ex)
             {
                 Log.Error("菜单回调异常: " + entry.Caption, ex);
-                ShowError("SSMS-SQLPlugin 出错", ex.Message);
+                ShowError(Loc.T("SSMS-SQLPlugin Error"), ex.Message);
             }
         }
 

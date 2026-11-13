@@ -16,6 +16,7 @@ using SsmsSqlPlugin.Core.Completion;
 using SsmsSqlPlugin.Core.Metadata;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Completion
 {
@@ -257,7 +258,7 @@ namespace SsmsSqlPlugin.Completion
             CompletionCandidate candidate;
             if (item != null && Descriptions.TryGetValue(item, out candidate) &&
                 !string.IsNullOrEmpty(candidate.Description))
-                return Task.FromResult<object>(candidate.Description);
+                return Task.FromResult<object>(CompletionText.Describe(candidate));
 
             return Task.FromResult<object>(null);
         }
@@ -352,7 +353,7 @@ namespace SsmsSqlPlugin.Completion
                 this,
                 null,
                 ImmutableArray<CompletionFilter>.Empty,
-                candidate.Suffix,
+                CompletionText.Suffix(candidate),
                 candidate.InsertText,
                 SortText(candidate),
                 candidate.FilterText,

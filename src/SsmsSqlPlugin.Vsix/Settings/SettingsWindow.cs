@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
+using SsmsSqlPlugin.Localization;
 
 namespace SsmsSqlPlugin.Settings
 {
@@ -24,11 +25,12 @@ namespace SsmsSqlPlugin.Settings
         private readonly ToggleSwitch _autoCase;
         private readonly ComboBox _autoMode;
         private readonly ComboBox _autoInterval;
+        private readonly ComboBox _language;
         private readonly Label _autoHint;
 
         private SettingsWindow()
         {
-            Text = "SSMS-SQLPlugin 设置";
+            Text = Loc.T("SSMS-SQLPlugin Settings");
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(660, 720);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -59,17 +61,19 @@ namespace SsmsSqlPlugin.Settings
             var header = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 1,
+                ColumnCount = 2,
                 RowCount = 2,
                 BackColor = HistoryTheme.Background,
                 Margin = Padding.Empty,
             };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             header.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
             header.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
 
             var title = new Label
             {
-                Text = "设置",
+                Text = Loc.T("Settings"),
                 AutoSize = true,
                 Font = HistoryTheme.TitleFont,
                 ForeColor = HistoryTheme.TextPrimary,
@@ -78,7 +82,7 @@ namespace SsmsSqlPlugin.Settings
             };
             var subtitle = new Label
             {
-                Text = "格式化风格、自动记录与历史数据",
+                Text = Loc.T("Formatting style, auto-save and history data"),
                 AutoSize = true,
                 Font = HistoryTheme.SmallFont,
                 ForeColor = HistoryTheme.TextSecondary,
@@ -87,6 +91,39 @@ namespace SsmsSqlPlugin.Settings
             };
             header.Controls.Add(title, 0, 0);
             header.Controls.Add(subtitle, 0, 1);
+
+            // 语言选择放标题行右侧：不额外占高度，也不会像设置项一样容易被忽略
+            var languagePanel = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+                Anchor = AnchorStyles.Right,
+            };
+            languagePanel.Controls.Add(new Label
+            {
+                Text = Loc.T("Language"),
+                AutoSize = true,
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Background,
+                Margin = new Padding(0, 9, 8, 0),
+            });
+            _language = MakeCombo(150);
+            _language.Items.AddRange(new object[]
+            {
+                Loc.T("Follow system"),
+                Loc.T("Chinese"),
+                Loc.T("English"),
+            });
+            _language.Anchor = AnchorStyles.Left;
+            languagePanel.Controls.Add(_language);
+            header.Controls.Add(languagePanel, 1, 0);
+            header.SetRowSpan(languagePanel, 2);
+
             root.Controls.Add(header, 0, 0);
 
             // ── 格式化 ──
@@ -113,10 +150,10 @@ namespace SsmsSqlPlugin.Settings
             for (int i = 0; i < 6; i++)
                 format.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 0 ? 30 : 34));
 
-            format.Controls.Add(CardTitle("格式化"), 0, 0);
+            format.Controls.Add(CardTitle(Loc.T("Formatting")), 0, 0);
             format.SetColumnSpan(format.GetControlFromPosition(0, 0), 2);
 
-            format.Controls.Add(RowLabel("缩进"), 0, 1);
+            format.Controls.Add(RowLabel(Loc.T("Indent")), 0, 1);
             var indentPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -125,16 +162,16 @@ namespace SsmsSqlPlugin.Settings
                 BackColor = HistoryTheme.Card,
                 Margin = Padding.Empty,
             };
-            _indent2 = MakeRadio("2 空格");
-            _indent4 = MakeRadio("4 空格");
+            _indent2 = MakeRadio(Loc.T("2 spaces"));
+            _indent4 = MakeRadio(Loc.T("4 spaces"));
             indentPanel.Controls.Add(_indent2);
             indentPanel.Controls.Add(_indent4);
             format.Controls.Add(indentPanel, 1, 1);
 
-            _uppercase = MakeToggle("关键字大写");
-            _vertical = MakeToggle("SELECT 每列一行");
-            _subquery = MakeToggle("展开子查询");
-            _autoCase = MakeToggle("空格后自动大写关键字");
+            _uppercase = MakeToggle(Loc.T("Uppercase keywords"));
+            _vertical = MakeToggle(Loc.T("One column per line in SELECT"));
+            _subquery = MakeToggle(Loc.T("Expand subqueries"));
+            _autoCase = MakeToggle(Loc.T("Auto-uppercase keyword after space"));
             format.Controls.Add(_uppercase, 0, 2);
             format.SetColumnSpan(_uppercase, 2);
             format.Controls.Add(_vertical, 0, 3);
@@ -173,23 +210,34 @@ namespace SsmsSqlPlugin.Settings
             auto.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
             auto.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
 
-            auto.Controls.Add(CardTitle("自动记录"), 0, 0);
+            auto.Controls.Add(CardTitle(Loc.T("Auto-save")), 0, 0);
             auto.SetColumnSpan(auto.GetControlFromPosition(0, 0), 2);
 
-            auto.Controls.Add(RowLabel("模式"), 0, 1);
+            auto.Controls.Add(RowLabel(Loc.T("Mode")), 0, 1);
             _autoMode = MakeCombo(170);
-            _autoMode.Items.AddRange(new object[] { "关闭", "修改后记录", "定时" });
+            _autoMode.Items.AddRange(new object[]
+            {
+                Loc.T("Off"),
+                Loc.T("On edit"),
+                Loc.T("Timer"),
+            });
             _autoMode.SelectedIndexChanged += (s, e) => UpdateAutoIntervalState();
             auto.Controls.Add(_autoMode, 1, 1);
 
-            auto.Controls.Add(RowLabel("间隔"), 0, 2);
+            auto.Controls.Add(RowLabel(Loc.T("Interval")), 0, 2);
             _autoInterval = MakeCombo(170);
-            _autoInterval.Items.AddRange(new object[] { "每 1 分钟", "每 5 分钟", "每 15 分钟", "每 30 分钟" });
+            _autoInterval.Items.AddRange(new object[]
+            {
+                Loc.F("Every {0} min", 1),
+                Loc.F("Every {0} min", 5),
+                Loc.F("Every {0} min", 15),
+                Loc.F("Every {0} min", 30),
+            });
             auto.Controls.Add(_autoInterval, 1, 2);
 
             _autoHint = new Label
             {
-                Text = "不执行也会记录；内容有变化才落库。",
+                Text = Loc.T("Records without executing; saves only when content changes."),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = HistoryTheme.SmallFont,
@@ -227,7 +275,7 @@ namespace SsmsSqlPlugin.Settings
             history.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
             history.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
 
-            var historyTitle = CardTitle("历史数据");
+            var historyTitle = CardTitle(Loc.T("History Data"));
             history.Controls.Add(historyTitle, 0, 0);
             history.SetColumnSpan(historyTitle, 2);
 
@@ -246,7 +294,7 @@ namespace SsmsSqlPlugin.Settings
 
             var openDir = new ModernButton
             {
-                Text = "打开目录",
+                Text = Loc.T("Open Folder"),
                 Style = ModernButtonStyle.Secondary,
                 Width = 90,
                 Height = 30,
@@ -271,7 +319,7 @@ namespace SsmsSqlPlugin.Settings
 
             var save = new ModernButton
             {
-                Text = "保存",
+                Text = Loc.T("Save"),
                 Style = ModernButtonStyle.Primary,
                 Width = 88,
                 Height = 32,
@@ -281,7 +329,7 @@ namespace SsmsSqlPlugin.Settings
 
             var cancel = new ModernButton
             {
-                Text = "取消",
+                Text = Loc.T("Cancel"),
                 Style = ModernButtonStyle.Ghost,
                 Width = 80,
                 Height = 32,
@@ -359,14 +407,10 @@ namespace SsmsSqlPlugin.Settings
         }
 
         private static ComboBox MakeCombo(int width)
-            => new ComboBox
+            => new ThemedComboBox
             {
                 Width = width,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat,
-                Font = HistoryTheme.UiFont,
-                BackColor = HistoryTheme.Card,
-                ForeColor = HistoryTheme.TextPrimary,
                 Margin = new Padding(0, 4, 0, 0),
             };
 
@@ -379,6 +423,7 @@ namespace SsmsSqlPlugin.Settings
             _vertical.Checked = options.VerticalSelectList;
             _subquery.Checked = options.ExpandSubqueries;
             _autoCase.Checked = options.AutoUppercaseKeywordOnSpace;
+            _language.SelectedIndex = UiLanguageIndex(options.UiLanguage);
 
             var auto = HistoryAutoSaveStore.Current;
             _autoMode.SelectedIndex = !auto.Enabled
@@ -396,14 +441,32 @@ namespace SsmsSqlPlugin.Settings
             bool timer = _autoMode.SelectedIndex == 2;
             _autoInterval.Enabled = timer;
             _autoHint.Text = timer
-                ? "内容有变化才落库，间隔按上面的选择。"
+                ? Loc.T("Saves only when content changes, at the interval selected above.")
                 : _autoMode.SelectedIndex == 1
-                    ? "内容有变化时自动记录，最多每分钟一条。"
-                    : "自动记录已关闭。";
+                    ? Loc.T("Records automatically when content changes, at most once per minute.")
+                    : Loc.T("Auto-save is off.");
+        }
+
+        private static int UiLanguageIndex(string value)
+        {
+            if (string.Equals(value, "zh-CN", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "zh", StringComparison.OrdinalIgnoreCase))
+                return 1;
+            if (!string.IsNullOrEmpty(value) &&
+                (value.Equals("en", StringComparison.OrdinalIgnoreCase) ||
+                 value.StartsWith("en-", StringComparison.OrdinalIgnoreCase)))
+                return 2;
+            return 0;
         }
 
         private void SaveSettings()
         {
+            string language = _language.SelectedIndex == 1
+                ? "zh-CN"
+                : _language.SelectedIndex == 2 ? "en" : "auto";
+            bool languageChanged = !string.Equals(
+                language, FormatOptionsStore.Current.UiLanguage, StringComparison.OrdinalIgnoreCase);
+
             FormatOptionsStore.Update(options =>
             {
                 options.IndentSize = _indent2.Checked ? 2 : 4;
@@ -411,6 +474,7 @@ namespace SsmsSqlPlugin.Settings
                 options.VerticalSelectList = _vertical.Checked;
                 options.ExpandSubqueries = _subquery.Checked;
                 options.AutoUppercaseKeywordOnSpace = _autoCase.Checked;
+                options.UiLanguage = language;
             });
 
             int mode = Math.Max(0, _autoMode.SelectedIndex);
@@ -430,7 +494,16 @@ namespace SsmsSqlPlugin.Settings
                      " 每列一行=" + _vertical.Checked +
                      " 展开子查询=" + _subquery.Checked +
                      " 空格自动大写=" + _autoCase.Checked +
+                     " 语言=" + language +
                      " 自动记录=" + HistoryAutoSaveStore.Describe(HistoryAutoSaveStore.Current));
+
+            if (languageChanged)
+            {
+                MessageBox.Show(this,
+                    Loc.T("Language saved. Restart SSMS for the change to take effect."),
+                    Loc.T("Settings"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
 
             DialogResult = DialogResult.OK;
             Close();
@@ -448,7 +521,9 @@ namespace SsmsSqlPlugin.Settings
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "打开目录失败：" + ex.Message, "设置",
+                MessageBox.Show(this,
+                    Loc.F("Failed to open the folder: {0}", ex.Message),
+                    Loc.T("Settings"),
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
