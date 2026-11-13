@@ -1059,4 +1059,34 @@
   <data name="Temp table" xml:space="preserve">
     <value>临时表</value>
   </data>
+  <data name="Welcome to SSMS-SQLPlugin" xml:space="preserve">
+    <value>欢迎使用 SSMS-SQLPlugin</value>
+  </data>
+  <data name="Thanks for installing. Here are the main features; you can reopen them from the top menu." xml:space="preserve">
+    <value>感谢安装。下面是主要功能，随时可以从顶部菜单打开。</value>
+  </data>
+  <data name="Language &amp; Theme" xml:space="preserve">
+    <value>语言与主题</value>
+  </data>
+  <data name="The UI follows the system language and the SSMS light or dark theme." xml:space="preserve">
+    <value>中英双语默认跟随系统语言；窗口跟随 SSMS 的浅色或深色主题。</value>
+  </data>
+  <data name="Support" xml:space="preserve">
+    <value>支持</value>
+  </data>
+  <data name="Open Repository" xml:space="preserve">
+    <value>访问仓库</value>
+  </data>
+  <data name="Support on Afdian" xml:space="preserve">
+    <value>爱发电支持</value>
+  </data>
+  <data name="Don't show again" xml:space="preserve">
+    <value>不再显示</value>
+  </data>
+  <data name="Get Started" xml:space="preserve">
+    <value>开始使用</value>
+  </data>
+  <data name="If this plugin saves you time, you can support its development on Afdian." xml:space="preserve">
+    <value>如果这个插件帮你节省了时间，欢迎在爱发电支持后续开发。</value>
+  </data>
 </root>

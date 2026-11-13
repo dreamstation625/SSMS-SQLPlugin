@@ -1046,4 +1046,34 @@
   <data name="Temp table" xml:space="preserve">
     <value>Temp table</value>
   </data>
+  <data name="Welcome to SSMS-SQLPlugin" xml:space="preserve">
+    <value>Welcome to SSMS-SQLPlugin</value>
+  </data>
+  <data name="Thanks for installing. Here are the main features; you can reopen them from the top menu." xml:space="preserve">
+    <value>Thanks for installing. Here are the main features; you can reopen them from the top menu.</value>
+  </data>
+  <data name="Language &amp; Theme" xml:space="preserve">
+    <value>Language &amp; Theme</value>
+  </data>
+  <data name="The UI follows the system language and the SSMS light or dark theme." xml:space="preserve">
+    <value>The UI follows the system language and the SSMS light or dark theme.</value>
+  </data>
+  <data name="Support" xml:space="preserve">
+    <value>Support</value>
+  </data>
+  <data name="Open Repository" xml:space="preserve">
+    <value>Open Repository</value>
+  </data>
+  <data name="Support on Afdian" xml:space="preserve">
+    <value>Support on Afdian</value>
+  </data>
+  <data name="Don't show again" xml:space="preserve">
+    <value>Don't show again</value>
+  </data>
+  <data name="Get Started" xml:space="preserve">
+    <value>Get Started</value>
+  </data>
+  <data name="If this plugin saves you time, you can support its development on Afdian." xml:space="preserve">
+    <value>If this plugin saves you time, you can support its development on Afdian.</value>
+  </data>
 </root>

@@ -48,6 +48,7 @@ namespace SsmsSqlPlugin
         private TopLevelMenu _topMenu;
         private EditorContextMenu _contextMenu;
         private IVsRunningDocumentTable _rdt;
+        private System.Windows.Forms.Timer _welcomeTimer;
 
         /// <summary>已经装过过滤器的视图（用对象身份哈希去重）。</summary>
         private readonly System.Collections.Generic.HashSet<int> _filteredViews
@@ -292,6 +293,52 @@ namespace SsmsSqlPlugin
             {
                 Log.Warn("初始化时挂过滤器失败: " + ex.Message);
             }
+
+            // ④ 首次启动欢迎窗口（等主窗口真正可见后再弹，避免压住启动画面）
+            ScheduleWelcome(dte);
+        }
+
+        private void ScheduleWelcome(EnvDTE.DTE dte)
+        {
+            if (dte == null) return;
+
+            if (FormatOptionsStore.Current.WelcomeShown)
+            {
+                Log.Info("[欢迎] 已显示过，跳过");
+                return;
+            }
+
+            if (Environment.GetEnvironmentVariable("SQLKIT_NO_WELCOME") == "1")
+            {
+                Log.Info("[欢迎] SQLKIT_NO_WELCOME=1，跳过");
+                return;
+            }
+
+            int attempts = 0;
+            _welcomeTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            _welcomeTimer.Tick += (s, e) =>
+            {
+                attempts++;
+
+                bool ready = false;
+                try { ready = dte.MainWindow != null && dte.MainWindow.Visible; }
+                catch { }
+
+                if (!ready && attempts < 20) return;
+
+                var timer = _welcomeTimer;
+                _welcomeTimer = null;
+                if (timer != null)
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                }
+
+                try { AboutWindow.ShowWelcomeFrom(dte); }
+                catch (Exception ex) { Log.Error("[欢迎] 显示失败", ex); }
+            };
+            _welcomeTimer.Start();
+            Log.Info("[欢迎] 已安排在 Shell 就绪后显示");
         }
 
         /// <summary>
@@ -655,6 +702,7 @@ namespace SsmsSqlPlugin
         {
             if (disposing)
             {
+                try { _welcomeTimer?.Stop(); _welcomeTimer?.Dispose(); } catch { }
                 try { FormatKeyHandler.Stop(); } catch { }
                 try { AutoSnapshotTracker.Stop(); } catch { }
                 try { ExecutionCapture.Stop(); } catch { }

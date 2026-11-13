@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 爱发电赞助按钮图标（白色鲸鱼线稿，透明背景） -->
+    <EmbeddedResource Include="Resources\Afdian.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- dynamic 访问 DTE.CommandBars 需要 -->
     <Reference Include="Microsoft.CSharp" />
     <!-- MEF 1 导出（后续补全功能要用） -->

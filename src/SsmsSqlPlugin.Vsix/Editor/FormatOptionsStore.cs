@@ -19,6 +19,8 @@ namespace SsmsSqlPlugin.Editor
         public int MaxLineWidth = 100;
         /// <summary>界面语言：auto / zh-CN / en，重启 SSMS 后生效。</summary>
         public string UiLanguage = "auto";
+        /// <summary>首次安装后的欢迎窗口是否已关闭（勾选「不再显示」后置为 true）。</summary>
+        public bool WelcomeShown = false;
 
         public FormatOptionsSnapshot Clone()
         {
@@ -31,6 +33,7 @@ namespace SsmsSqlPlugin.Editor
                 AutoUppercaseKeywordOnSpace = AutoUppercaseKeywordOnSpace,
                 MaxLineWidth = MaxLineWidth,
                 UiLanguage = UiLanguage,
+                WelcomeShown = WelcomeShown,
             };
         }
 
@@ -123,7 +126,8 @@ namespace SsmsSqlPlugin.Editor
                 sb.AppendLine("  \"expandSubqueries\": " + Bool(s.ExpandSubqueries) + ",");
                 sb.AppendLine("  \"autoUppercaseKeywordOnSpace\": " + Bool(s.AutoUppercaseKeywordOnSpace) + ",");
                 sb.AppendLine("  \"maxLineWidth\": " + s.MaxLineWidth + ",");
-                sb.AppendLine("  \"uiLanguage\": " + Quote(s.UiLanguage));
+                sb.AppendLine("  \"uiLanguage\": " + Quote(s.UiLanguage) + ",");
+                sb.AppendLine("  \"welcomeShown\": " + Bool(s.WelcomeShown));
                 sb.AppendLine("}");
 
                 File.WriteAllText(FilePath, sb.ToString(), new UTF8Encoding(false));
@@ -151,6 +155,7 @@ namespace SsmsSqlPlugin.Editor
                 s.AutoUppercaseKeywordOnSpace = ReadBool(json, "autoUppercaseKeywordOnSpace", s.AutoUppercaseKeywordOnSpace);
                 s.MaxLineWidth = ReadInt(json, "maxLineWidth", s.MaxLineWidth);
                 s.UiLanguage = ReadString(json, "uiLanguage", s.UiLanguage);
+                s.WelcomeShown = ReadBool(json, "welcomeShown", s.WelcomeShown);
             }
             catch (Exception ex)
             {

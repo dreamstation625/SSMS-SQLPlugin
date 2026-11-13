@@ -16,17 +16,56 @@ namespace SsmsSqlPlugin.Menus
     internal sealed class AboutWindow : Form
     {
         private const string RepoUrl = "https://github.com/dreamstation625/SSMS-SQLPlugin";
+        private const string AfdianUrl = "https://ifdian.net/a/dream_craft";
 
-        private AboutWindow()
+        private static Image _afdianIcon;
+
+        private static Image AfdianIcon
         {
-            Text = Loc.T("About SSMS-SQLPlugin");
+            get
+            {
+                if (_afdianIcon != null) return _afdianIcon;
+
+                try
+                {
+                    using (var stream = typeof(AboutWindow).Assembly.GetManifestResourceStream(
+                               "SsmsSqlPlugin.Resources.Afdian.png"))
+                    {
+                        if (stream == null) return null;
+                        using (var image = Image.FromStream(stream))
+                        {
+                            _afdianIcon = new Bitmap(image);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("[关于] 加载爱发电图标失败: " + ex.Message);
+                }
+
+                return _afdianIcon;
+            }
+        }
+
+        private readonly bool _welcome;
+        private ModernCheckBox _dontShowAgain;
+
+        public bool DontShowAgain
+        {
+            get { return _dontShowAgain != null && _dontShowAgain.Checked; }
+        }
+
+        private AboutWindow(bool welcome)
+        {
+            _welcome = welcome;
+            Text = Loc.T(welcome ? "Welcome to SSMS-SQLPlugin" : "About SSMS-SQLPlugin");
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
             // 英文文案换行后比中文高，窗口留足高度，避免底部按钮被裁切
-            ClientSize = new Size(760, 500);
+            ClientSize = new Size(760, welcome ? 490 : 520);
             BackColor = HistoryTheme.Background;
             ForeColor = HistoryTheme.TextPrimary;
             Font = HistoryTheme.UiFont;
@@ -43,34 +82,118 @@ namespace SsmsSqlPlugin.Menus
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             root.Controls.Add(BuildHeader(), 0, 0);
             root.Controls.Add(BuildFeatures(), 0, 1);
             root.Controls.Add(BuildFooterInfo(), 0, 2);
+            root.Controls.Add(BuildButtons(), 0, 3);
 
-            var footer = new FlowLayoutPanel
+            Controls.Add(root);
+        }
+
+        private Control BuildButtons()
+        {
+            var bar = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = HistoryTheme.Background,
+                Margin = Padding.Empty,
+            };
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            bar.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            if (_welcome)
+            {
+                _dontShowAgain = new ModernCheckBox
+                {
+                    Text = Loc.T("Don't show again"),
+                    Checked = false,
+                    Width = 170,
+                    Height = 32,
+                    Margin = Padding.Empty,
+                    Anchor = AnchorStyles.Left | AnchorStyles.Bottom,
+                };
+                bar.Controls.Add(_dontShowAgain, 0, 0);
+            }
+
+            var actions = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 32,
                 FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false,
                 BackColor = HistoryTheme.Background,
-                Margin = new Padding(0, 10, 0, 0),
-            };
-
-            var close = new ModernButton
-            {
-                Text = Loc.T("Close"),
-                Style = ModernButtonStyle.Primary,
-                Width = 88,
-                Height = 32,
                 Margin = Padding.Empty,
             };
-            close.Click += (s, e) => Close();
-            footer.Controls.Add(close);
-            root.Controls.Add(footer, 0, 3);
 
-            Controls.Add(root);
+            if (_welcome)
+            {
+                var start = new ModernButton
+                {
+                    Text = Loc.T("Get Started"),
+                    Style = ModernButtonStyle.Primary,
+                    Width = 100,
+                    Height = 32,
+                    Margin = Padding.Empty,
+                };
+                start.Click += (s, e) => Close();
+                actions.Controls.Add(start);
+
+                var sponsor = new ModernButton
+                {
+                    Text = Loc.T("Support on Afdian"),
+                    Style = ModernButtonStyle.Sponsor,
+                    Icon = AfdianIcon,
+                    Width = 150,
+                    Height = 32,
+                    Margin = new Padding(0, 0, 8, 0),
+                };
+                sponsor.Click += (s, e) => OpenSponsor();
+                actions.Controls.Add(sponsor);
+
+                var repo = new ModernButton
+                {
+                    Text = Loc.T("Open Repository"),
+                    Style = ModernButtonStyle.Secondary,
+                    Width = 120,
+                    Height = 32,
+                    Margin = new Padding(0, 0, 8, 0),
+                };
+                repo.Click += (s, e) => OpenRepository();
+                actions.Controls.Add(repo);
+            }
+            else
+            {
+                var close = new ModernButton
+                {
+                    Text = Loc.T("Close"),
+                    Style = ModernButtonStyle.Primary,
+                    Width = 88,
+                    Height = 32,
+                    Margin = Padding.Empty,
+                };
+                close.Click += (s, e) => Close();
+                actions.Controls.Add(close);
+
+                var sponsor = new ModernButton
+                {
+                    Text = Loc.T("Support on Afdian"),
+                    Style = ModernButtonStyle.Sponsor,
+                    Icon = AfdianIcon,
+                    Width = 150,
+                    Height = 32,
+                    Margin = new Padding(0, 0, 8, 0),
+                };
+                sponsor.Click += (s, e) => OpenSponsor();
+                actions.Controls.Add(sponsor);
+            }
+
+            bar.Controls.Add(actions, 1, 0);
+            return bar;
         }
 
         private Control BuildHeader()
@@ -132,7 +255,9 @@ namespace SsmsSqlPlugin.Menus
             header.Controls.Add(titleRow, 0, 0);
             header.Controls.Add(new Label
             {
-                Text = Loc.T("SQL formatting, completion and history for SSMS"),
+                Text = Loc.T(_welcome
+                    ? "Thanks for installing. Here are the main features; you can reopen them from the top menu."
+                    : "SQL formatting, completion and history for SSMS"),
                 AutoSize = true,
                 Font = HistoryTheme.UiFont,
                 ForeColor = HistoryTheme.TextSecondary,
@@ -163,7 +288,7 @@ namespace SsmsSqlPlugin.Menus
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 2,
-                RowCount = 6,
+                RowCount = 7,
                 BackColor = HistoryTheme.Card,
                 Margin = Padding.Empty,
             };
@@ -180,7 +305,9 @@ namespace SsmsSqlPlugin.Menus
                 Loc.T("Records the version and path when SQL files are opened or saved."));
             AddFeature(grid, 4, Loc.T("Settings"),
                 Loc.T("Indent, SELECT list, subquery expansion, auto-uppercase and auto-save."));
-            AddFeature(grid, 5, Loc.T("Entry Points"),
+            AddFeature(grid, 5, Loc.T("Language & Theme"),
+                Loc.T("The UI follows the system language and the SSMS light or dark theme."));
+            AddFeature(grid, 6, Loc.T("Entry Points"),
                 Loc.T("Top menu, context menu, refresh completion cache and open log."));
 
             card.Controls.Add(grid);
@@ -215,6 +342,8 @@ namespace SsmsSqlPlugin.Menus
 
         private Control BuildFooterInfo()
         {
+            if (_welcome) return BuildWelcomeFooter();
+
             var card = new RoundedPanel
             {
                 Dock = DockStyle.Top,
@@ -231,7 +360,7 @@ namespace SsmsSqlPlugin.Menus
             {
                 Dock = DockStyle.Top,
                 ColumnCount = 2,
-                RowCount = 4,
+                RowCount = 5,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 BackColor = HistoryTheme.Card,
@@ -256,8 +385,101 @@ namespace SsmsSqlPlugin.Menus
             repo.LinkClicked += (s, e) => OpenRepository();
             grid.Controls.Add(repo, 1, 0);
 
-            AddPathRow(grid, 1, Loc.T("Config file"), FormatOptionsStore.ConfigPath);
-            AddPathRow(grid, 2, Loc.T("Log file"), Log.LogFilePath);
+            AddPathRow(grid, 1, Loc.T("Support"));
+            var sponsor = new LinkLabel
+            {
+                Text = AfdianUrl,
+                AutoSize = true,
+                Font = HistoryTheme.UiFontMedium,
+                LinkColor = HistoryTheme.Accent,
+                ActiveLinkColor = HistoryTheme.AccentHover,
+                VisitedLinkColor = HistoryTheme.Accent,
+                LinkBehavior = LinkBehavior.HoverUnderline,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(0, 4, 0, 4),
+            };
+            sponsor.LinkClicked += (s, e) => OpenSponsor();
+            grid.Controls.Add(sponsor, 1, 1);
+
+            AddPathRow(grid, 2, Loc.T("Config file"), FormatOptionsStore.ConfigPath);
+            AddPathRow(grid, 3, Loc.T("Log file"), Log.LogFilePath);
+
+            card.Controls.Add(grid);
+            return card;
+        }
+
+        private Control BuildWelcomeFooter()
+        {
+            var card = new RoundedPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Radius = 10,
+                FillColor = HistoryTheme.Card,
+                BorderColor = HistoryTheme.Border,
+                Padding = new Padding(18, 12, 18, 12),
+                Margin = Padding.Empty,
+            };
+
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                RowCount = 3,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                BackColor = HistoryTheme.Card,
+                Margin = Padding.Empty,
+            };
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            AddPathRow(grid, 0, Loc.T("Repository"));
+            var repo = new LinkLabel
+            {
+                Text = RepoUrl,
+                AutoSize = true,
+                Font = HistoryTheme.UiFontMedium,
+                LinkColor = HistoryTheme.Accent,
+                ActiveLinkColor = HistoryTheme.AccentHover,
+                VisitedLinkColor = HistoryTheme.Accent,
+                LinkBehavior = LinkBehavior.HoverUnderline,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(0, 4, 0, 4),
+            };
+            repo.LinkClicked += (s, e) => OpenRepository();
+            grid.Controls.Add(repo, 1, 0);
+
+            AddPathRow(grid, 1, Loc.T("Support"));
+            var sponsor = new LinkLabel
+            {
+                Text = AfdianUrl,
+                AutoSize = true,
+                Font = HistoryTheme.UiFontMedium,
+                LinkColor = HistoryTheme.Accent,
+                ActiveLinkColor = HistoryTheme.AccentHover,
+                VisitedLinkColor = HistoryTheme.Accent,
+                LinkBehavior = LinkBehavior.HoverUnderline,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(0, 4, 0, 4),
+            };
+            sponsor.LinkClicked += (s, e) => OpenSponsor();
+            grid.Controls.Add(sponsor, 1, 1);
+
+            grid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            var note = new Label
+            {
+                Text = Loc.T("If this plugin saves you time, you can support its development on Afdian."),
+                AutoSize = true,
+                MaximumSize = new Size(640, 0),
+                Font = HistoryTheme.SmallFont,
+                ForeColor = HistoryTheme.TextSecondary,
+                BackColor = HistoryTheme.Card,
+                Margin = new Padding(0, 6, 0, 0),
+            };
+            grid.Controls.Add(note, 0, 2);
+            grid.SetColumnSpan(note, 2);
 
             card.Controls.Add(grid);
             return card;
@@ -304,9 +526,44 @@ namespace SsmsSqlPlugin.Menus
             }
         }
 
+        public static void OpenSponsor()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(AfdianUrl) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("[欢迎] 打开爱发电失败: " + ex.Message);
+            }
+        }
+
+        public static void ShowWelcomeFrom(EnvDTE.DTE dte)
+        {
+            if (FormatOptionsStore.Current.WelcomeShown) return;
+
+            var form = new AboutWindow(true);
+
+            IntPtr owner = IntPtr.Zero;
+            try { owner = dte.MainWindow.HWnd; } catch { }
+
+            if (owner != IntPtr.Zero) form.ShowDialog(new HandleOwner(owner));
+            else form.ShowDialog();
+
+            if (form.DontShowAgain)
+            {
+                FormatOptionsStore.Update(s => s.WelcomeShown = true);
+                Log.Info("[欢迎] 已勾选不再显示，后续启动不再弹出");
+            }
+            else
+            {
+                Log.Info("[欢迎] 已关闭，下次启动仍会显示");
+            }
+        }
+
         public static void ShowFrom(EnvDTE.DTE dte)
         {
-            var form = new AboutWindow();
+            var form = new AboutWindow(false);
 
             IntPtr owner = IntPtr.Zero;
             try { owner = dte.MainWindow.HWnd; } catch { }

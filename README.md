@@ -9,6 +9,7 @@
 [![.NET Framework](https://img.shields.io/badge/.NET_Framework-4.8-512bd4?style=flat-square)](#兼容性)
 [![Version](https://img.shields.io/badge/version-0.1.0-16a34a?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin)
 [![Download](https://img.shields.io/badge/download-latest-f59e0b?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin/releases)
+[![爱发电](https://img.shields.io/badge/%E7%88%B1%E5%8F%91%E7%94%B5-dream__craft-946ce6?style=flat-square&logo=afdian&logoColor=white)](https://ifdian.net/a/dream_craft)
 
 </div>
 
@@ -26,6 +27,7 @@
 | 文件快照 | 打开或保存 `.sql` 文件时记录版本和路径。 |
 | 设置 | 缩进、SELECT 列表、子查询展开、空格后关键字自动大写、自动记录。 |
 | 语言与主题 | 中英双语，默认跟随系统，可在顶部菜单「语言」切换；窗口跟随 SSMS 浅色/深色主题。 |
+| 首次启动 | 显示功能介绍、GitHub 仓库和爱发电入口；可勾选不再显示。 |
 | 入口 | 顶部菜单、编辑器右键菜单、刷新补全缓存、打开日志、检查更新。 |
 
 ## 安装
@@ -124,6 +126,12 @@ dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
 - 游标 `DECLARE ... FOR SELECT` 的 body 未额外缩进。
 - SSMS 21 / 20 暂不支持。
 - Release 产物未签名。
+
+## 支持
+
+<a href="https://ifdian.net/a/dream_craft"><img src="https://cdn.simpleicons.org/afdian/946CE6" width="32" height="32" alt="爱发电"></a>
+
+本项目已入驻爱发电，欢迎赞助支持：<https://ifdian.net/a/dream_craft>
 
 ## 免责声明
 

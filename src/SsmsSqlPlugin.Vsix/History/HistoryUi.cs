@@ -220,6 +220,7 @@ namespace SsmsSqlPlugin.History
         Ghost,
         Danger,
         Success,
+        Sponsor,
     }
 
     /// <summary>扁平圆角按钮，自带 hover/pressed/disabled 状态。</summary>
@@ -230,6 +231,8 @@ namespace SsmsSqlPlugin.History
         private bool _pressed;
 
         public int CornerRadius { get; set; } = 7;
+
+        public Image Icon { get; set; }
 
         public ModernButtonStyle Style
         {
@@ -315,11 +318,33 @@ namespace SsmsSqlPlugin.History
                 }
             }
 
-            TextRenderer.DrawText(
-                g, Text, Font, ClientRectangle, text,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
-                TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis |
-                TextFormatFlags.NoPrefix);
+            if (Icon != null)
+            {
+                const int gap = 6;
+                Size textSize = TextRenderer.MeasureText(Text, Font, new Size(1000, Height),
+                    TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                int total = Icon.Width + gap + textSize.Width;
+                int startX = Math.Max(6, (Width - total) / 2);
+                int iconY = (Height - Icon.Height) / 2;
+
+                g.DrawImage(Icon, new Rectangle(startX, iconY, Icon.Width, Icon.Height));
+
+                var textRect = new Rectangle(startX + Icon.Width + gap, 0,
+                    Width - startX - Icon.Width - gap, Height);
+                TextRenderer.DrawText(
+                    g, Text, Font, textRect, text,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis |
+                    TextFormatFlags.NoPrefix);
+            }
+            else
+            {
+                TextRenderer.DrawText(
+                    g, Text, Font, ClientRectangle, text,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis |
+                    TextFormatFlags.NoPrefix);
+            }
         }
 
         private void ResolveColors(out Color fill, out Color border, out Color text)
@@ -364,6 +389,14 @@ namespace SsmsSqlPlugin.History
                          : HistoryTheme.Card;
                     border = HistoryTheme.Green;
                     text = HistoryTheme.Green;
+                    break;
+
+                case ModernButtonStyle.Sponsor:
+                    fill = _pressed ? Color.FromArgb(111, 70, 196)
+                         : _hover ? Color.FromArgb(148, 108, 230)
+                         : Color.FromArgb(132, 85, 224);
+                    border = Color.Transparent;
+                    text = Color.White;
                     break;
 
                 default:
