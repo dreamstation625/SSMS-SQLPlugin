@@ -7,7 +7,7 @@
 [![SSMS](https://img.shields.io/badge/SSMS-20%20%7C%2021%20%7C%2022-2f6feb?style=flat-square)](#兼容性)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=flat-square)](#兼容性)
 [![.NET Framework](https://img.shields.io/badge/.NET_Framework-4.8-512bd4?style=flat-square)](#兼容性)
-[![Version](https://img.shields.io/badge/version-0.2.0-16a34a?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin)
+[![Version](https://img.shields.io/badge/version-0.3.0-16a34a?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin)
 [![Download](https://img.shields.io/badge/download-latest-f59e0b?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin/releases)
 [![爱发电](https://img.shields.io/badge/%E7%88%B1%E5%8F%91%E7%94%B5-dream__craft-946ce6?style=flat-square&logo=afdian&logoColor=white)](https://ifdian.net/a/dream_craft)
 

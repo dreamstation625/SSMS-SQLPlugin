@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>SsmsSqlPlugin</AssemblyName>
     <RootNamespace>SsmsSqlPlugin</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Ssms20Build Condition="'$(Configuration)'=='Debug20' Or '$(Configuration)'=='Release20'">true</Ssms20Build>
