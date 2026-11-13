@@ -50,6 +50,7 @@ PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
 MANIFEST_SRC = "extension.vsixmanifest.ssms21" if SSMS21 else MANIFEST
 VSIX = "SSMS-SQLPlugin.SSMS21.vsix" if SSMS21 else "SSMS-SQLPlugin.vsix"
+VSIX_V21 = "SSMS-SQLPlugin.SSMS21.vsix"
 
 # SSMS 22 用户级扩展目录（GUID 是这台机器实测的实例 ID）
 SSMS_EXT_DIR = os.path.join(
@@ -254,22 +255,39 @@ def deploy():
 
 
 def build_installer():
-    """把刚打好的 VSIX 作为内嵌 payload，构建单文件安装器。"""
+    """把 V21/V22 两个 VSIX 作为内嵌 payload，构建统一安装器。"""
     if SSMS21:
-        return fail("SSMS 21 安装器尚未接入；当前用 --ssms21 --no-deploy 生成 V21 VSIX")
+        return fail("统一安装器请使用默认 --installer；--ssms21 只构建 V21 VSIX")
 
-    vsix_path = os.path.join(DIST, VSIX)
-    if not os.path.isfile(vsix_path):
-        return fail("VSIX 不存在，无法构建安装器：" + vsix_path)
+    vsix_v22 = os.path.join(DIST, VSIX)
+    vsix_v21 = os.path.join(DIST, VSIX_V21)
+    if not os.path.isfile(vsix_v22):
+        return fail("V22 VSIX 不存在，无法构建安装器：" + vsix_v22)
+
+    if not os.path.isfile(vsix_v21):
+        step("构建 SSMS 21 VSIX 供统一安装器打包")
+        rc = subprocess.call(
+            [sys.executable, os.path.abspath(__file__), "--ssms21", "--no-deploy"],
+            cwd=HERE)
+        if rc != 0:
+            return fail("SSMS 21 VSIX 构建失败（退出码 %d）" % rc)
+
+    if not os.path.isfile(vsix_v21):
+        return fail("V21 VSIX 不存在：" + vsix_v21)
 
     installer_dir = os.path.join(ROOT, "src", "SsmsSqlPlugin.Installer")
-    payload = os.path.join(installer_dir, "Payload.zip")
+    payload_v22 = os.path.join(installer_dir, "Payload.V22.vsix")
+    payload_v21 = os.path.join(installer_dir, "Payload.V21.vsix")
+    shutil.copy2(vsix_v22, payload_v22)
+    shutil.copy2(vsix_v21, payload_v21)
+    old_payload = os.path.join(installer_dir, "Payload.zip")
+    if os.path.isfile(old_payload):
+        os.remove(old_payload)
+    step("已写入安装器 payload: V21 + V22")
+
     csproj = os.path.join(installer_dir, "SsmsSqlPlugin.Installer.csproj")
     if not os.path.isfile(csproj):
         return fail("安装器工程不存在：" + csproj)
-
-    shutil.copy2(vsix_path, payload)
-    step("已写入安装器 payload: " + payload)
 
     cmd = ["dotnet", "build", csproj, "-c", "Release", "--nologo"]
     rc = subprocess.call(cmd)

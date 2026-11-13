@@ -31,9 +31,16 @@ jobs:
       - name: Complex SQL corpus
         run: dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
 
+      - name: Formatter regression (SSMS 21 / ScriptDom 170)
+        run: dotnet run --project tools/FormatCli -c Debug21 -- --quiet
+
+      - name: Complex SQL corpus (SSMS 21 / ScriptDom 170)
+        run: dotnet run --project tools/FormatCli -c Debug21 -- --dir tools/FormatCli/Corpus
+
       - uses: actions/upload-artifact@v4
         with:
           name: SSMS-SQLPlugin
           path: |
             src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.vsix
+            src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS21.vsix
             src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin-Setup.exe

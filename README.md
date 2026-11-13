@@ -4,7 +4,7 @@
 
 在 SSMS 22 里格式化 SQL、补全表字段、回看执行历史。
 
-[![SSMS 22](https://img.shields.io/badge/SSMS-22.x-2f6feb?style=flat-square)](#兼容性)
+[![SSMS](https://img.shields.io/badge/SSMS-21%20%7C%2022-2f6feb?style=flat-square)](#兼容性)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=flat-square)](#兼容性)
 [![.NET Framework](https://img.shields.io/badge/.NET_Framework-4.8-512bd4?style=flat-square)](#兼容性)
 [![Version](https://img.shields.io/badge/version-0.1.1-16a34a?style=flat-square)](https://github.com/dreamstation625/SSMS-SQLPlugin)
@@ -37,7 +37,7 @@
 3. 运行安装器，点「安装 / 更新」。
 4. 启动 SSMS，顶部菜单会出现 `SSMS-SQLPlugin`。
 
-安装器会调用 SSMS 自带的 `VSIXInstaller.exe` 注册扩展。调用期间会显示遮罩和进度条，请不要重复点击或关闭窗口。如果 360 等安全软件提示 VSIXInstaller 要修改 `SSMS.exe.config`，请按提示放行。
+安装器会自动检测 SSMS 21 / 22，给每个已安装版本投放对应扩展，并调用该版本自带的 `VSIXInstaller.exe` 注册。调用期间会显示遮罩和进度条，请不要重复点击或关闭窗口。如果 360 等安全软件提示 VSIXInstaller 要修改 `SSMS.exe.config`，请按提示放行。
 
 <p align="center">
   <img src="docs/images/installer.png" width="640" alt="安装器">
@@ -68,11 +68,11 @@
 
 | 项 | 要求 |
 |---|---|
-| SSMS | 22.x |
+| SSMS | 21.x / 22.x |
 | 系统 | Windows 10 / 11 x64 |
 | 运行时 | .NET Framework 4.8 |
 
-SSMS 21 / 20 尚未适配。
+SSMS 20 尚未适配。
 
 ## 数据位置
 
@@ -124,7 +124,7 @@ dotnet run --project tools/FormatCli -- --dir tools/FormatCli/Corpus
 
 - 函数名大小写、别名纵向对齐未做。
 - 游标 `DECLARE ... FOR SELECT` 的 body 未额外缩进。
-- SSMS 21 / 20 暂不支持。
+- SSMS 20 暂不支持。
 - Release 产物未签名。
 
 ## 支持
