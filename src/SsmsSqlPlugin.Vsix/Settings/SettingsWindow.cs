@@ -350,7 +350,7 @@ namespace SsmsSqlPlugin.Settings
             var form = new SettingsWindow();
 
             IntPtr owner = IntPtr.Zero;
-            try { owner = dte.MainWindow.HWnd; } catch { }
+            try { owner = (IntPtr)(long)dte.MainWindow.HWnd; } catch { }
 
             if (owner != IntPtr.Zero) form.ShowDialog(new HandleOwner(owner));
             else form.ShowDialog();

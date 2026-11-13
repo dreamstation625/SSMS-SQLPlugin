@@ -152,11 +152,18 @@ namespace SsmsSqlPlugin.Storage
             try
             {
                 string arch = Environment.Is64BitProcess ? "win-x64" : "win-x86";
-                string nativeDir = Path.Combine(sqliteDir, "runtimes", arch, "native");
-                if (Directory.Exists(nativeDir))
+                string[] candidates =
                 {
+                    Path.Combine(sqliteDir, "runtimes", arch, "native"),
+                    Path.Combine(sqliteDir, Environment.Is64BitProcess ? "x64" : "x86"),
+                };
+
+                foreach (string nativeDir in candidates)
+                {
+                    if (!Directory.Exists(nativeDir)) continue;
                     ProbeDirs.Add(nativeDir);
                     SetDllDirectory(nativeDir);
+                    return;
                 }
             }
             catch { }
@@ -207,9 +214,18 @@ namespace SsmsSqlPlugin.Storage
         {
             try
             {
-                string dir = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "PublicAssemblies", "SQLite");
-                if (Directory.Exists(dir)) return dir;
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string[] candidates =
+                {
+                    Path.Combine(baseDir, "PublicAssemblies", "SQLite"),
+                    Path.Combine(baseDir, "CommonExtensions", "Microsoft", "openfolder"),
+                };
+
+                foreach (string dir in candidates)
+                {
+                    if (!Directory.Exists(dir)) continue;
+                    if (File.Exists(Path.Combine(dir, "SQLite-net.dll"))) return dir;
+                }
             }
             catch { }
             return null;

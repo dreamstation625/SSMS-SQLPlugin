@@ -143,10 +143,7 @@ namespace SsmsSqlPlugin.Storage
         /// </summary>
         private void EnsureExecutionDeletedColumn()
         {
-            long exists = _host.ExecuteScalar<long>(_connection,
-                "SELECT COUNT(*) FROM pragma_table_info('Executions') WHERE name = 'DeletedUtc'");
-
-            if (exists == 0)
+            if (!ColumnExists("Executions", "DeletedUtc"))
             {
                 _host.Execute(_connection, "ALTER TABLE Executions ADD COLUMN DeletedUtc TEXT");
             }
@@ -157,10 +154,7 @@ namespace SsmsSqlPlugin.Storage
 
         private void EnsureExecutionKindColumn()
         {
-            long exists = _host.ExecuteScalar<long>(_connection,
-                "SELECT COUNT(*) FROM pragma_table_info('Executions') WHERE name = 'Kind'");
-
-            if (exists == 0)
+            if (!ColumnExists("Executions", "Kind"))
             {
                 _host.Execute(_connection,
                     "ALTER TABLE Executions ADD COLUMN Kind TEXT NOT NULL DEFAULT 'execute'");
@@ -168,6 +162,18 @@ namespace SsmsSqlPlugin.Storage
 
             _host.Execute(_connection,
                 "CREATE INDEX IF NOT EXISTS IX_Executions_Kind ON Executions(Kind)");
+        }
+
+        /// <summary>
+        /// SSMS 20 自带的老 SQLite 不支持 pragma_table_info 表值函数，
+        /// 改为从 sqlite_master 的建表 SQL 判断列是否存在。
+        /// </summary>
+        private bool ColumnExists(string table, string column)
+        {
+            string sql = _host.ExecuteScalar<string>(_connection,
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?", table);
+            return sql != null &&
+                   sql.IndexOf(column, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         public Task InsertExecutionAsync(ExecutionRecord record)

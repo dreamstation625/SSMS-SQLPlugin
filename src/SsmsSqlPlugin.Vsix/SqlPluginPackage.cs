@@ -15,6 +15,7 @@ using SsmsSqlPlugin.Infrastructure;
 using SsmsSqlPlugin.Localization;
 using SsmsSqlPlugin.Menus;
 using SsmsSqlPlugin.Settings;
+using Task = System.Threading.Tasks.Task;
 
 namespace SsmsSqlPlugin
 {
@@ -102,7 +103,13 @@ namespace SsmsSqlPlugin
             try
             {
                 await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+#if SSMS20
+                // SSMS 20 没有深色主题；宿主主题服务在 20 上会误报 Dark。
+                HistoryTheme.Apply(false);
+                Log.Info("[主题] Light（SSMS 20）");
+#else
                 ThemeManager.Initialize(GetService);
+#endif
                 ExecutionCapture.Start(GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE);
             }
             catch (Exception ex)

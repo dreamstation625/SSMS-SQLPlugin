@@ -545,7 +545,7 @@ namespace SsmsSqlPlugin.Menus
             var form = new AboutWindow(true);
 
             IntPtr owner = IntPtr.Zero;
-            try { owner = dte.MainWindow.HWnd; } catch { }
+            try { owner = (IntPtr)(long)dte.MainWindow.HWnd; } catch { }
 
             if (owner != IntPtr.Zero) form.ShowDialog(new HandleOwner(owner));
             else form.ShowDialog();
@@ -566,7 +566,7 @@ namespace SsmsSqlPlugin.Menus
             var form = new AboutWindow(false);
 
             IntPtr owner = IntPtr.Zero;
-            try { owner = dte.MainWindow.HWnd; } catch { }
+            try { owner = (IntPtr)(long)dte.MainWindow.HWnd; } catch { }
 
             if (owner != IntPtr.Zero) form.ShowDialog(new HandleOwner(owner));
             else form.ShowDialog();

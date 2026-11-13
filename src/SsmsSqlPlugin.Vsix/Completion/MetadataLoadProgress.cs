@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Task = System.Threading.Tasks.Task;
 using Microsoft.VisualStudio.Shell;
 using SsmsSqlPlugin.Infrastructure;
 

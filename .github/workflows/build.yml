@@ -25,6 +25,9 @@ jobs:
       - name: Build VSIX and installer
         run: python src/SsmsSqlPlugin.Vsix/build.py --no-deploy --installer
 
+      - name: Build SSMS 20 VSIX
+        run: python src/SsmsSqlPlugin.Vsix/build.py --ssms20 --no-deploy
+
       - name: Formatter regression
         run: dotnet run --project tools/FormatCli -- --quiet
 
@@ -37,10 +40,17 @@ jobs:
       - name: Complex SQL corpus (SSMS 21 / ScriptDom 170)
         run: dotnet run --project tools/FormatCli -c Debug21 -- --dir tools/FormatCli/Corpus
 
+      - name: Formatter regression (SSMS 20 / ScriptDom 160)
+        run: dotnet run --project tools/FormatCli -c Debug20 -- --quiet
+
+      - name: Complex SQL corpus (SSMS 20 / ScriptDom 160)
+        run: dotnet run --project tools/FormatCli -c Debug20 -- --dir tools/FormatCli/Corpus
+
       - uses: actions/upload-artifact@v4
         with:
           name: SSMS-SQLPlugin
           path: |
             src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.vsix
             src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS21.vsix
+            src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin.SSMS20.vsix
             src/SsmsSqlPlugin.Vsix/dist/SSMS-SQLPlugin-Setup.exe

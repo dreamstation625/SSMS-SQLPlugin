@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0"
+                 xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"
+                 xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SSMS-SQLPlugin.7b3e2f18-5c94-4a67-b1d8-3f9e6a4c2d10" Version="0.2.0" Language="en-US" Publisher="SSMS-SQLPlugin" />
+    <DisplayName>SSMS-SQLPlugin</DisplayName>
+    <Description xml:space="preserve">SQL formatting, execution history, file history and table/column completion for SQL Server Management Studio 20.</Description>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Ssms" Version="[20.0,21.0)">
+      <ProductArchitecture>x86</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="SSMS-SQLPlugin.pkgdef" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="File" Path="SsmsSqlPlugin.dll" />
+  </Assets>
+</PackageManifest>

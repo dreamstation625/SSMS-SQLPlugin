@@ -10,7 +10,9 @@ namespace SsmsSqlPlugin.Formatting.Tokens
     {
         public static TSqlParser CreateParser()
         {
-#if SSMS21
+#if SSMS20
+            return new TSql160Parser(initialQuotedIdentifiers: true);
+#elif SSMS21
             return new TSql170Parser(initialQuotedIdentifiers: true);
 #else
             return new TSql180Parser(initialQuotedIdentifiers: true);

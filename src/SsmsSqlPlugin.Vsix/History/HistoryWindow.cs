@@ -655,7 +655,7 @@ namespace SsmsSqlPlugin.History
             form.FormClosed += (s, e) => { if (ReferenceEquals(_instance, form)) _instance = null; };
 
             IntPtr owner = IntPtr.Zero;
-            try { owner = dte.MainWindow.HWnd; } catch { }
+            try { owner = (IntPtr)(long)dte.MainWindow.HWnd; } catch { }
 
             if (owner != IntPtr.Zero) form.Show(new HandleOwner(owner));
             else form.Show();

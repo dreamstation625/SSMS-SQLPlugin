@@ -8,8 +8,20 @@
     <Version>0.2.0</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <PlatformTarget>x64</PlatformTarget>
+    <Ssms20Build Condition="'$(Configuration)'=='Debug20' Or '$(Configuration)'=='Release20'">true</Ssms20Build>
+    <PlatformTarget Condition="'$(Ssms20Build)'=='true'">x86</PlatformTarget>
+    <PlatformTarget Condition="'$(Ssms20Build)'!='true'">x64</PlatformTarget>
+    <DefineConstants Condition="'$(Ssms20Build)'=='true'">$(DefineConstants);SSMS20</DefineConstants>
+    <VsSdkVersion Condition="'$(Ssms20Build)'=='true'">15.9.3</VsSdkVersion>
+    <VsSdkVersion Condition="'$(VsSdkVersion)'==''">17.0.32112.339</VsSdkVersion>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(Ssms20Build)'=='true'">
+    <!-- SSMS 20 的 VS 2019 Shell 没有异步补全程序集；旧管线后续单独接入。 -->
+    <Compile Remove="Completion\SqlCompletionProvider.cs" />
+    <Compile Remove="Completion\SqlCompletionItemManager.cs" />
+    <Compile Remove="Completion\SqlCommitManager.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- 关键：必须引用 NuGet 的 17.x 引用程序集（AssemblyVersion = 17.0.0.0）。
@@ -17,7 +29,7 @@
          18.0.0.0，而 SSMS 运行时加载的是 17.0.0.0，没有绑定重定向，
          CLR 解析失败后是静默的：包不加载、菜单不出现、日志一个字都没有。
          ExcludeAssets=runtime 保证这些 DLL 不会被打进 VSIX（宿主自己提供）。 -->
-    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="$(VsSdkVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
   </ItemGroup>
 

@@ -35,7 +35,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 VSIX_PROJ = os.path.join(HERE, "SsmsSqlPlugin.Vsix.csproj")
 SSMS21 = "--ssms21" in sys.argv
-CONFIG = "Debug21" if SSMS21 else "Debug"
+SSMS20 = "--ssms20" in sys.argv
+CONFIG = "Debug21" if SSMS21 else ("Debug20" if SSMS20 else "Debug")
 BIN = os.path.join(HERE, "bin", CONFIG)
 DIST = os.path.join(HERE, "dist")
 
@@ -48,8 +49,15 @@ DLL_RESOURCES = "SsmsSqlPlugin.resources.dll"
 SATELLITE_EN = "en/" + DLL_RESOURCES
 PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
-MANIFEST_SRC = "extension.vsixmanifest.ssms21" if SSMS21 else MANIFEST
-VSIX = "SSMS-SQLPlugin.SSMS21.vsix" if SSMS21 else "SSMS-SQLPlugin.vsix"
+if SSMS20:
+    MANIFEST_SRC = "extension.vsixmanifest.ssms20"
+    VSIX = "SSMS-SQLPlugin.SSMS20.vsix"
+elif SSMS21:
+    MANIFEST_SRC = "extension.vsixmanifest.ssms21"
+    VSIX = "SSMS-SQLPlugin.SSMS21.vsix"
+else:
+    MANIFEST_SRC = MANIFEST
+    VSIX = "SSMS-SQLPlugin.vsix"
 VSIX_V21 = "SSMS-SQLPlugin.SSMS21.vsix"
 
 # SSMS 22 用户级扩展目录（GUID 是这台机器实测的实例 ID）
@@ -66,6 +74,10 @@ if SSMS21:
             if name.startswith("21.0_") and os.path.isdir(candidate):
                 SSMS_EXT_DIR = candidate
                 break
+elif SSMS20:
+    SSMS_EXT_DIR = os.path.join(
+        os.environ.get("LOCALAPPDATA", ""),
+        "Microsoft", "SQL Server Management Studio", "20.0_IsoShell", "Extensions")
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -162,7 +174,7 @@ def package():
     if not os.path.isfile(os.path.join(HERE, MANIFEST_SRC)):
         return fail("找不到清单 " + MANIFEST_SRC)
 
-    if not SSMS21 and os.path.isdir(DIST):
+    if not SSMS21 and not SSMS20 and os.path.isdir(DIST):
         shutil.rmtree(DIST)
     os.makedirs(DIST, exist_ok=True)
 
@@ -251,13 +263,32 @@ def deploy():
             except Exception as ex:
                 print("       [warn] 删除 %s 失败: %s" % (cache, ex))
 
+    if SSMS20:
+        # IsolatedShell 的扩展扫描缓存；不删可能仍用旧列表。
+        for cache in ("extensions.zh-CN.cache", "extensionSdks.zh-CN.cache"):
+            p = os.path.join(SSMS_EXT_DIR, cache)
+            try:
+                if os.path.isfile(p):
+                    os.remove(p)
+                    step("已清除缓存 " + cache)
+            except Exception as ex:
+                print("       [warn] 删除 %s 失败: %s" % (cache, ex))
+        instance = os.path.dirname(SSMS_EXT_DIR)
+        component_cache = os.path.join(instance, "ComponentModelCache")
+        if os.path.isdir(component_cache):
+            try:
+                shutil.rmtree(component_cache)
+                step("已清除 ComponentModelCache")
+            except Exception as ex:
+                print("       [warn] 删除 ComponentModelCache 失败: %s" % ex)
+
     return 0
 
 
 def build_installer():
     """把 V21/V22 两个 VSIX 作为内嵌 payload，构建统一安装器。"""
-    if SSMS21:
-        return fail("统一安装器请使用默认 --installer；--ssms21 只构建 V21 VSIX")
+    if SSMS21 or SSMS20:
+        return fail("统一安装器请使用默认 --installer；--ssms21/--ssms20 只构建对应 VSIX")
 
     vsix_v22 = os.path.join(DIST, VSIX)
     vsix_v21 = os.path.join(DIST, VSIX_V21)

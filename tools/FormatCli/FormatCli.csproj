@@ -7,14 +7,17 @@
     <AssemblyName>formatcli</AssemblyName>
     <RootNamespace>SsmsSqlPlugin.FormatCli</RootNamespace>
     <Ssms21Build Condition="'$(Configuration)'=='Debug21' Or '$(Configuration)'=='Release21'">true</Ssms21Build>
+    <Ssms20Build Condition="'$(Configuration)'=='Debug20' Or '$(Configuration)'=='Release20'">true</Ssms20Build>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
     <!-- CLI 需要真实的 ScriptDom 运行时；VSIX 里由 SSMS 宿主提供，不打包。
-         Debug21 / Release21 必须和 Formatting 用同一个 17.x 版本。 -->
+         Debug21 用 17.x，Debug20 用 16.1（x86 宿主），默认用 18.x。 -->
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="161.9142.1"
+                      Condition="'$(Ssms20Build)'=='true'" />
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="170.191.0"
                       Condition="'$(Ssms21Build)'=='true'" />
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0"
-                      Condition="'$(Ssms21Build)'!='true'" />
+                      Condition="'$(Ssms21Build)'!='true' And '$(Ssms20Build)'!='true'" />
   </ItemGroup>
 </Project>
