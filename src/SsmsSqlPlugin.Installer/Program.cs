@@ -154,13 +154,13 @@ namespace SsmsSqlPlugin.Installer
             {
                 temp = ExtractPayload();
                 string dll = Path.Combine(temp, "SsmsSqlPlugin.dll");
-                if (!File.Exists(dll)) return "0.1.0";
+                if (!File.Exists(dll)) return "0.1.1";
 
                 return AssemblyName.GetAssemblyName(dll).Version.ToString(3);
             }
             catch
             {
-                return "0.1.0";
+                return "0.1.1";
             }
             finally
             {

@@ -881,27 +881,29 @@ namespace SsmsSqlPlugin.History
 
         private void OnRetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
+            // VirtualMode 要求每个列都有子项，包括末尾用于补齐表头的占位列。
             if (e.ItemIndex < 0 || e.ItemIndex >= _rows.Count)
             {
-                e.Item = new ListViewItem(new[] { "", "", "", "", "", "", "", "", "", "" });
+                e.Item = new ListViewItem(new string[_list.Columns.Count]);
                 return;
             }
 
             var row = _rows[e.ItemIndex];
             bool isExecute = string.IsNullOrEmpty(row.Kind) || row.Kind == "execute";
 
-            var item = new ListViewItem(new[]
-            {
-                FormatListTime(row.StartedUtc),
-                row.ServerName ?? "",
-                row.DatabaseName ?? "",
-                FileName(row),
-                isExecute ? (row.DurationMs > 0 ? row.DurationMs + " ms" : "—") : "—",
-                isExecute && row.Succeeded >= 0 ? row.RowsAffected.ToString() : "—",
-                FormatKind(row.Kind),
-                Summarize(row.SqlText),
-                FormatListTime(row.DeletedUtc),
-            });
+            // 数组长度必须跟随列数，否则 ListView 会抛 InvalidOperationException。
+            var values = new string[_list.Columns.Count];
+            values[0] = FormatListTime(row.StartedUtc);
+            values[1] = row.ServerName ?? "";
+            values[2] = row.DatabaseName ?? "";
+            values[3] = FileName(row);
+            values[4] = isExecute ? (row.DurationMs > 0 ? row.DurationMs + " ms" : "—") : "—";
+            values[5] = isExecute && row.Succeeded >= 0 ? row.RowsAffected.ToString() : "—";
+            values[6] = FormatKind(row.Kind);
+            values[7] = Summarize(row.SqlText);
+            values[8] = FormatListTime(row.DeletedUtc);
+
+            var item = new ListViewItem(values);
 
             // 徽标样式按数据值（execute/edit/timer）决定，不能按本地化后的文案判断
             item.Tag = row.Kind == "timer" ? "timer" : row.Kind == "edit" ? "edit" : "execute";
