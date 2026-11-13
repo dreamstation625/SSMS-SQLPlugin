@@ -111,7 +111,7 @@ namespace SsmsSqlPlugin.Formatting.Tokens
             IList<ParseError> errors;
             try
             {
-                var parser = new TSql180Parser(initialQuotedIdentifiers: true);
+                var parser = ScriptDomCompat.CreateParser();
                 using (var reader = new StringReader(sql))
                 {
                     tree = parser.Parse(reader, out errors);

@@ -61,7 +61,7 @@ namespace SsmsSqlPlugin.Formatting.Tokens
 
             try
             {
-                var parser = new TSql180Parser(initialQuotedIdentifiers: true);
+                var parser = ScriptDomCompat.CreateParser();
                 using (var reader = new StringReader(sql))
                 {
                     raw = parser.GetTokenStream(reader, out parseErrors);

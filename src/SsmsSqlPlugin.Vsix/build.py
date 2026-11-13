@@ -34,7 +34,9 @@ except Exception:
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 VSIX_PROJ = os.path.join(HERE, "SsmsSqlPlugin.Vsix.csproj")
-BIN = os.path.join(HERE, "bin", "Debug")
+SSMS21 = "--ssms21" in sys.argv
+CONFIG = "Debug21" if SSMS21 else "Debug"
+BIN = os.path.join(HERE, "bin", CONFIG)
 DIST = os.path.join(HERE, "dist")
 
 DLL = "SsmsSqlPlugin.dll"
@@ -46,12 +48,23 @@ DLL_RESOURCES = "SsmsSqlPlugin.resources.dll"
 SATELLITE_EN = "en/" + DLL_RESOURCES
 PKGDEF = "SSMS-SQLPlugin.pkgdef"
 MANIFEST = "extension.vsixmanifest"
-VSIX = "SSMS-SQLPlugin.vsix"
+MANIFEST_SRC = "extension.vsixmanifest.ssms21" if SSMS21 else MANIFEST
+VSIX = "SSMS-SQLPlugin.SSMS21.vsix" if SSMS21 else "SSMS-SQLPlugin.vsix"
 
 # SSMS 22 用户级扩展目录（GUID 是这台机器实测的实例 ID）
 SSMS_EXT_DIR = os.path.join(
     os.environ.get("LOCALAPPDATA", ""),
     "Microsoft", "SSMS", "22.0_a832b12e", "Extensions")
+
+if SSMS21:
+    ssms_root = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "SSMS")
+    SSMS_EXT_DIR = ""
+    if os.path.isdir(ssms_root):
+        for name in sorted(os.listdir(ssms_root)):
+            candidate = os.path.join(ssms_root, name, "Extensions")
+            if name.startswith("21.0_") and os.path.isdir(candidate):
+                SSMS_EXT_DIR = candidate
+                break
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -120,7 +133,7 @@ def verify_pkgdef():
 def build():
     step("构建 " + os.path.basename(VSIX_PROJ))
     r = subprocess.run(
-        ["dotnet", "build", VSIX_PROJ, "-v", "q", "--nologo"],
+        ["dotnet", "build", VSIX_PROJ, "-c", CONFIG, "-v", "q", "--nologo"],
         cwd=HERE, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     out = (r.stdout or "") + (r.stderr or "")
@@ -145,12 +158,15 @@ def package():
         if not os.path.isfile(path):
             return fail("找不到 %s" % path)
 
-    if os.path.isdir(DIST):
+    if not os.path.isfile(os.path.join(HERE, MANIFEST_SRC)):
+        return fail("找不到清单 " + MANIFEST_SRC)
+
+    if not SSMS21 and os.path.isdir(DIST):
         shutil.rmtree(DIST)
-    os.makedirs(DIST)
+    os.makedirs(DIST, exist_ok=True)
 
     payload = [
-        (os.path.join(HERE, MANIFEST), MANIFEST),
+        (os.path.join(HERE, MANIFEST_SRC), MANIFEST),
         (os.path.join(HERE, PKGDEF), PKGDEF),
         (os.path.join(BIN, DLL), DLL),
         (os.path.join(BIN, DLL_FORMATTING), DLL_FORMATTING),
@@ -211,7 +227,7 @@ def deploy():
     shutil.copy2(satellite_src, os.path.join(satellite_dir, DLL_RESOURCES))
     print("       copied en\\%s" % DLL_RESOURCES)
 
-    shutil.copy2(os.path.join(HERE, MANIFEST), os.path.join(target, MANIFEST))
+    shutil.copy2(os.path.join(HERE, MANIFEST_SRC), os.path.join(target, MANIFEST))
     print("       copied %s" % MANIFEST)
 
     # 铁律：刷新配置标记，否则 Shell 用旧缓存、包静默不加载
@@ -239,6 +255,9 @@ def deploy():
 
 def build_installer():
     """把刚打好的 VSIX 作为内嵌 payload，构建单文件安装器。"""
+    if SSMS21:
+        return fail("SSMS 21 安装器尚未接入；当前用 --ssms21 --no-deploy 生成 V21 VSIX")
+
     vsix_path = os.path.join(DIST, VSIX)
     if not os.path.isfile(vsix_path):
         return fail("VSIX 不存在，无法构建安装器：" + vsix_path)

@@ -4,14 +4,20 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>SsmsSqlPlugin.Formatting</AssemblyName>
     <RootNamespace>SsmsSqlPlugin.Formatting</RootNamespace>
+    <Ssms21Build Condition="'$(Configuration)'=='Debug21' Or '$(Configuration)'=='Release21'">true</Ssms21Build>
+    <DefineConstants Condition="'$(Ssms21Build)'=='true'">$(DefineConstants);SSMS21</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <!-- ScriptDom 由宿主提供，**不复制到输出目录**。
-         SSMS 22 自带 18.0.115.0（AssemblyVersion 18.0.0.0），位于
-         <SSMS>\Release\Common7\IDE\Extensions\Application\。
-         这里用 ExcludeAssets=runtime 只拿引用程序集编译，
-         避免扩展目录里多出 7MB 副本、也避免 CLR 加载到两个不同版本。 -->
-    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0">
+         SSMS 22 自带 18.0.115.0（AssemblyVersion 18.0.0.0）；
+         SSMS 21 自带 17.x（AssemblyVersion 17.0.0.0）。
+         用 Debug21 / Release21 配置切到 170 包，避免跨大版本强名称绑定失败。 -->
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="170.191.0"
+                      Condition="'$(Ssms21Build)'=='true'">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.140.0"
+                      Condition="'$(Ssms21Build)'!='true'">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
