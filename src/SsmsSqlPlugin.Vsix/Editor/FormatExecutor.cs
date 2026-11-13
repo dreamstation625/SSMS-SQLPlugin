@@ -22,6 +22,9 @@ namespace SsmsSqlPlugin.Editor
     /// </summary>
     internal static class FormatExecutor
     {
+        // x86 下大脚本全文格式化容易耗尽内存/长时间卡死，超过此长度必须让用户选片段。
+        private const int MaxWholeDocumentChars = 2 * 1024 * 1024;
+
         public sealed class Outcome
         {
             /// <summary>是否真的改动了文档。</summary>
@@ -83,6 +86,14 @@ namespace SsmsSqlPlugin.Editor
             if (string.IsNullOrWhiteSpace(original))
             {
                 return Fail(Loc.T("There is no SQL to format (the range is empty or whitespace only)."));
+            }
+
+            if (!hasSelection && original.Length > MaxWholeDocumentChars)
+            {
+                Log.Warn("全文格式化被拒绝：长度 " + original.Length + " 超过 " + MaxWholeDocumentChars);
+                return Fail(Loc.F(
+                    "The script is larger than 2 MB ({0:N0} characters). Select the part to format and try again.",
+                    original.Length));
             }
 
             Log.Info("格式化范围 " + startLine + ":" + startCol + " → " + endLine + ":" + endCol +

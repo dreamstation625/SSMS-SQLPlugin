@@ -172,8 +172,44 @@
   <data name="Failed to read the text (hr=0x{0})." xml:space="preserve">
     <value>读取文本失败（hr=0x{0}）。</value>
   </data>
+  <data name="Refreshing completion cache for {0}..." xml:space="preserve">
+    <value>正在刷新 {0} 的补全缓存…</value>
+  </data>
+  <data name="Completion cache updated: {0} tables, {1} views." xml:space="preserve">
+    <value>补全缓存已更新：{0} 张表 / {1} 个视图。</value>
+  </data>
+  <data name="No active database connection; completion cache was not refreshed." xml:space="preserve">
+    <value>当前没有数据库连接，无法刷新补全缓存。</value>
+  </data>
+  <data name="Connected to {0}; metadata completion is unavailable in this host." xml:space="preserve">
+    <value>已连接 {0}；当前宿主不支持元数据补全。</value>
+  </data>
+  <data name="Completion is not ready yet." xml:space="preserve">
+    <value>补全尚未就绪。</value>
+  </data>
+  <data name="Completion metadata is already loading." xml:space="preserve">
+    <value>补全元数据正在加载，请稍候。</value>
+  </data>
+  <data name="Completion metadata failed to load: {0}" xml:space="preserve">
+    <value>补全元数据加载失败：{0}</value>
+  </data>
+  <data name="Switched to database {0}; loading completion..." xml:space="preserve">
+    <value>已切换到数据库 {0}，正在加载补全…</value>
+  </data>
+  <data name="Current database: {0}" xml:space="preserve">
+    <value>当前数据库：{0}</value>
+  </data>
+  <data name="Completion ready for {0}: {1} tables, {2} views." xml:space="preserve">
+    <value>补全已就绪：{0}（{1} 张表 / {2} 个视图）。</value>
+  </data>
+  <data name="Failed to refresh completion cache: {0}" xml:space="preserve">
+    <value>刷新补全缓存失败：{0}</value>
+  </data>
   <data name="There is no SQL to format (the range is empty or whitespace only)." xml:space="preserve">
     <value>没有可格式化的 SQL（范围为空或全是空白）。</value>
+  </data>
+  <data name="The script is larger than 2 MB ({0:N0} characters). Select the part to format and try again." xml:space="preserve">
+    <value>脚本超过 2 MB（{0:N0} 字符），请选中需要格式化的片段后再试。</value>
   </data>
   <data name="Formatting failed: {0}" xml:space="preserve">
     <value>格式化失败：{0}</value>

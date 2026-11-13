@@ -167,8 +167,44 @@
   <data name="Failed to read the text (hr=0x{0})." xml:space="preserve">
     <value>Failed to read the text (hr=0x{0}).</value>
   </data>
+  <data name="Refreshing completion cache for {0}..." xml:space="preserve">
+    <value>Refreshing completion cache for {0}...</value>
+  </data>
+  <data name="Completion cache updated: {0} tables, {1} views." xml:space="preserve">
+    <value>Completion cache updated: {0} tables, {1} views.</value>
+  </data>
+  <data name="No active database connection; completion cache was not refreshed." xml:space="preserve">
+    <value>No active database connection; completion cache was not refreshed.</value>
+  </data>
+  <data name="Connected to {0}; metadata completion is unavailable in this host." xml:space="preserve">
+    <value>Connected to {0}; metadata completion is unavailable in this host.</value>
+  </data>
+  <data name="Completion is not ready yet." xml:space="preserve">
+    <value>Completion is not ready yet.</value>
+  </data>
+  <data name="Completion metadata is already loading." xml:space="preserve">
+    <value>Completion metadata is already loading.</value>
+  </data>
+  <data name="Completion metadata failed to load: {0}" xml:space="preserve">
+    <value>Completion metadata failed to load: {0}</value>
+  </data>
+  <data name="Switched to database {0}; loading completion..." xml:space="preserve">
+    <value>Switched to database {0}; loading completion...</value>
+  </data>
+  <data name="Current database: {0}" xml:space="preserve">
+    <value>Current database: {0}</value>
+  </data>
+  <data name="Completion ready for {0}: {1} tables, {2} views." xml:space="preserve">
+    <value>Completion ready for {0}: {1} tables, {2} views.</value>
+  </data>
+  <data name="Failed to refresh completion cache: {0}" xml:space="preserve">
+    <value>Failed to refresh completion cache: {0}</value>
+  </data>
   <data name="There is no SQL to format (the range is empty or whitespace only)." xml:space="preserve">
     <value>There is no SQL to format (the range is empty or whitespace only).</value>
+  </data>
+  <data name="The script is larger than 2 MB ({0:N0} characters). Select the part to format and try again." xml:space="preserve">
+    <value>The script is larger than 2 MB ({0:N0} characters). Select the part to format and try again.</value>
   </data>
   <data name="Formatting failed: {0}" xml:space="preserve">
     <value>Formatting failed: {0}</value>

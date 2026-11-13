@@ -2,6 +2,8 @@ using System;
 using System.Data;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using Microsoft.VisualStudio.Shell;
 using SsmsSqlPlugin.Core.Metadata;
@@ -33,8 +35,22 @@ namespace SsmsSqlPlugin.Completion
         private MethodInfo _getCurrentConnection;
         private MethodInfo _getActiveEditorMoniker;
 
+        // SSMS 20 没有 SSqlEditorService，编辑器窗口连接走
+        // Microsoft.SqlServer.Management.UI.VSIntegration.ISqlToolsWindowWithConnectionState。
+        private Type _connectionStateType;
+        private Type _editorWindowConnectionType;
+        private PropertyInfo _connectionStateIsConnected;
+        private PropertyInfo _connectionStateConnection;
+
         private string _lastSignature;
         private string _lastMoniker;
+        private string _lastTitleDatabase;
+        private bool _titleDatabaseInitialized;
+
+        /// <summary>标题兜底检测到数据库切换（没有连接服务时）。</summary>
+        public event Action<string> TitleDatabaseChanged;
+
+        public string LastObservedDatabase => _lastTitleDatabase;
 
         public ConnectionTracker(IServiceProvider provider, Action<ConnectionDescriptor> onChanged)
         {
@@ -95,15 +111,40 @@ namespace SsmsSqlPlugin.Completion
                 if (!_serviceNotRegisteredLogged)
                 {
                     _serviceNotRegisteredLogged = true;
-                    Log.Warn("[补全] 连接服务未注册: " + _serviceIdType.FullName);
+                    var serviceType = _serviceIdType ?? _connectionStateType;
+                    Log.Warn("[补全] 连接服务未注册: " + (serviceType != null ? serviceType.FullName : "(unknown)"));
                 }
+
+                // SSMS 20 读不到编辑器连接；退化为窗口标题里的数据库名，至少给切库提示。
+                TryNotifyTitleDatabase();
                 return;
             }
 
             object connectionObject = null;
             try
             {
-                connectionObject = _getCurrentConnection.Invoke(service, null);
+                if (_connectionStateType != null && _connectionStateType.IsInstanceOfType(service))
+                {
+                    object connectedValue = _connectionStateIsConnected != null
+                        ? _connectionStateIsConnected.GetValue(service, null)
+                        : null;
+                    if (connectedValue is bool connected && !connected)
+                    {
+                        Notify(null);
+                        return;
+                    }
+
+                    connectionObject = _connectionStateConnection.GetValue(service, null);
+                }
+                else if (_getCurrentConnection != null)
+                {
+                    connectionObject = _getCurrentConnection.Invoke(service, null);
+                }
+                else
+                {
+                    Notify(null);
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -191,6 +232,80 @@ namespace SsmsSqlPlugin.Completion
             catch (Exception ex) { Log.Warn("[补全] 通知连接变化失败: " + ex.Message); }
         }
 
+        private void TryNotifyTitleDatabase()
+        {
+            string title = null;
+            EnvDTE.DTE dte = null;
+
+            try
+            {
+                dte = _provider.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
+                if (dte?.MainWindow != null)
+                {
+                    var hwnd = (IntPtr)(long)dte.MainWindow.HWnd;
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        var buffer = new StringBuilder(512);
+                        if (GetWindowText(hwnd, buffer, buffer.Capacity) > 0)
+                            title = buffer.ToString();
+                    }
+                }
+            }
+            catch { }
+
+            if (string.IsNullOrEmpty(title))
+            {
+                try { title = dte?.ActiveWindow?.Caption; } catch { }
+            }
+
+            if (string.IsNullOrEmpty(title))
+            {
+                try { title = System.Diagnostics.Process.GetCurrentProcess().MainWindowTitle; }
+                catch { }
+            }
+
+            string database = ParseDatabaseFromTitle(title);
+            if (string.IsNullOrEmpty(database)) return;
+
+            if (!_titleDatabaseInitialized)
+            {
+                _titleDatabaseInitialized = true;
+                _lastTitleDatabase = database;
+                Log.Info("[补全] 标题数据库: " + database);
+                return;
+            }
+
+            if (string.Equals(database, _lastTitleDatabase, StringComparison.OrdinalIgnoreCase)) return;
+
+            _lastTitleDatabase = database;
+            Log.Info("[补全] 标题数据库切换: " + database);
+            try { TitleDatabaseChanged?.Invoke(database); }
+            catch (Exception ex) { Log.Warn("[补全] 通知标题数据库失败: " + ex.Message); }
+        }
+
+        private static string ParseDatabaseFromTitle(string title)
+        {
+            const string suffix = " - Microsoft SQL Server Management Studio";
+            if (string.IsNullOrEmpty(title)) return null;
+
+            string body = title;
+            if (body.EndsWith(suffix, StringComparison.Ordinal))
+                body = body.Substring(0, body.Length - suffix.Length);
+
+            int dash = body.LastIndexOf(" - ", StringComparison.Ordinal);
+            if (dash < 0) return null;
+
+            string connectionPart = body.Substring(dash + 3);
+            int paren = connectionPart.IndexOf(" (", StringComparison.Ordinal);
+            if (paren > 0) connectionPart = connectionPart.Substring(0, paren);
+
+            connectionPart = connectionPart.TrimEnd('*').Trim();
+            int dot = connectionPart.LastIndexOf('.');
+            if (dot < 0 || dot + 1 >= connectionPart.Length) return null;
+
+            return connectionPart.Substring(dot + 1).Trim();
+        }
+
         private bool EnsureServiceTypes()
         {
             if (_typesResolved) return _serviceIdType != null && _getCurrentConnection != null;
@@ -204,7 +319,7 @@ namespace SsmsSqlPlugin.Completion
                 if (TryResolve(assembly)) return true;
             }
 
-            if (_serviceIdType == null || _getCurrentConnection == null)
+            if (!HasConnectionPath())
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 string[] candidates =
@@ -232,7 +347,7 @@ namespace SsmsSqlPlugin.Completion
                 }
             }
 
-            if (_serviceIdType == null || _getCurrentConnection == null)
+            if (!HasConnectionPath())
             {
                 if (!_missingServiceLogged)
                 {
@@ -244,6 +359,13 @@ namespace SsmsSqlPlugin.Completion
 
             _typesResolved = true;
             return true;
+        }
+
+        private bool HasConnectionPath()
+        {
+            bool modern = _serviceIdType != null && _getCurrentConnection != null;
+            bool legacy = _connectionStateType != null && _connectionStateConnection != null;
+            return modern || legacy;
         }
 
         private bool TryResolve(Assembly assembly)
@@ -261,6 +383,21 @@ namespace SsmsSqlPlugin.Completion
 
                 if (type.Name == "SSqlEditorService") _serviceIdType = type;
                 else if (type.Name == "ISqlEditorService") _serviceInterfaceType = type;
+                else if (type.Name == "ISqlToolsWindowWithConnectionState" && _connectionStateType == null)
+                {
+                    var connectionProperty = type.GetProperty("Connection");
+                    if (connectionProperty != null)
+                    {
+                        _connectionStateType = type;
+                        _connectionStateConnection = connectionProperty;
+                        _connectionStateIsConnected = type.GetProperty("IsConnected");
+                        Log.Info("[补全] 找到 SSMS 20 连接状态接口: " + type.FullName);
+                    }
+                }
+                else if (type.Name == "ISqlScriptWindowWithConnection")
+                {
+                    _editorWindowConnectionType = type;
+                }
             }
 
             if (_serviceIdType == null && _serviceInterfaceType == null)
@@ -299,58 +436,69 @@ namespace SsmsSqlPlugin.Completion
                              " 接口=" + _serviceInterfaceType.FullName);
                     return true;
                 }
-
-                return false;
             }
 
             var methodHost = _serviceInterfaceType ?? _serviceIdType;
-            _getCurrentConnection = methodHost.GetMethod(
-                "GetCurrentConnection", BindingFlags.Public | BindingFlags.Instance, null,
-                Type.EmptyTypes, null);
+            if (methodHost != null)
+            {
+                _getCurrentConnection = methodHost.GetMethod(
+                    "GetCurrentConnection", BindingFlags.Public | BindingFlags.Instance, null,
+                    Type.EmptyTypes, null);
 
-            _getActiveEditorMoniker = methodHost.GetMethod(
-                "GetActiveEditorMoniker", BindingFlags.Public | BindingFlags.Instance, null,
-                Type.EmptyTypes, null);
+                _getActiveEditorMoniker = methodHost.GetMethod(
+                    "GetActiveEditorMoniker", BindingFlags.Public | BindingFlags.Instance, null,
+                    Type.EmptyTypes, null);
+            }
 
-            return _serviceIdType != null && _getCurrentConnection != null;
+            bool modern = _serviceIdType != null && _getCurrentConnection != null;
+            bool legacy = _connectionStateType != null && _connectionStateConnection != null;
+            return modern || legacy;
         }
 
         private object ResolveService()
         {
-            object service = null;
-
-            try { service = _provider.GetService(_serviceIdType); } catch { }
-            if (service == null && _serviceInterfaceType != null &&
-                _serviceInterfaceType != _serviceIdType)
+            foreach (var type in ServiceTypes())
             {
-                try { service = _provider.GetService(_serviceInterfaceType); } catch { }
+                object service = null;
+
+                try { service = _provider.GetService(type); } catch { }
+                if (service != null) return service;
+
+                try { service = Package.GetGlobalService(type); } catch { }
+                if (service != null) return service;
+
+                try { service = ServiceProvider.GlobalProvider.GetService(type); } catch { }
+                if (service != null) return service;
             }
 
-            if (service == null)
-            {
-                try { service = Package.GetGlobalService(_serviceIdType); } catch { }
-            }
-            if (service == null && _serviceInterfaceType != null &&
-                _serviceInterfaceType != _serviceIdType)
-            {
-                try { service = Package.GetGlobalService(_serviceInterfaceType); } catch { }
-            }
+            return null;
+        }
 
-            if (service == null)
-            {
-                try
-                {
-                    service = ServiceProvider.GlobalProvider.GetService(_serviceInterfaceType ?? _serviceIdType);
-                }
-                catch { }
-            }
+        private System.Collections.Generic.IEnumerable<Type> ServiceTypes()
+        {
+            if (_serviceIdType != null) yield return _serviceIdType;
 
-            return service;
+            if (_serviceInterfaceType != null && _serviceInterfaceType != _serviceIdType)
+                yield return _serviceInterfaceType;
+
+            if (_connectionStateType != null &&
+                _connectionStateType != _serviceIdType &&
+                _connectionStateType != _serviceInterfaceType)
+                yield return _connectionStateType;
+
+            if (_editorWindowConnectionType != null &&
+                _editorWindowConnectionType != _serviceIdType &&
+                _editorWindowConnectionType != _serviceInterfaceType &&
+                _editorWindowConnectionType != _connectionStateType)
+                yield return _editorWindowConnectionType;
         }
 
         private static string Describe(Exception ex)
         {
             return Log.Describe(ex);
         }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
     }
 }

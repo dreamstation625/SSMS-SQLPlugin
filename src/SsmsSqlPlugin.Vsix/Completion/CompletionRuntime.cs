@@ -26,8 +26,14 @@ namespace SsmsSqlPlugin.Completion
 
         public bool IsLoading => _metadata.IsLoading;
 
-        /// <summary>元数据加载完成（后台线程）。</summary>
-        public event Action MetadataLoaded;
+        /// <summary>元数据加载完成（后台线程）：snapshot, 用时, 错误。</summary>
+        public event Action<MetadataSnapshot, TimeSpan, string> MetadataLoaded;
+
+        /// <summary>查询窗口切换了数据库（UI 线程）。</summary>
+        public event Action<string> DatabaseChanged;
+
+        /// <summary>没有连接服务时，从窗口标题观察到的数据库切换。</summary>
+        public event Action<string> DatabaseObserved;
 
         public static void Start(IServiceProvider provider)
         {
@@ -78,18 +84,38 @@ namespace SsmsSqlPlugin.Completion
 
         public ConnectionDescriptor Connection => _metadata.Connection;
 
+        /// <summary>没有连接服务时，从窗口标题观察到的数据库名。</summary>
+        public string ObservedDatabase => _tracker?.LastObservedDatabase;
+
         private void StartCore(IServiceProvider provider)
         {
             if (_started) return;
             _started = true;
 
             _tracker = new ConnectionTracker(provider, OnConnectionChanged);
+            _tracker.TitleDatabaseChanged += OnTitleDatabaseChanged;
             _tracker.Start();
+        }
+
+        private void OnTitleDatabaseChanged(string database)
+        {
+            try { DatabaseObserved?.Invoke(database); }
+            catch { }
         }
 
         private void OnConnectionChanged(ConnectionDescriptor descriptor)
         {
+            string previousDatabase = _metadata.Connection?.Database;
             _metadata.SetConnection(descriptor);
+
+            if (descriptor != null && descriptor.IsUsable &&
+                !string.IsNullOrEmpty(previousDatabase) &&
+                !string.Equals(previousDatabase, descriptor.Database, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Info("[补全] 数据库切换: " + previousDatabase + " -> " + descriptor.Database);
+                try { DatabaseChanged?.Invoke(descriptor.Database); }
+                catch { }
+            }
         }
 
         private void OnMetadataLoadStarted(ConnectionDescriptor descriptor)
@@ -102,7 +128,7 @@ namespace SsmsSqlPlugin.Completion
             _progress.End();
             System.Threading.Interlocked.Increment(ref _version);
 
-            try { MetadataLoaded?.Invoke(); }
+            try { MetadataLoaded?.Invoke(snapshot, elapsed, error); }
             catch { }
 
             int tables = 0, views = 0, procedures = 0, columns = 0;

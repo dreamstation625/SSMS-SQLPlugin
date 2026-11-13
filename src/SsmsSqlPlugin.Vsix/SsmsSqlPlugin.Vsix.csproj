@@ -45,6 +45,8 @@
     <Reference Include="System.ComponentModel.Composition" />
     <!-- 弹窗提示：VSIX 里没有 WPF 引用链，WinForms 最省事且最稳 -->
     <Reference Include="System.Windows.Forms" />
+    <!-- V20 旧补全 Completion 构造函数的 ImageSource 参数 -->
+    <Reference Include="PresentationCore" Condition="'$(Ssms20Build)'=='true'" />
     <!-- 排版引擎（netstandard2.0，net48 可直接引用） -->
     <ProjectReference Include="..\SsmsSqlPlugin.Formatting\SsmsSqlPlugin.Formatting.csproj" />
     <!-- 补全的纯逻辑（词法复用 Formatting，元数据/上下文/排序在 Core） -->

@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TextManager.Interop;
 using SsmsSqlPlugin.Completion;
+using SsmsSqlPlugin.Core.Metadata;
 using SsmsSqlPlugin.Editor;
 using SsmsSqlPlugin.History;
 using SsmsSqlPlugin.Infrastructure;
@@ -16,6 +17,9 @@ using SsmsSqlPlugin.Localization;
 using SsmsSqlPlugin.Menus;
 using SsmsSqlPlugin.Settings;
 using Task = System.Threading.Tasks.Task;
+#if SSMS20
+using SsmsSqlPlugin.Completion.Legacy;
+#endif
 
 namespace SsmsSqlPlugin
 {
@@ -51,6 +55,10 @@ namespace SsmsSqlPlugin
         private IVsRunningDocumentTable _rdt;
         private System.Windows.Forms.Timer _welcomeTimer;
 
+        private volatile bool _manualRefreshPending;
+        private volatile bool _databaseSwitchPending;
+        private volatile string _pendingDatabase;
+
         /// <summary>已经装过过滤器的视图（用对象身份哈希去重）。</summary>
         private readonly System.Collections.Generic.HashSet<int> _filteredViews
             = new System.Collections.Generic.HashSet<int>();
@@ -82,6 +90,14 @@ namespace SsmsSqlPlugin
             {
                 CompletionRuntime.Start(this);
                 Log.Info("[补全] 运行时已启动");
+
+                var runtime = CompletionRuntime.Current;
+                if (runtime != null)
+                {
+                    runtime.MetadataLoaded += OnCompletionMetadataLoaded;
+                    runtime.DatabaseChanged += OnCompletionDatabaseChanged;
+                    runtime.DatabaseObserved += OnCompletionDatabaseObserved;
+                }
             }
             catch (Exception ex)
             {
@@ -560,6 +576,13 @@ namespace SsmsSqlPlugin
                 {
                     lock (_filteredViews) { _filteredViews.Remove(key); }
                 }
+#if SSMS20
+                else
+                {
+                    try { LegacyCompletionHook.Attach(view); }
+                    catch (Exception ex) { Log.Warn("[补全] 旧 CompletionSet 挂载失败: " + ex.Message); }
+                }
+#endif
             }
             catch (Exception ex)
             {
@@ -707,12 +730,94 @@ namespace SsmsSqlPlugin
         {
             try
             {
-                CompletionRuntime.Current?.RefreshMetadata();
+                var runtime = CompletionRuntime.Current;
+                if (runtime == null)
+                {
+                    Toast.Show(Loc.T("Completion is not ready yet."), true);
+                    return;
+                }
+
+                var descriptor = runtime.Connection;
+                if (descriptor == null || !descriptor.IsUsable)
+                {
+                    var observed = runtime.ObservedDatabase;
+                    if (!string.IsNullOrEmpty(observed))
+                    {
+                        Log.Warn("刷新补全缓存：宿主不提供连接信息，当前库=" + observed);
+                        Toast.Show(Loc.F(
+                            "Connected to {0}; metadata completion is unavailable in this host.", observed), true);
+                    }
+                    else
+                    {
+                        Log.Warn("刷新补全缓存：没有可用连接");
+                        Toast.Show(Loc.T("No active database connection; completion cache was not refreshed."), true);
+                    }
+                    return;
+                }
+
+                if (runtime.IsLoading)
+                {
+                    Toast.Show(Loc.T("Completion metadata is already loading."));
+                    return;
+                }
+
+                _pendingDatabase = descriptor.Database;
+                _manualRefreshPending = true;
+                runtime.RefreshMetadata();
+                Toast.Show(Loc.F("Refreshing completion cache for {0}...", descriptor.Database));
             }
             catch (Exception ex)
             {
                 Log.Error("刷新补全缓存失败", ex);
+                Toast.Show(Loc.F("Failed to refresh completion cache: {0}", ex.Message), true);
             }
+        }
+
+        private void OnCompletionMetadataLoaded(MetadataSnapshot snapshot, TimeSpan elapsed, string error)
+        {
+            int tables = 0, views = 0;
+            foreach (var obj in snapshot.Objects)
+            {
+                if (obj.IsView) views++;
+                else if (!obj.IsProcedure) tables++;
+            }
+
+            bool manual = _manualRefreshPending;
+            bool switched = _databaseSwitchPending;
+            _manualRefreshPending = false;
+            _databaseSwitchPending = false;
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                if (manual || switched)
+                    Toast.Show(Loc.F("Completion metadata failed to load: {0}", error), true);
+                return;
+            }
+
+            if (manual)
+            {
+                Toast.Show(Loc.F("Completion cache updated: {0} tables, {1} views.", tables, views));
+            }
+            else if (switched)
+            {
+                Toast.Show(Loc.F("Completion ready for {0}: {1} tables, {2} views.",
+                    _pendingDatabase ?? snapshot.Database, tables, views));
+            }
+        }
+
+        private void OnCompletionDatabaseChanged(string database)
+        {
+            if (string.IsNullOrEmpty(database)) return;
+
+            _pendingDatabase = database;
+            _databaseSwitchPending = true;
+            Toast.Show(Loc.F("Switched to database {0}; loading completion...", database));
+        }
+
+        private void OnCompletionDatabaseObserved(string database)
+        {
+            if (string.IsNullOrEmpty(database)) return;
+            Toast.Show(Loc.F("Current database: {0}", database));
         }
 
         private void OpenLogFile()
