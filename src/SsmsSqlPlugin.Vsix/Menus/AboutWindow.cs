@@ -233,7 +233,7 @@ namespace SsmsSqlPlugin.Menus
                 Anchor = AnchorStyles.Left,
             }, 0, 0);
 
-            string version = "0.1.1";
+            string version = "0.2.0";
             try
             {
                 version = typeof(AboutWindow).Assembly.GetName().Version.ToString(3);

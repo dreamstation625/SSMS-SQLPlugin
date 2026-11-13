@@ -161,12 +161,12 @@ namespace SsmsSqlPlugin.Installer
                     if (files.Length > 0) dll = files[0];
                 }
 
-                if (!File.Exists(dll)) return "0.1.1";
+                if (!File.Exists(dll)) return "0.2.0";
                 return AssemblyName.GetAssemblyName(dll).Version.ToString(3);
             }
             catch
             {
-                return "0.1.1";
+                return "0.2.0";
             }
             finally
             {
